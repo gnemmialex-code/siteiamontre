@@ -89,15 +89,18 @@ async function runStylePipeline(input: PipelineInput): Promise<string> {
 
 // ─── COMPOSITION PIPELINE ─────────────────────────────────────────────────────
 //
-// The only reliable way to keep the user in the photo is to use inpainting
-// with a mask that PROTECTS the original image area.
+// Primary path (name found + Wikipedia ref available — the common case):
+//   A. Download user photo + Wikipedia celebrity photo
+//   B. Composite side-by-side with sharp: user LEFT, celebrity RIGHT
+//      The model receives the ACTUAL celebrity face, not a grey void to fill.
+//   C. FLUX Kontext Max: "harmonize — keep left person pixel-perfect,
+//      make right person look natural in the same scene"
+//   D. RealESRGAN 4× upscale
 //
-// Steps:
-//   A. Fetch user image → extend canvas right × 1 (sharp, no generative AI)
-//   B. Create mask:  left=black (keep user) | right=white (generate celebrity)
-//   C. FLUX Fill Pro — fills only the white area, user is untouched by design
-//   D. Face-swap celebrity's face (Wikipedia ref → face 1) for accurate likeness
-//   E. RealESRGAN 4× upscale with face enhancement
+// Fallback (no Wikipedia ref found):
+//   A. Extend canvas with grey on the right
+//   B. FLUX Fill Pro inpaints the white area from the fill prompt
+//   C. RealESRGAN 4× upscale
 
 async function runCompositionPipeline(
   userImageUrl: string,
@@ -105,41 +108,42 @@ async function runCompositionPipeline(
   stylePrompt: string
 ): Promise<string> {
   const personName = extractPersonName(rawPrompt);
-  console.log(`[Pipeline] Composition – person detected: "${personName ?? "none"}"`);
+  const action = extractActionEn(rawPrompt);
+  console.log(`[Pipeline] Composition – person: "${personName ?? "none"}" | action: "${action}"`);
 
-  // Fetch celebrity reference image from Wikipedia (free, no API key)
   let referenceUrl: string | null = null;
   if (personName) {
     referenceUrl = await fetchWikipediaImage(personName);
     console.log(`[Pipeline] Wikipedia reference: ${referenceUrl ? "found ✓" : "not found"}`);
   }
 
-  // A+B: Extend canvas and create inpainting mask using sharp
-  console.log("[Pipeline] A – Extending canvas and creating mask…");
+  if (personName && referenceUrl) {
+    // ── Primary path ────────────────────────────────────────────────────────
+    console.log("[Pipeline] A – Compositing user + celebrity reference side by side…");
+    const compositeBase64 = await buildCompositeCanvas(userImageUrl, referenceUrl);
+
+    const harmonizePrompt = buildHarmonizePrompt(personName, action, stylePrompt);
+    console.log(`[Pipeline] B – FLUX Kontext harmonize: "${harmonizePrompt.slice(0, 100)}…"`);
+    const harmonized = await withRetry(() =>
+      runFluxKontext(compositeBase64, harmonizePrompt, "match_input_image")
+    );
+
+    console.log("[Pipeline] C – RealESRGAN 4× upscale");
+    return withRetry(() => runRealEsrgan(harmonized, 4, true));
+  }
+
+  // ── Fallback path ──────────────────────────────────────────────────────────
+  console.log("[Pipeline] A – Extending canvas with grey (fallback, no Wikipedia ref)…");
   const { extendedBase64, maskBase64 } = await buildExtendedCanvasAndMask(userImageUrl);
 
-  // C: FLUX Fill Pro – generates celebrity in the right (white) area only
   const fillPrompt = buildFillPrompt(personName, rawPrompt, stylePrompt);
-  console.log(`[Pipeline] C – FLUX Fill Pro inpainting: "${fillPrompt.slice(0, 80)}…"`);
-  const inpaintedUrl = await withRetry(() =>
+  console.log(`[Pipeline] B – FLUX Fill Pro inpaint: "${fillPrompt.slice(0, 100)}…"`);
+  const inpainted = await withRetry(() =>
     runFluxFillPro(extendedBase64, maskBase64, fillPrompt)
   );
 
-  // D: Face-swap the celebrity's actual face for accurate likeness
-  let composedUrl = inpaintedUrl;
-  if (referenceUrl) {
-    console.log("[Pipeline] D – Face-swap celebrity (face 1)…");
-    composedUrl = await withRetry(() =>
-      runFaceSwap(referenceUrl!, inpaintedUrl, "1")
-    ).catch((e) => {
-      console.warn("[Pipeline] D skipped (face 1 not detected):", (e as Error).message);
-      return inpaintedUrl;
-    });
-  }
-
-  // E: 4× upscale with face enhancement
-  console.log("[Pipeline] E – RealESRGAN 4× upscale");
-  return withRetry(() => runRealEsrgan(composedUrl, 4, true));
+  console.log("[Pipeline] C – RealESRGAN 4× upscale");
+  return withRetry(() => runRealEsrgan(inpainted, 4, true));
 }
 
 // ─── SWAPFACE PIPELINE ────────────────────────────────────────────────────────
@@ -190,6 +194,48 @@ async function buildExtendedCanvasAndMask(imageUrl: string): Promise<{
     extendedBase64: `data:image/jpeg;base64,${extendedBuf.toString("base64")}`,
     maskBase64: `data:image/png;base64,${maskBuf.toString("base64")}`,
   };
+}
+
+// Build a side-by-side composite: user on the LEFT, celebrity photo on the RIGHT.
+// Both halves are the same size. The model receives the ACTUAL celebrity face.
+async function buildCompositeCanvas(
+  userImageUrl: string,
+  celebrityImageUrl: string
+): Promise<string> {
+  const [userRes, celebRes] = await Promise.all([
+    fetch(userImageUrl),
+    fetch(celebrityImageUrl),
+  ]);
+  const [userBuf, celebBuf] = await Promise.all([
+    Buffer.from(await userRes.arrayBuffer()),
+    Buffer.from(await celebRes.arrayBuffer()),
+  ]);
+
+  const { width: w = 512, height: h = 512 } = await sharp(userBuf).metadata();
+
+  // Normalize user to JPEG at exact dimensions
+  const userJpeg = await sharp(userBuf)
+    .resize(w, h, { fit: "fill" })
+    .jpeg({ quality: 95 })
+    .toBuffer();
+
+  // Celebrity: resize to same height, crop from top (shows face/upper body)
+  const celebJpeg = await sharp(celebBuf)
+    .resize(w, h, { fit: "cover", position: "top" })
+    .jpeg({ quality: 95 })
+    .toBuffer();
+
+  const composite = await sharp({
+    create: { width: w * 2, height: h, channels: 3, background: { r: 200, g: 200, b: 200 } },
+  })
+    .composite([
+      { input: userJpeg, left: 0, top: 0 },
+      { input: celebJpeg, left: w, top: 0 },
+    ])
+    .jpeg({ quality: 98 })
+    .toBuffer();
+
+  return `data:image/jpeg;base64,${composite.toString("base64")}`;
 }
 
 // ─── INTENT DETECTION ─────────────────────────────────────────────────────────
@@ -281,6 +327,18 @@ function extractActionEn(prompt: string): string {
   return "looking natural, facing forward";
 }
 
+// Prompt for FLUX Kontext when harmonizing a side-by-side composite
+function buildHarmonizePrompt(personName: string, action: string, stylePrompt: string): string {
+  const styleNote = stylePrompt.trim() ? ` ${stylePrompt.trim()}.` : "";
+  return (
+    `This image shows two people placed side by side. ` +
+    `THE PERSON ON THE LEFT must remain COMPLETELY UNCHANGED — same face, hair, skin, clothes, expression, pose, background. Do not touch them at all. ` +
+    `THE PERSON ON THE RIGHT is ${personName}. Keep their face and appearance exactly as shown but make them look photorealistic, natural, and fully integrated into the same scene. They should be ${action}. ` +
+    `Blend the lighting, shadows, colors, and environment between both halves so the image looks like a single, natural professional photo taken at the same moment. ` +
+    `No visible seam between left and right. High quality, sharp focus on both faces.${styleNote}`
+  );
+}
+
 function buildFillPrompt(
   personName: string | null,
   originalPrompt: string,
@@ -311,10 +369,10 @@ function buildStylePrompt(stylePrompt: string, customPrompt: string): string {
   const style = stylePrompt.trim();
   const request = base && style ? `${base}. Style: ${style}` : base || style;
   return (
-    `Keep the exact same person from the input photo — identical face, skin tone, and body shape. ` +
-    `Do NOT add any new people, characters, or figures to the image. Only one person: the original. ` +
-    `${request}. ` +
-    `Preserve all facial features and the person's identity exactly as in the input image.`
+    `Edit this photo while keeping the SAME PERSON: identical face, skin tone, hair, and body shape. ` +
+    `There must be EXACTLY ONE person in the result — the original subject. Do NOT add, clone, or replace any person. ` +
+    `Apply the following change: ${request}. ` +
+    `The person's facial features, identity, and proportions must be preserved exactly as in the original photo.`
   );
 }
 
