@@ -260,6 +260,8 @@ export default function DashboardPage() {
   const [genProgress,   setGenProgress]   = useState(0);
   const [error,         setError]         = useState<string | null>(null);
   const [showPaywall,   setShowPaywall]   = useState(false);
+  const [resultUrl,     setResultUrl]     = useState<string | null>(null);
+  const [resultStyle,   setResultStyle]   = useState<string>("");
   const [deletingId,    setDeletingId]    = useState<string | null>(null);
 
   useEffect(() => {
@@ -383,9 +385,12 @@ export default function DashboardPage() {
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Erreur lors de la génération"); }
 
       const data = await res.json();
-      if (data.generation_id) {
+      if (data.output_image_url) {
+        setResultUrl(data.output_image_url);
+        setResultStyle(data.style ?? "");
         toast.success("Génération terminée !");
-        setTimeout(() => router.push(`/result?id=${data.generation_id}`), 400);
+        await fetchGenerations();
+        await fetchStats();
       }
     } catch (err: unknown) {
       clearInterval(iv);
@@ -502,21 +507,6 @@ export default function DashboardPage() {
               {navView === "create" && (
                 <motion.div key={`create-${genType}`} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>
 
-                  {/* Progress overlay */}
-                  {isGenerating && (
-                    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
-                      <div className="bg-surface border border-surface-border rounded-3xl p-8 w-80 text-center shadow-2xl">
-                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} className="w-14 h-14 rounded-full border-2 border-accent-violet/30 border-t-accent-violet mx-auto mb-5" />
-                        <p className="font-bold text-white mb-1">Génération en cours…</p>
-                        <p className="text-white/40 text-sm mb-4">Merci de patienter</p>
-                        <div className="h-2 bg-surface-hover rounded-full overflow-hidden">
-                          <motion.div className="h-full bg-gradient-violet-neon rounded-full" animate={{ width: `${genProgress}%` }} transition={{ ease: "easeOut", duration: 0.4 }} />
-                        </div>
-                        <p className="text-accent-violet text-xs font-bold mt-2">{Math.round(genProgress)}%</p>
-                      </div>
-                    </div>
-                  )}
-
                   {/* ── Gen type tabs — centred, avec espace au-dessus ── */}
                   <div className="pt-10 pb-6 flex justify-center">
                     <div className="flex gap-2 p-1 bg-surface/60 backdrop-blur-xl border border-surface-border rounded-2xl">
@@ -549,7 +539,10 @@ export default function DashboardPage() {
                   </div>
 
                   {/* ── Forms — compacts, centrés, glass ── */}
-                  <div className="max-w-4xl mx-auto pb-10">
+                  <div className="max-w-7xl mx-auto pb-10">
+                  <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+                  {/* ── LEFT: forms ── */}
+                  <div className="xl:col-span-3 space-y-4">
 
                   {/* ── CRÉER (Style IA + Image IA fusionnés) ── */}
                   {genType === "create" && (
@@ -688,14 +681,15 @@ export default function DashboardPage() {
                           <h2 className="font-semibold text-sm mb-4 flex items-center gap-2"><StepBadge n={1} />Photos</h2>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <p className="text-xs font-medium text-white/60 mb-2">Votre visage <span className="text-accent-violet">*</span></p>
+                              <p className="text-xs font-medium text-white/60 mb-2">Votre visage (source) <span className="text-accent-violet">*</span></p>
                               <UploadBox onFileSelected={(f,p)=>{setSwapSrcFile(f);setSwapSrcPreview(p);}} onClear={()=>{setSwapSrcFile(null);setSwapSrcPreview(null);}} preview={swapSrcPreview} label="Visage source" />
                             </div>
                             <div>
-                              <p className="text-xs font-medium text-white/60 mb-2">Photo cible <span className="text-accent-violet">*</span></p>
+                              <p className="text-xs font-medium text-white/60 mb-2">Photo de la célébrité (cible) <span className="text-accent-violet">*</span></p>
                               <UploadBox onFileSelected={(f,p)=>{setSwapTgtFile(f);setSwapTgtPreview(p);}} onClear={()=>{setSwapTgtFile(null);setSwapTgtPreview(null);}} preview={swapTgtPreview} label="Photo cible" />
                             </div>
                           </div>
+                          <p className="text-white/30 text-xs mt-3">💡 Pour ajouter une célébrité à votre photo : votre visage en Source, la photo de la célébrité en Cible.</p>
                         </div>
                         <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4 space-y-3">
                           <h2 className="font-semibold text-sm flex items-center gap-2"><StepBadge n={2} />Options</h2>
@@ -763,7 +757,75 @@ export default function DashboardPage() {
                     </div>
                   )}
 
-                  </div>{/* end max-w-4xl */}
+                  </div>{/* end forms col */}
+
+                  {/* ── RIGHT: result panel ── */}
+                  <div className="xl:col-span-2">
+                    <div className="sticky top-6">
+                      <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl overflow-hidden">
+                        <div className="px-4 py-3 border-b border-surface-border flex items-center justify-between">
+                          <h3 className="font-semibold text-sm">Résultat</h3>
+                          {resultUrl && (
+                            <button
+                              onClick={() => { setResultUrl(null); setResultStyle(""); }}
+                              className="text-xs text-white/40 hover:text-white transition-colors"
+                            >
+                              Effacer
+                            </button>
+                          )}
+                        </div>
+                        {resultUrl ? (
+                          <div>
+                            <div className="relative aspect-square bg-surface-hover">
+                              <Image src={resultUrl} alt={resultStyle} fill className="object-contain" />
+                            </div>
+                            <div className="p-4 space-y-3">
+                              <p className="text-white/50 text-xs text-center">{resultStyle}</p>
+                              <button
+                                onClick={() => handleDownload(resultUrl, Date.now().toString())}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-accent-violet hover:bg-accent-violet/80 text-white text-sm font-semibold transition-all"
+                              >
+                                <Download className="w-4 h-4" />
+                                Télécharger
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="aspect-square flex flex-col items-center justify-center gap-3 text-center p-6">
+                            {isGenerating ? (
+                              <>
+                                <motion.div
+                                  animate={{ rotate: 360 }}
+                                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                                  className="w-12 h-12 rounded-full border-2 border-accent-violet/30 border-t-accent-violet"
+                                />
+                                <p className="text-white/50 text-sm font-medium">Génération en cours…</p>
+                                <div className="w-full h-1.5 bg-surface-hover rounded-full overflow-hidden">
+                                  <motion.div
+                                    className="h-full bg-gradient-violet-neon rounded-full"
+                                    animate={{ width: `${genProgress}%` }}
+                                    transition={{ ease: "easeOut", duration: 0.4 }}
+                                  />
+                                </div>
+                                <p className="text-accent-violet text-xs font-bold">{Math.round(genProgress)}%</p>
+                              </>
+                            ) : (
+                              <>
+                                <div className="w-16 h-16 rounded-2xl bg-surface-hover flex items-center justify-center">
+                                  <Sparkles className="w-7 h-7 text-white/20" />
+                                </div>
+                                <p className="text-white/40 text-sm">Votre résultat apparaîtra ici</p>
+                                <p className="text-white/20 text-xs">Remplissez le formulaire et appuyez sur Générer</p>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  </div>{/* end xl grid */}
+                  </div>{/* end max-w-7xl */}
                 </motion.div>
               )}
 
