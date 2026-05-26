@@ -53,6 +53,29 @@ export interface PipelineInput {
   extraPrompt?: string;
 }
 
+// ── RETRY HELPER ─────────────────────────────────────────────────────────────
+
+async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const is429 = msg.includes("429") || msg.includes("Too Many Requests") || msg.includes("throttled");
+
+      if (is429 && attempt < retries) {
+        const match = msg.match(/"retry_after"\s*:\s*(\d+)/);
+        const waitMs = match ? (Number(match[1]) + 2) * 1000 : 15000;
+        console.log(`[Pipeline] Rate limited (429), waiting ${waitMs / 1000}s… (retry ${attempt + 1}/${retries})`);
+        await new Promise(r => setTimeout(r, waitMs));
+      } else {
+        throw err;
+      }
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
+
 // ── PIPELINE PRINCIPAL ───────────────────────────────────────────────────────
 
 export async function runPipeline(input: PipelineInput): Promise<string> {
@@ -86,19 +109,19 @@ async function runStylePipeline(input: PipelineInput): Promise<string> {
   console.log("[Pipeline] Step 1: PuLID style generation...");
   let styledUrl: string;
   try {
-    styledUrl = await runPuLID(faceUrl, prompt);
+    styledUrl = await withRetry(() => runPuLID(faceUrl, prompt));
   } catch (err) {
     console.warn("[Pipeline] PuLID failed, falling back to InstantID:", err);
-    styledUrl = await runInstantID(faceUrl, prompt);
+    styledUrl = await withRetry(() => runInstantID(faceUrl, prompt));
   }
 
   // Étape 2 : CodeFormer — restauration & amélioration du visage
   console.log("[Pipeline] Step 2: CodeFormer face restoration...");
-  const restoredUrl = await runCodeFormer(styledUrl);
+  const restoredUrl = await withRetry(() => runCodeFormer(styledUrl));
 
   // Étape 3 : Clarity Upscaler — upscale 4K ultra détaillé
   console.log("[Pipeline] Step 3: Clarity 4K upscale...");
-  const upscaledUrl = await runClarityUpscaler(restoredUrl);
+  const upscaledUrl = await withRetry(() => runClarityUpscaler(restoredUrl));
 
   return upscaledUrl;
 }
@@ -112,15 +135,15 @@ async function runSwapFacePipeline(input: PipelineInput): Promise<string> {
 
   // Étape 1 : Face Swap haute qualité
   console.log("[Pipeline] Step 1: Face swap...");
-  const swappedUrl = await runFaceSwap(sourceUrl, targetUrl, faceIndex);
+  const swappedUrl = await withRetry(() => runFaceSwap(sourceUrl, targetUrl, faceIndex));
 
   // Étape 2 : CodeFormer — restauration du visage swappé
   console.log("[Pipeline] Step 2: CodeFormer restoration...");
-  const restoredUrl = await runCodeFormer(swappedUrl);
+  const restoredUrl = await withRetry(() => runCodeFormer(swappedUrl));
 
   // Étape 3 : Clarity Upscaler — upscale 4K
   console.log("[Pipeline] Step 3: Clarity 4K upscale...");
-  const upscaledUrl = await runClarityUpscaler(restoredUrl);
+  const upscaledUrl = await withRetry(() => runClarityUpscaler(restoredUrl));
 
   return upscaledUrl;
 }

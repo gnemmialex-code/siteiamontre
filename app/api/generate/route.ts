@@ -4,6 +4,8 @@ import { runPipeline } from "@/scripts/pipeline";
 import { validateImageFile } from "@/lib/validation";
 import { uploadToStorage } from "@/lib/storage";
 
+export const maxDuration = 300; // 5 min — nécessite Vercel Pro
+
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
 const CREDITS_PER_IMAGE = 100;
 
@@ -133,6 +135,14 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Erreur pipeline IA";
     console.error("[Generate] Error:", msg);
+
+    if (msg.includes("429") || msg.includes("Too Many Requests") || msg.includes("throttled")) {
+      return NextResponse.json(
+        { error: "Limite d'API Replicate atteinte — ajoutez du crédit sur replicate.com ou réessayez dans 30 secondes" },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
