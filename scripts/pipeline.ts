@@ -196,7 +196,8 @@ async function buildExtendedCanvasAndMask(imageUrl: string): Promise<{
 
 function detectCompositionRequest(prompt: string): boolean {
   const p = prompt.toLowerCase();
-  // Spatial/relational terms that clearly indicate "add someone beside me"
+
+  // Spatial/relational terms: clearly mean "put someone beside me"
   const spatialTriggers = [
     "à côté", "next to", "beside", "with me", "avec moi",
     "à ma gauche", "à ma droite", "on my left", "on my right",
@@ -204,23 +205,32 @@ function detectCompositionRequest(prompt: string): boolean {
   ];
   if (spatialTriggers.some((kw) => p.includes(kw))) return true;
 
-  // Action verbs ONLY when paired with a person-reference word
+  // "met(s) moi [ProperNoun]" — uppercase letter after "moi" signals a name
+  if (/\b(?:mets?|met)\s+moi\s+[A-Z]/u.test(prompt)) return true;
+
+  // Action verb + generic person noun
   const actionVerbs = ["ajoute", "rajoute", "add", "mets", "place", "met "];
   const personNouns = ["personne", "homme", "femme", "quelqu'un", "person", "man", "woman", "someone", "celebrity", "célébrité"];
-  const hasAction = actionVerbs.some((v) => p.includes(v));
-  const hasPerson = personNouns.some((n) => p.includes(n));
-  return hasAction && hasPerson;
+  return actionVerbs.some((v) => p.includes(v)) && personNouns.some((n) => p.includes(n));
 }
 
 // Extract the person's name from the prompt.
-// "rajoute Ronaldo à côté de moi" → "Ronaldo"
-// "mets moi avec Michael Jackson" → "Michael Jackson"
+// "Met moi Charlie D'Amelio à côté de moi"  → "Charlie D'Amelio"
+// "rajoute Ronaldo à côté de moi"            → "Ronaldo"
+// "mets moi avec Michael Jackson"            → "Michael Jackson"
 function extractPersonName(prompt: string): string | null {
-  // Patterns: "rajoute X ...", "ajoute X ...", "mets X avec ...", "avec X", "with X"
+  // Words that end the name capture (spatial markers + action markers)
+  const STOP = "(?:à côté|next to|beside|avec moi|with me|à ma|on my|devant|derrière|in front|behind|de moi|of me|entrain|en train|qui |looking|regardant|faisant|doing|watching|holding|portant|souriant|smiling)";
+
   const patterns = [
-    /(?:rajoute|ajoute|add|place)\s+(?:moi\s+(?:avec|with)\s+)?(.+?)(?:\s+(?:à côté|next to|beside|avec moi|with me|à ma|on my|devant|derrière|in front|behind|de moi|of me).*)?$/i,
-    /(?:mets|met)\s+(?:moi\s+)?(?:avec|with)\s+(.+?)(?:\s+(?:à côté|next to|beside|à ma|on my).*)?$/i,
-    /(?:avec|with)\s+(.+?)(?:\s+(?:à côté|next to|beside|à ma|on my|de moi|of me).*)?$/i,
+    // "met(s) moi [Name] [spatial/action...]"  ← the missing pattern
+    new RegExp(`\\b(?:mets?|met)\\s+moi\\s+(.+?)(?:\\s+${STOP}.*)?$`, "iu"),
+    // "rajoute/ajoute/add/place [moi avec] [Name]"
+    new RegExp(`(?:rajoute|ajoute|add|place)\\s+(?:moi\\s+(?:avec|with)\\s+)?(.+?)(?:\\s+${STOP}.*)?$`, "iu"),
+    // "mets/met [moi] avec/with [Name]"
+    new RegExp(`(?:mets|met)\\s+(?:moi\\s+)?(?:avec|with)\\s+(.+?)(?:\\s+${STOP}.*)?$`, "iu"),
+    // "avec/with [Name]"
+    new RegExp(`(?:avec|with)\\s+(.+?)(?:\\s+${STOP}.*)?$`, "iu"),
   ];
 
   for (const re of patterns) {
@@ -261,27 +271,38 @@ async function fetchWikipediaImage(personName: string): Promise<string | null> {
 
 // ─── PROMPT BUILDERS ──────────────────────────────────────────────────────────
 
+// Translate common French action phrases to English for the model
+function extractActionEn(prompt: string): string {
+  const lp = prompt.toLowerCase();
+  if (lp.includes("caméra") || lp.includes("camera") || lp.includes("objectif")) return "looking directly at the camera";
+  if (lp.includes("sourir") || lp.includes("smile") || lp.includes("souriant")) return "smiling at the camera";
+  if (lp.includes("pos") || lp.includes("pose")) return "posing naturally";
+  if (lp.includes("danse") || lp.includes("danc")) return "dancing";
+  return "looking natural, facing forward";
+}
+
 function buildFillPrompt(
   personName: string | null,
   originalPrompt: string,
   stylePrompt: string
 ): string {
   const styleNote = stylePrompt.trim() ? ` ${stylePrompt.trim()}.` : "";
+  const action = extractActionEn(originalPrompt);
 
   if (personName) {
     return (
-      `A photorealistic high-quality photo of ${personName} standing naturally, ` +
-      `facing the camera, full body visible, well-lit. ` +
+      `A photorealistic high-quality photo of ${personName}, ${action}, ` +
+      `standing naturally, upper body and face clearly visible, well-lit. ` +
       `Match the lighting and environment from the left side of the image exactly. ` +
-      `Professional photography quality.${styleNote}`
+      `Professional photography quality, sharp focus on the face.${styleNote}`
     );
   }
 
-  // Fallback: use original prompt if no name found
+  // Fallback when no name detected — generate a generic person (never use original French prompt)
   return (
-    `${originalPrompt}. ` +
-    `Photorealistic, high quality, well-lit, natural pose. ` +
-    `Match the lighting and environment of the existing scene.${styleNote}`
+    `A photorealistic high-quality photo of a person standing naturally, ${action}, ` +
+    `well-lit, upper body visible. ` +
+    `Match the lighting and environment of the existing scene exactly.${styleNote}`
   );
 }
 
