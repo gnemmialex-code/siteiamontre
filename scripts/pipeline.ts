@@ -105,8 +105,8 @@ async function runFluxKontextMax(imageUrl: string, instruction: string): Promise
       aspect_ratio: "match_input_image",
       output_format: "jpg",
       output_quality: 95,
-      safety_tolerance: 5,
-      prompt_upsampling: true,
+      safety_tolerance: 6,
+      prompt_upsampling: false,
     },
   });
   return extractUrl(output);
@@ -115,8 +115,10 @@ async function runFluxKontextMax(imageUrl: string, instruction: string): Promise
 function buildInstruction(stylePrompt: string, customPrompt?: string): string {
   const base = customPrompt?.trim() || "";
   const style = stylePrompt?.trim() || "";
-  if (base && style) return `${base}. Style: ${style}`;
-  return base || style;
+  const userRequest = base && style ? `${base}. Style: ${style}` : (base || style);
+  // FLUX Kontext Max est un éditeur : sans instruction explicite de conserver la personne,
+  // il peut la remplacer. On force la préservation de l'identité.
+  return `Keep the exact same person with their identical face, skin tone, body shape, and likeness from the input photo. ${userRequest}. Preserve all facial features and the person's identity exactly as shown in the input image.`;
 }
 
 async function runRealEsrgan(imageUrl: string): Promise<string> {
