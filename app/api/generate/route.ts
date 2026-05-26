@@ -3,7 +3,7 @@ import { createSupabaseServer } from "@/lib/supabase-server";
 import { runPipeline } from "@/scripts/pipeline";
 import { validateImageFile } from "@/lib/validation";
 import { uploadToStorage } from "@/lib/storage";
-import sharp from "sharp";
+import Jimp from "jimp";
 
 export const maxDuration = 300; // 5 min — nécessite Vercel Pro
 
@@ -17,22 +17,14 @@ function generateId(): string {
 }
 
 async function resizeIfNeeded(buffer: Buffer): Promise<Buffer> {
-  try {
-    const meta = await sharp(buffer).metadata();
-    const w = meta.width ?? 9999;
-    const h = meta.height ?? 9999;
-    console.log(`[Resize] Input dimensions: ${w}x${h}`);
-    if (w <= MAX_IMAGE_DIMENSION && h <= MAX_IMAGE_DIMENSION) return buffer;
-    const resized = await sharp(buffer)
-      .resize(MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION, { fit: "inside", withoutEnlargement: true })
-      .jpeg({ quality: 90 })
-      .toBuffer();
-    console.log(`[Resize] Resized to max ${MAX_IMAGE_DIMENSION}px`);
-    return resized;
-  } catch (err) {
-    console.error("[Resize] Sharp failed, using original buffer:", err);
-    return buffer;
-  }
+  const image = await Jimp.read(buffer);
+  const w = image.bitmap.width;
+  const h = image.bitmap.height;
+  console.log(`[Resize] Input dimensions: ${w}x${h}`);
+  if (w <= MAX_IMAGE_DIMENSION && h <= MAX_IMAGE_DIMENSION) return buffer;
+  image.scaleToFit(MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION);
+  console.log(`[Resize] Resized to ${image.bitmap.width}x${image.bitmap.height}`);
+  return await image.getBufferAsync(Jimp.MIME_JPEG);
 }
 
 async function uploadFile(supabase: Awaited<ReturnType<typeof createSupabaseServer>>, file: File, userId: string): Promise<string> {
