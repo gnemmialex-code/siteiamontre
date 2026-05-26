@@ -1,16 +1,15 @@
 import Replicate from "replicate";
-import sharp from "sharp";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
 });
 
 const MODELS = {
-  // Image editing (style transforms)
+  // Image editing — style transforms only
   fluxKontextMax: "black-forest-labs/flux-kontext-max",
-  // Inpainting with mask — protects the original person perfectly
-  fluxFillPro: "black-forest-labs/flux-fill-pro",
-  // Face swap for identity anchoring
+  // Text-to-image — generates the 2-person composition template
+  fluxPro: "black-forest-labs/flux-1.1-pro",
+  // Face identity swap
   faceSwap: "lucataco/faceswap:9a4298548422074c3f57258c5d544497a19901a0f3834f7a26f796fee2a7e4c9",
   // Upscaler
   realEsrgan: "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
@@ -89,18 +88,20 @@ async function runStylePipeline(input: PipelineInput): Promise<string> {
 
 // ─── COMPOSITION PIPELINE ─────────────────────────────────────────────────────
 //
-// Primary path (name found + Wikipedia ref available — the common case):
-//   A. Download user photo + Wikipedia celebrity photo
-//   B. Composite side-by-side with sharp: user LEFT, celebrity RIGHT
-//      The model receives the ACTUAL celebrity face, not a grey void to fill.
-//   C. FLUX Kontext Max: "harmonize — keep left person pixel-perfect,
-//      make right person look natural in the same scene"
-//   D. RealESRGAN 4× upscale
+// Why this approach:
+//   Previous attempts sent FLUX a side-by-side composite → model interpreted
+//   it as a "comparison image" and generated 2 unrelated men. Sending a grey
+//   void → model invented a random person. Both were architectural mistakes.
 //
-// Fallback (no Wikipedia ref found):
-//   A. Extend canvas with grey on the right
-//   B. FLUX Fill Pro inpaints the white area from the fill prompt
-//   C. RealESRGAN 4× upscale
+//   The correct approach:
+//   1. FLUX Pro generates a fresh, clean 2-person scene (its speciality)
+//   2. FaceSwap replaces face 0 with the user's actual face
+//   3. FaceSwap replaces face 1 with the celebrity's actual face (Wikipedia)
+//   4. RealESRGAN 4× upscale
+//
+//   Face-swap is purpose-built for identity transfer. FLUX Pro is purpose-built
+//   for generating coherent multi-person scenes. We use each tool for what it
+//   was designed for.
 
 async function runCompositionPipeline(
   userImageUrl: string,
@@ -109,41 +110,41 @@ async function runCompositionPipeline(
 ): Promise<string> {
   const personName = extractPersonName(rawPrompt);
   const action = extractActionEn(rawPrompt);
-  console.log(`[Pipeline] Composition – person: "${personName ?? "none"}" | action: "${action}"`);
+  console.log(`[Pipeline] Composition – celebrity: "${personName ?? "none"}" | action: "${action}"`);
 
+  // Fetch Wikipedia reference image for the celebrity's face
   let referenceUrl: string | null = null;
   if (personName) {
     referenceUrl = await fetchWikipediaImage(personName);
-    console.log(`[Pipeline] Wikipedia reference: ${referenceUrl ? "found ✓" : "not found"}`);
+    console.log(`[Pipeline] Wikipedia face reference: ${referenceUrl ? "found ✓" : "not found"}`);
   }
 
-  if (personName && referenceUrl) {
-    // ── Primary path ────────────────────────────────────────────────────────
-    console.log("[Pipeline] A – Compositing user + celebrity reference side by side…");
-    const compositeBase64 = await buildCompositeCanvas(userImageUrl, referenceUrl);
+  // 1. Generate a clean 2-person template with FLUX Pro (text-to-image)
+  const templatePrompt = buildTemplatePrompt(personName, action, stylePrompt);
+  console.log(`[Pipeline] 1/4 FLUX Pro – generate template: "${templatePrompt.slice(0, 100)}…"`);
+  const templateUrl = await withRetry(() => runFluxPro(templatePrompt));
 
-    const harmonizePrompt = buildHarmonizePrompt(personName, action, stylePrompt);
-    console.log(`[Pipeline] B – FLUX Kontext harmonize: "${harmonizePrompt.slice(0, 100)}…"`);
-    const harmonized = await withRetry(() =>
-      runFluxKontext(compositeBase64, harmonizePrompt, "match_input_image")
-    );
-
-    console.log("[Pipeline] C – RealESRGAN 4× upscale");
-    return withRetry(() => runRealEsrgan(harmonized, 4, true));
-  }
-
-  // ── Fallback path ──────────────────────────────────────────────────────────
-  console.log("[Pipeline] A – Extending canvas with grey (fallback, no Wikipedia ref)…");
-  const { extendedBase64, maskBase64 } = await buildExtendedCanvasAndMask(userImageUrl);
-
-  const fillPrompt = buildFillPrompt(personName, rawPrompt, stylePrompt);
-  console.log(`[Pipeline] B – FLUX Fill Pro inpaint: "${fillPrompt.slice(0, 100)}…"`);
-  const inpainted = await withRetry(() =>
-    runFluxFillPro(extendedBase64, maskBase64, fillPrompt)
+  // 2. Face-swap the user's face onto the LEFT person (face index 0)
+  console.log("[Pipeline] 2/4 FaceSwap – user → person 0 (left)…");
+  const withUser = await withRetry(() =>
+    runFaceSwap(userImageUrl, templateUrl, "0")
   );
 
-  console.log("[Pipeline] C – RealESRGAN 4× upscale");
-  return withRetry(() => runRealEsrgan(inpainted, 4, true));
+  // 3. Face-swap the celebrity's face onto the RIGHT person (face index 1)
+  let composed = withUser;
+  if (referenceUrl) {
+    console.log("[Pipeline] 3/4 FaceSwap – celebrity → person 1 (right)…");
+    composed = await withRetry(() =>
+      runFaceSwap(referenceUrl!, withUser, "1")
+    ).catch((e) => {
+      console.warn("[Pipeline] 3/4 celebrity swap skipped (face not detected):", (e as Error).message);
+      return withUser;
+    });
+  }
+
+  // 4. 4× upscale with face enhancement
+  console.log("[Pipeline] 4/4 RealESRGAN 4× upscale");
+  return withRetry(() => runRealEsrgan(composed, 4, true));
 }
 
 // ─── SWAPFACE PIPELINE ────────────────────────────────────────────────────────
@@ -157,93 +158,12 @@ async function runSwapFacePipeline(input: PipelineInput): Promise<string> {
   return withRetry(() => runRealEsrgan(swapped, 4, true));
 }
 
-// ─── CANVAS EXTENSION + MASK (sharp) ─────────────────────────────────────────
-
-async function buildExtendedCanvasAndMask(imageUrl: string): Promise<{
-  extendedBase64: string;
-  maskBase64: string;
-}> {
-  const res = await fetch(imageUrl);
-  const buffer = Buffer.from(await res.arrayBuffer());
-
-  const meta = await sharp(buffer).metadata();
-  const w = meta.width ?? 512;
-  const h = meta.height ?? 512;
-
-  // Extended canvas: original image on the LEFT, neutral grey on the RIGHT
-  const extendedBuf = await sharp(buffer)
-    .extend({ right: w, background: { r: 128, g: 128, b: 128 } })
-    .jpeg({ quality: 98 })
-    .toBuffer();
-
-  // Mask: black (keep) on LEFT, white (generate) on RIGHT
-  const whitePatch = await sharp({
-    create: { width: w, height: h, channels: 3, background: { r: 255, g: 255, b: 255 } },
-  })
-    .png()
-    .toBuffer();
-
-  const maskBuf = await sharp({
-    create: { width: w * 2, height: h, channels: 3, background: { r: 0, g: 0, b: 0 } },
-  })
-    .composite([{ input: whitePatch, left: w, top: 0 }])
-    .png()
-    .toBuffer();
-
-  return {
-    extendedBase64: `data:image/jpeg;base64,${extendedBuf.toString("base64")}`,
-    maskBase64: `data:image/png;base64,${maskBuf.toString("base64")}`,
-  };
-}
-
-// Build a side-by-side composite: user on the LEFT, celebrity photo on the RIGHT.
-// Both halves are the same size. The model receives the ACTUAL celebrity face.
-async function buildCompositeCanvas(
-  userImageUrl: string,
-  celebrityImageUrl: string
-): Promise<string> {
-  const [userRes, celebRes] = await Promise.all([
-    fetch(userImageUrl),
-    fetch(celebrityImageUrl),
-  ]);
-  const [userBuf, celebBuf] = await Promise.all([
-    Buffer.from(await userRes.arrayBuffer()),
-    Buffer.from(await celebRes.arrayBuffer()),
-  ]);
-
-  const { width: w = 512, height: h = 512 } = await sharp(userBuf).metadata();
-
-  // Normalize user to JPEG at exact dimensions
-  const userJpeg = await sharp(userBuf)
-    .resize(w, h, { fit: "fill" })
-    .jpeg({ quality: 95 })
-    .toBuffer();
-
-  // Celebrity: resize to same height, crop from top (shows face/upper body)
-  const celebJpeg = await sharp(celebBuf)
-    .resize(w, h, { fit: "cover", position: "top" })
-    .jpeg({ quality: 95 })
-    .toBuffer();
-
-  const composite = await sharp({
-    create: { width: w * 2, height: h, channels: 3, background: { r: 200, g: 200, b: 200 } },
-  })
-    .composite([
-      { input: userJpeg, left: 0, top: 0 },
-      { input: celebJpeg, left: w, top: 0 },
-    ])
-    .jpeg({ quality: 98 })
-    .toBuffer();
-
-  return `data:image/jpeg;base64,${composite.toString("base64")}`;
-}
-
 // ─── INTENT DETECTION ─────────────────────────────────────────────────────────
 
 function detectCompositionRequest(prompt: string): boolean {
   const p = prompt.toLowerCase();
 
-  // Spatial/relational terms: clearly mean "put someone beside me"
+  // Explicit spatial terms
   const spatialTriggers = [
     "à côté", "next to", "beside", "with me", "avec moi",
     "à ma gauche", "à ma droite", "on my left", "on my right",
@@ -251,31 +171,24 @@ function detectCompositionRequest(prompt: string): boolean {
   ];
   if (spatialTriggers.some((kw) => p.includes(kw))) return true;
 
-  // "met(s) moi [ProperNoun]" — uppercase letter after "moi" signals a name
+  // "met(s) moi [ProperNoun]" — uppercase initial signals a name
   if (/\b(?:mets?|met)\s+moi\s+[A-Z]/u.test(prompt)) return true;
 
-  // Action verb + generic person noun
+  // Action verb + person noun
   const actionVerbs = ["ajoute", "rajoute", "add", "mets", "place", "met "];
   const personNouns = ["personne", "homme", "femme", "quelqu'un", "person", "man", "woman", "someone", "celebrity", "célébrité"];
   return actionVerbs.some((v) => p.includes(v)) && personNouns.some((n) => p.includes(n));
 }
 
-// Extract the person's name from the prompt.
-// "Met moi Charlie D'Amelio à côté de moi"  → "Charlie D'Amelio"
-// "rajoute Ronaldo à côté de moi"            → "Ronaldo"
-// "mets moi avec Michael Jackson"            → "Michael Jackson"
+// "Met moi Charlie D'Amelio à côté de moi entrain de regarder la caméra"
+// → "Charlie D'Amelio"
 function extractPersonName(prompt: string): string | null {
-  // Words that end the name capture (spatial markers + action markers)
   const STOP = "(?:à côté|next to|beside|avec moi|with me|à ma|on my|devant|derrière|in front|behind|de moi|of me|entrain|en train|qui |looking|regardant|faisant|doing|watching|holding|portant|souriant|smiling)";
 
   const patterns = [
-    // "met(s) moi [Name] [spatial/action...]"  ← the missing pattern
     new RegExp(`\\b(?:mets?|met)\\s+moi\\s+(.+?)(?:\\s+${STOP}.*)?$`, "iu"),
-    // "rajoute/ajoute/add/place [moi avec] [Name]"
     new RegExp(`(?:rajoute|ajoute|add|place)\\s+(?:moi\\s+(?:avec|with)\\s+)?(.+?)(?:\\s+${STOP}.*)?$`, "iu"),
-    // "mets/met [moi] avec/with [Name]"
     new RegExp(`(?:mets|met)\\s+(?:moi\\s+)?(?:avec|with)\\s+(.+?)(?:\\s+${STOP}.*)?$`, "iu"),
-    // "avec/with [Name]"
     new RegExp(`(?:avec|with)\\s+(.+?)(?:\\s+${STOP}.*)?$`, "iu"),
   ];
 
@@ -283,7 +196,6 @@ function extractPersonName(prompt: string): string | null {
     const match = prompt.match(re);
     if (match) {
       const candidate = match[1].trim();
-      // Reject generic nouns (une femme, a man, quelqu'un…)
       if (/^(une?|un|a|an)\s+/i.test(candidate)) continue;
       if (candidate.length > 1 && candidate.length < 60) return candidate;
     }
@@ -291,7 +203,16 @@ function extractPersonName(prompt: string): string | null {
   return null;
 }
 
-// ─── WIKIPEDIA REFERENCE (free, no API key) ───────────────────────────────────
+function extractActionEn(prompt: string): string {
+  const lp = prompt.toLowerCase();
+  if (lp.includes("caméra") || lp.includes("camera") || lp.includes("objectif")) return "looking directly at the camera";
+  if (lp.includes("sourir") || lp.includes("smile") || lp.includes("souriant")) return "smiling at the camera";
+  if (lp.includes("pos") || lp.includes("pose")) return "posing naturally for the camera";
+  if (lp.includes("danse") || lp.includes("danc")) return "dancing together";
+  return "looking at the camera and smiling";
+}
+
+// ─── WIKIPEDIA REFERENCE ──────────────────────────────────────────────────────
 
 async function fetchWikipediaImage(personName: string): Promise<string | null> {
   const slug = encodeURIComponent(personName.trim().replace(/\s+/g, "_"));
@@ -317,50 +238,20 @@ async function fetchWikipediaImage(personName: string): Promise<string | null> {
 
 // ─── PROMPT BUILDERS ──────────────────────────────────────────────────────────
 
-// Translate common French action phrases to English for the model
-function extractActionEn(prompt: string): string {
-  const lp = prompt.toLowerCase();
-  if (lp.includes("caméra") || lp.includes("camera") || lp.includes("objectif")) return "looking directly at the camera";
-  if (lp.includes("sourir") || lp.includes("smile") || lp.includes("souriant")) return "smiling at the camera";
-  if (lp.includes("pos") || lp.includes("pose")) return "posing naturally";
-  if (lp.includes("danse") || lp.includes("danc")) return "dancing";
-  return "looking natural, facing forward";
-}
-
-// Prompt for FLUX Kontext when harmonizing a side-by-side composite
-function buildHarmonizePrompt(personName: string, action: string, stylePrompt: string): string {
-  const styleNote = stylePrompt.trim() ? ` ${stylePrompt.trim()}.` : "";
-  return (
-    `This image shows two people placed side by side. ` +
-    `THE PERSON ON THE LEFT must remain COMPLETELY UNCHANGED — same face, hair, skin, clothes, expression, pose, background. Do not touch them at all. ` +
-    `THE PERSON ON THE RIGHT is ${personName}. Keep their face and appearance exactly as shown but make them look photorealistic, natural, and fully integrated into the same scene. They should be ${action}. ` +
-    `Blend the lighting, shadows, colors, and environment between both halves so the image looks like a single, natural professional photo taken at the same moment. ` +
-    `No visible seam between left and right. High quality, sharp focus on both faces.${styleNote}`
-  );
-}
-
-function buildFillPrompt(
+function buildTemplatePrompt(
   personName: string | null,
-  originalPrompt: string,
+  action: string,
   stylePrompt: string
 ): string {
-  const styleNote = stylePrompt.trim() ? ` ${stylePrompt.trim()}.` : "";
-  const action = extractActionEn(originalPrompt);
-
-  if (personName) {
-    return (
-      `A photorealistic high-quality photo of ${personName}, ${action}, ` +
-      `standing naturally, upper body and face clearly visible, well-lit. ` +
-      `Match the lighting and environment from the left side of the image exactly. ` +
-      `Professional photography quality, sharp focus on the face.${styleNote}`
-    );
-  }
-
-  // Fallback when no name detected — generate a generic person (never use original French prompt)
+  const styleNote = stylePrompt.trim() ? `, ${stylePrompt.trim()}` : "";
+  const celebHint = personName
+    ? `, one of them is ${personName}`
+    : "";
   return (
-    `A photorealistic high-quality photo of a person standing naturally, ${action}, ` +
-    `well-lit, upper body visible. ` +
-    `Match the lighting and environment of the existing scene exactly.${styleNote}`
+    `A professional photograph of exactly two people standing side by side${celebHint}, ` +
+    `both ${action}, photorealistic, well-lit, sharp focus on both faces, ` +
+    `upper body clearly visible, both facing the camera, ` +
+    `high quality professional photography${styleNote}`
   );
 }
 
@@ -370,9 +261,10 @@ function buildStylePrompt(stylePrompt: string, customPrompt: string): string {
   const request = base && style ? `${base}. Style: ${style}` : base || style;
   return (
     `Edit this photo while keeping the SAME PERSON: identical face, skin tone, hair, and body shape. ` +
-    `There must be EXACTLY ONE person in the result — the original subject. Do NOT add, clone, or replace any person. ` +
+    `There must be EXACTLY ONE person in the result — the original subject. ` +
+    `Do NOT add, clone, or replace any person. ` +
     `Apply the following change: ${request}. ` +
-    `The person's facial features, identity, and proportions must be preserved exactly as in the original photo.`
+    `Preserve the person's facial features, identity, and proportions exactly as in the original.`
   );
 }
 
@@ -397,22 +289,13 @@ async function runFluxKontext(
   return extractUrl(output);
 }
 
-async function runFluxFillPro(
-  imageBase64: string,
-  maskBase64: string,
-  prompt: string
-): Promise<string> {
-  const output = await replicate.run(MODELS.fluxFillPro, {
+async function runFluxPro(prompt: string): Promise<string> {
+  const output = await replicate.run(MODELS.fluxPro, {
     input: {
-      image: imageBase64,
-      mask: maskBase64,
       prompt,
+      aspect_ratio: "4:3",
       output_format: "jpg",
       output_quality: 100,
-      safety_tolerance: 6,
-      prompt_upsampling: false,
-      guidance: 30,
-      num_inference_steps: 50,
     },
   });
   return extractUrl(output);
