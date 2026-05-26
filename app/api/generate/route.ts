@@ -3,7 +3,8 @@ import { createSupabaseServer } from "@/lib/supabase-server";
 import { runPipeline } from "@/scripts/pipeline";
 import { validateImageFile } from "@/lib/validation";
 import { uploadToStorage } from "@/lib/storage";
-import { createCanvas, loadImage } from "canvas";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const Jimp = require("jimp");
 
 export const maxDuration = 300;
 
@@ -15,20 +16,14 @@ function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
-async function resizeBuffer(buffer: Buffer): Promise<{ buf: Buffer; mime: string }> {
-  const img = await loadImage(buffer);
-  const { width, height } = img;
-  if (width <= MAX_PX && height <= MAX_PX) {
-    return { buf: buffer, mime: "image/jpeg" };
-  }
-  const scale = Math.min(MAX_PX / width, MAX_PX / height);
-  const w = Math.round(width * scale);
-  const h = Math.round(height * scale);
-  const canvas = createCanvas(w, h);
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(img, 0, 0, w, h);
-  console.log(`[Resize] ${width}x${height} → ${w}x${h}`);
-  return { buf: canvas.toBuffer("image/jpeg", { quality: 0.92 }), mime: "image/jpeg" };
+async function resizeBuffer(buffer: Buffer): Promise<Buffer> {
+  const img = await Jimp.read(buffer);
+  const w: number = img.bitmap.width;
+  const h: number = img.bitmap.height;
+  if (w <= MAX_PX && h <= MAX_PX) return buffer;
+  img.resize(MAX_PX, Jimp.AUTO);
+  console.log(`[Resize] ${w}x${h} → ${img.bitmap.width}x${img.bitmap.height}`);
+  return img.getBufferAsync(Jimp.MIME_JPEG);
 }
 
 async function uploadFile(supabase: Awaited<ReturnType<typeof createSupabaseServer>>, file: File, userId: string): Promise<string> {
@@ -36,9 +31,9 @@ async function uploadFile(supabase: Awaited<ReturnType<typeof createSupabaseServ
   if (!validation.valid) throw new Error(validation.error);
 
   const raw = Buffer.from(await file.arrayBuffer());
-  const { buf, mime } = await resizeBuffer(raw);
+  const buf = await resizeBuffer(raw);
   const path = `inputs/${userId}/${generateId()}.jpg`;
-  return uploadToStorage(supabase, buf, path, mime);
+  return uploadToStorage(supabase, buf, path, "image/jpeg");
 }
 
 export async function POST(req: NextRequest) {
