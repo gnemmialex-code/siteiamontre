@@ -6,8 +6,8 @@ const replicate = new Replicate({
 
 const MODELS = {
   faceSwap: "lucataco/faceswap:9a4298548422074c3f57258c5d544497a19901a0f3834f7a26f796fee2a7e4c9",
-  codeFormer: "sczhou/codeformer:7de2ea26c616d5bf2245ad0d5e24f0ff9a6204578a5c876db53a4a975c7d25bb",
-  realEsrgan: "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
+  codeFormer: "sczhou/codeformer",
+  realEsrgan: "nightmareai/real-esrgan",
 } as const;
 
 export interface PipelineInput {
@@ -104,7 +104,7 @@ async function runFaceSwap(sourceImageUrl: string, targetImageUrl: string, faceI
 }
 
 async function runCodeFormer(imageUrl: string): Promise<string> {
-  const output = await replicate.run(MODELS.codeFormer as `${string}/${string}:${string}`, {
+  const output = await replicate.run(MODELS.codeFormer as `${string}/${string}`, {
     input: {
       image: imageUrl,
       codeformer_fidelity: 0.7,
@@ -117,7 +117,7 @@ async function runCodeFormer(imageUrl: string): Promise<string> {
 }
 
 async function runRealEsrgan(imageUrl: string): Promise<string> {
-  const output = await replicate.run(MODELS.realEsrgan as `${string}/${string}:${string}`, {
+  const output = await replicate.run(MODELS.realEsrgan as `${string}/${string}`, {
     input: { image: imageUrl, scale: 4, face_enhance: true },
   });
   return extractUrl(output);
