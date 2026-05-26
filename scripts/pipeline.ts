@@ -6,8 +6,8 @@ const replicate = new Replicate({
 
 const MODELS = {
   faceSwap: "lucataco/faceswap:9a4298548422074c3f57258c5d544497a19901a0f3834f7a26f796fee2a7e4c9",
-  gfpgan: "tencentarc/gfpgan",
-  realEsrgan: "nightmareai/real-esrgan",
+  gfpgan: "tencentarc/gfpgan:0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c",
+  realEsrgan: "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
 } as const;
 
 export interface PipelineInput {
@@ -104,7 +104,7 @@ async function runFaceSwap(sourceImageUrl: string, targetImageUrl: string, faceI
 }
 
 async function runGfpgan(imageUrl: string): Promise<string> {
-  const output = await replicate.run(MODELS.gfpgan as `${string}/${string}`, {
+  const output = await replicate.run(MODELS.gfpgan as `${string}/${string}:${string}`, {
     input: {
       img: imageUrl,
       version: "v1.4",
@@ -115,7 +115,7 @@ async function runGfpgan(imageUrl: string): Promise<string> {
 }
 
 async function runRealEsrgan(imageUrl: string): Promise<string> {
-  const output = await replicate.run(MODELS.realEsrgan as `${string}/${string}`, {
+  const output = await replicate.run(MODELS.realEsrgan as `${string}/${string}:${string}`, {
     input: { image: imageUrl, scale: 4, face_enhance: true },
   });
   return extractUrl(output);
