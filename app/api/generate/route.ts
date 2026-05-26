@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
   try {
     let outputUrl: string;
     let styleLabel: string;
+    let inputImageForRecord = "";
 
     if (mode === "swapface") {
       // ── MODE SWAPFACE ──────────────────────────────────────────────────────
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
         uploadFile(supabase, targetFile, effectiveUserId),
       ]);
 
+      inputImageForRecord = sourceUrl;
       outputUrl = await runPipeline({ mode: "swapface", sourceImageUrl: sourceUrl, targetImageUrl: targetUrl, faceIndex, extraPrompt });
       styleLabel = "SwapFace";
 
@@ -97,6 +99,7 @@ export async function POST(req: NextRequest) {
         || "photorealistic portrait, ultra HD, professional photography, perfect lighting, stunning quality, 8k";
 
       const inputImageUrl = await uploadFile(supabase, imageFile, effectiveUserId);
+      inputImageForRecord = inputImageUrl;
       outputUrl = await runPipeline({
         mode: "style",
         inputImageUrl,
@@ -118,7 +121,7 @@ export async function POST(req: NextRequest) {
       await supabase.from("generations").insert({
         id: generationId,
         user_id: userId,
-        input_image_url: "",
+        input_image_url: inputImageForRecord,
         output_image_url: outputUrl,
         style: styleLabel,
       });

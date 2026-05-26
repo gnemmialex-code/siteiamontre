@@ -1,12 +1,18 @@
 import Replicate from "replicate";
+import sharp from "sharp";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
 });
 
 const MODELS = {
+  // Image editing (style transforms)
   fluxKontextMax: "black-forest-labs/flux-kontext-max",
+  // Inpainting with mask — protects the original person perfectly
+  fluxFillPro: "black-forest-labs/flux-fill-pro",
+  // Face swap for identity anchoring
   faceSwap: "lucataco/faceswap:9a4298548422074c3f57258c5d544497a19901a0f3834f7a26f796fee2a7e4c9",
+  // Upscaler
   realEsrgan: "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
 } as const;
 
@@ -35,9 +41,7 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
       if (is429 && attempt < retries) {
         const match = msg.match(/"retry_after"\s*:\s*(\d+)/);
         const waitMs = match ? (Number(match[1]) + 2) * 1000 : 15000;
-        console.log(
-          `[Pipeline] Rate limited, waiting ${waitMs / 1000}s… (retry ${attempt + 1}/${retries})`
-        );
+        console.log(`[Pipeline] Rate limited – waiting ${waitMs / 1000}s (retry ${attempt + 1}/${retries})`);
         await new Promise((r) => setTimeout(r, waitMs));
       } else {
         throw err;
@@ -55,7 +59,7 @@ export async function runPipeline(input: PipelineInput): Promise<string> {
       input.mode === "swapface"
         ? await runSwapFacePipeline(input)
         : await runStylePipeline(input);
-    console.log(`[Pipeline] Done in ${Date.now() - start}ms`);
+    console.log(`[Pipeline] Done in ${((Date.now() - start) / 1000).toFixed(1)}s`);
     return result;
   } catch (err) {
     console.error("[Pipeline] Error:", err);
@@ -73,23 +77,27 @@ async function runStylePipeline(input: PipelineInput): Promise<string> {
     return runCompositionPipeline(imageUrl, rawPrompt, input.stylePrompt ?? "");
   }
 
-  const instruction = buildStyleInstruction(input.stylePrompt ?? "", rawPrompt);
-  console.log("[Pipeline] Step 1: FLUX Kontext Max — style edit...");
+  const prompt = buildStylePrompt(input.stylePrompt ?? "", rawPrompt);
+  console.log("[Pipeline] 1/2 FLUX Kontext Max – style edit");
   const edited = await withRetry(() =>
-    runFluxKontext(imageUrl, instruction, "match_input_image")
+    runFluxKontext(imageUrl, prompt, "match_input_image")
   );
 
-  console.log("[Pipeline] Step 2: RealESRGAN 4× upscale...");
+  console.log("[Pipeline] 2/2 RealESRGAN 4× upscale");
   return withRetry(() => runRealEsrgan(edited, 4, true));
 }
 
-// ─── COMPOSITION PIPELINE (add person next to me) ────────────────────────────
+// ─── COMPOSITION PIPELINE ─────────────────────────────────────────────────────
 //
-// A — expand canvas to the right (makes room for the second person)
-// B — add the person in the empty right area
-// C — face-swap user's face back onto face 0 (guards against any drift)
-// D — face-swap celebrity's face onto face 1 (ensures correct likeness)
-// E — 4× upscale
+// The only reliable way to keep the user in the photo is to use inpainting
+// with a mask that PROTECTS the original image area.
+//
+// Steps:
+//   A. Fetch user image → extend canvas right × 1 (sharp, no generative AI)
+//   B. Create mask:  left=black (keep user) | right=white (generate celebrity)
+//   C. FLUX Fill Pro — fills only the white area, user is untouched by design
+//   D. Face-swap celebrity's face (Wikipedia ref → face 1) for accurate likeness
+//   E. RealESRGAN 4× upscale with face enhancement
 
 async function runCompositionPipeline(
   userImageUrl: string,
@@ -97,105 +105,137 @@ async function runCompositionPipeline(
   stylePrompt: string
 ): Promise<string> {
   const personName = extractPersonName(rawPrompt);
-  console.log(`[Pipeline] Composition — person: ${personName ?? "unspecified"}`);
+  console.log(`[Pipeline] Composition – person detected: "${personName ?? "none"}"`);
 
-  // Fetch reference image for the celebrity (Wikipedia, free, no API key)
+  // Fetch celebrity reference image from Wikipedia (free, no API key)
   let referenceUrl: string | null = null;
   if (personName) {
     referenceUrl = await fetchWikipediaImage(personName);
-    console.log(
-      `[Pipeline] Reference image: ${referenceUrl ? "found ✓" : "not found"}`
-    );
+    console.log(`[Pipeline] Wikipedia reference: ${referenceUrl ? "found ✓" : "not found"}`);
   }
 
-  // A — expand canvas to landscape so both subjects have room
-  console.log("[Pipeline] A: Expand canvas to the right...");
-  const expandedUrl = await withRetry(() => stepExpandCanvas(userImageUrl));
+  // A+B: Extend canvas and create inpainting mask using sharp
+  console.log("[Pipeline] A – Extending canvas and creating mask…");
+  const { extendedBase64, maskBase64 } = await buildExtendedCanvasAndMask(userImageUrl);
 
-  // B — add the person in the empty right area
-  console.log("[Pipeline] B: Add person to right side...");
-  const composedUrl = await withRetry(() =>
-    stepAddPersonToScene(expandedUrl, personName, rawPrompt, stylePrompt)
+  // C: FLUX Fill Pro – generates celebrity in the right (white) area only
+  const fillPrompt = buildFillPrompt(personName, rawPrompt, stylePrompt);
+  console.log(`[Pipeline] C – FLUX Fill Pro inpainting: "${fillPrompt.slice(0, 80)}…"`);
+  const inpaintedUrl = await withRetry(() =>
+    runFluxFillPro(extendedBase64, maskBase64, fillPrompt)
   );
 
-  // C — restore user's face (face index 0) to ensure identity is intact
-  console.log("[Pipeline] C: Restore user's face (face 0)...");
-  const userFaceFixed = await withRetry(() =>
-    runFaceSwap(userImageUrl, composedUrl, "0")
-  ).catch((e) => {
-    console.warn("[Pipeline] C skipped:", (e as Error).message);
-    return composedUrl;
-  });
-
-  // D — put celebrity's face on face index 1 for accurate likeness
-  let finalComposed = userFaceFixed;
+  // D: Face-swap the celebrity's actual face for accurate likeness
+  let composedUrl = inpaintedUrl;
   if (referenceUrl) {
-    console.log("[Pipeline] D: Add celebrity face (face 1)...");
-    finalComposed = await withRetry(() =>
-      runFaceSwap(referenceUrl!, userFaceFixed, "1")
+    console.log("[Pipeline] D – Face-swap celebrity (face 1)…");
+    composedUrl = await withRetry(() =>
+      runFaceSwap(referenceUrl!, inpaintedUrl, "1")
     ).catch((e) => {
-      console.warn("[Pipeline] D skipped:", (e as Error).message);
-      return userFaceFixed;
+      console.warn("[Pipeline] D skipped (face 1 not detected):", (e as Error).message);
+      return inpaintedUrl;
     });
   }
 
-  // E — 4× upscale with face enhancement
-  console.log("[Pipeline] E: RealESRGAN 4× upscale...");
-  return withRetry(() => runRealEsrgan(finalComposed, 4, true));
+  // E: 4× upscale with face enhancement
+  console.log("[Pipeline] E – RealESRGAN 4× upscale");
+  return withRetry(() => runRealEsrgan(composedUrl, 4, true));
 }
 
 // ─── SWAPFACE PIPELINE ────────────────────────────────────────────────────────
 
 async function runSwapFacePipeline(input: PipelineInput): Promise<string> {
-  const sourceUrl = input.sourceImageUrl!;
-  const targetUrl = input.targetImageUrl!;
-  const faceIndex = input.faceIndex ?? "0";
-
-  console.log("[Pipeline] Step 1: Face swap...");
+  console.log("[Pipeline] 1/2 Face swap…");
   const swapped = await withRetry(() =>
-    runFaceSwap(sourceUrl, targetUrl, faceIndex)
+    runFaceSwap(input.sourceImageUrl!, input.targetImageUrl!, input.faceIndex ?? "0")
   );
-
-  console.log("[Pipeline] Step 2: RealESRGAN 4× upscale...");
+  console.log("[Pipeline] 2/2 RealESRGAN 4× upscale");
   return withRetry(() => runRealEsrgan(swapped, 4, true));
 }
 
-// ─── INTENT DETECTION ────────────────────────────────────────────────────────
+// ─── CANVAS EXTENSION + MASK (sharp) ─────────────────────────────────────────
+
+async function buildExtendedCanvasAndMask(imageUrl: string): Promise<{
+  extendedBase64: string;
+  maskBase64: string;
+}> {
+  const res = await fetch(imageUrl);
+  const buffer = Buffer.from(await res.arrayBuffer());
+
+  const meta = await sharp(buffer).metadata();
+  const w = meta.width ?? 512;
+  const h = meta.height ?? 512;
+
+  // Extended canvas: original image on the LEFT, neutral grey on the RIGHT
+  const extendedBuf = await sharp(buffer)
+    .extend({ right: w, background: { r: 128, g: 128, b: 128 } })
+    .jpeg({ quality: 98 })
+    .toBuffer();
+
+  // Mask: black (keep) on LEFT, white (generate) on RIGHT
+  const whitePatch = await sharp({
+    create: { width: w, height: h, channels: 3, background: { r: 255, g: 255, b: 255 } },
+  })
+    .png()
+    .toBuffer();
+
+  const maskBuf = await sharp({
+    create: { width: w * 2, height: h, channels: 3, background: { r: 0, g: 0, b: 0 } },
+  })
+    .composite([{ input: whitePatch, left: w, top: 0 }])
+    .png()
+    .toBuffer();
+
+  return {
+    extendedBase64: `data:image/jpeg;base64,${extendedBuf.toString("base64")}`,
+    maskBase64: `data:image/png;base64,${maskBuf.toString("base64")}`,
+  };
+}
+
+// ─── INTENT DETECTION ─────────────────────────────────────────────────────────
 
 function detectCompositionRequest(prompt: string): boolean {
-  const lower = prompt.toLowerCase();
-  return [
-    "ajoute", "rajoute", "add", "mets", "place", "met ",
+  const p = prompt.toLowerCase();
+  // Spatial/relational terms that clearly indicate "add someone beside me"
+  const spatialTriggers = [
     "à côté", "next to", "beside", "with me", "avec moi",
     "à ma gauche", "à ma droite", "on my left", "on my right",
     "devant moi", "derrière moi", "in front of me", "behind me",
-    "une personne", "un homme", "une femme", "quelqu'un",
-    "a person", "a man", "a woman", "someone",
-  ].some((kw) => lower.includes(kw));
+  ];
+  if (spatialTriggers.some((kw) => p.includes(kw))) return true;
+
+  // Action verbs ONLY when paired with a person-reference word
+  const actionVerbs = ["ajoute", "rajoute", "add", "mets", "place", "met "];
+  const personNouns = ["personne", "homme", "femme", "quelqu'un", "person", "man", "woman", "someone", "celebrity", "célébrité"];
+  const hasAction = actionVerbs.some((v) => p.includes(v));
+  const hasPerson = personNouns.some((n) => p.includes(n));
+  return hasAction && hasPerson;
 }
 
-// Extract the person's name from a composition prompt.
+// Extract the person's name from the prompt.
 // "rajoute Ronaldo à côté de moi" → "Ronaldo"
+// "mets moi avec Michael Jackson" → "Michael Jackson"
 function extractPersonName(prompt: string): string | null {
-  let cleaned = prompt
-    .replace(/^(rajoute|ajoute|add|mets|place|met)\s+/i, "")
-    .trim();
+  // Patterns: "rajoute X ...", "ajoute X ...", "mets X avec ...", "avec X", "with X"
+  const patterns = [
+    /(?:rajoute|ajoute|add|place)\s+(?:moi\s+(?:avec|with)\s+)?(.+?)(?:\s+(?:à côté|next to|beside|avec moi|with me|à ma|on my|devant|derrière|in front|behind|de moi|of me).*)?$/i,
+    /(?:mets|met)\s+(?:moi\s+)?(?:avec|with)\s+(.+?)(?:\s+(?:à côté|next to|beside|à ma|on my).*)?$/i,
+    /(?:avec|with)\s+(.+?)(?:\s+(?:à côté|next to|beside|à ma|on my|de moi|of me).*)?$/i,
+  ];
 
-  cleaned = cleaned
-    .replace(
-      /\s+(à côté( de moi)?|next to( me)?|beside( me)?|avec moi|with me|à ma (gauche|droite)|on my (left|right)|devant moi|derrière moi|in front of me|behind me|de moi|of me).*$/i,
-      ""
-    )
-    .trim();
-
-  // Generic nouns are not names
-  if (/^(une?|un|a|an)\s+/i.test(cleaned)) return null;
-
-  if (cleaned.length > 1 && cleaned.length < 60) return cleaned;
+  for (const re of patterns) {
+    const match = prompt.match(re);
+    if (match) {
+      const candidate = match[1].trim();
+      // Reject generic nouns (une femme, a man, quelqu'un…)
+      if (/^(une?|un|a|an)\s+/i.test(candidate)) continue;
+      if (candidate.length > 1 && candidate.length < 60) return candidate;
+    }
+  }
   return null;
 }
 
-// ─── WIKIPEDIA REFERENCE IMAGE (free, no API key) ────────────────────────────
+// ─── WIKIPEDIA REFERENCE (free, no API key) ───────────────────────────────────
 
 async function fetchWikipediaImage(personName: string): Promise<string | null> {
   const slug = encodeURIComponent(personName.trim().replace(/\s+/g, "_"));
@@ -203,19 +243,14 @@ async function fetchWikipediaImage(personName: string): Promise<string | null> {
     try {
       const res = await fetch(
         `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${slug}`,
-        {
-          headers: {
-            "User-Agent": "IACelebriteApp/1.0 (contact: noreply@example.com)",
-          },
-        }
+        { headers: { "User-Agent": "IACelebriteApp/1.0" } }
       );
       if (!res.ok) continue;
       const data = (await res.json()) as {
         thumbnail?: { source: string };
         originalimage?: { source: string };
       };
-      const url =
-        data.originalimage?.source ?? data.thumbnail?.source ?? null;
+      const url = data.originalimage?.source ?? data.thumbnail?.source ?? null;
       if (url) return url;
     } catch {
       // try next language
@@ -224,59 +259,48 @@ async function fetchWikipediaImage(personName: string): Promise<string | null> {
   return null;
 }
 
-// ─── COMPOSITION STEPS ───────────────────────────────────────────────────────
+// ─── PROMPT BUILDERS ──────────────────────────────────────────────────────────
 
-async function stepExpandCanvas(imageUrl: string): Promise<string> {
-  return runFluxKontext(
-    imageUrl,
-    "Widen this image to a landscape format by extending the scene to the RIGHT side only. " +
-      "The person and all existing content on the LEFT must remain PIXEL-PERFECT IDENTICAL — do not alter them in any way. " +
-      "Only generate new background/environment on the RIGHT to naturally extend the setting. " +
-      "The left side is locked and must not change.",
-    "16:9"
-  );
-}
-
-async function stepAddPersonToScene(
-  imageUrl: string,
+function buildFillPrompt(
   personName: string | null,
   originalPrompt: string,
   stylePrompt: string
-): Promise<string> {
-  const styleNote = stylePrompt.trim() ? ` Style: ${stylePrompt}.` : "";
-  const person = personName ?? "the person described";
+): string {
+  const styleNote = stylePrompt.trim() ? ` ${stylePrompt.trim()}.` : "";
 
-  const prompt = personName
-    ? `The LEFT side of this image shows a person (Person A) — do NOT touch them at all. ` +
-      `On the RIGHT side, where there is only empty space or background, add ${person} standing naturally, facing the camera, looking photorealistic. ` +
-      `Person A on the left remains pixel-perfect unchanged. ` +
-      `Both people should look natural together in the same scene.${styleNote}`
-    : `${originalPrompt}. ` +
-      `The person on the LEFT is Person A — they must remain completely unchanged. ` +
-      `Add the requested person on the RIGHT side where there is empty space. ` +
-      `Make it photorealistic and natural.${styleNote}`;
+  if (personName) {
+    return (
+      `A photorealistic high-quality photo of ${personName} standing naturally, ` +
+      `facing the camera, full body visible, well-lit. ` +
+      `Match the lighting and environment from the left side of the image exactly. ` +
+      `Professional photography quality.${styleNote}`
+    );
+  }
 
-  return runFluxKontext(imageUrl, prompt, "match_input_image");
+  // Fallback: use original prompt if no name found
+  return (
+    `${originalPrompt}. ` +
+    `Photorealistic, high quality, well-lit, natural pose. ` +
+    `Match the lighting and environment of the existing scene.${styleNote}`
+  );
 }
 
-// ─── PROMPT BUILDERS ─────────────────────────────────────────────────────────
-
-function buildStyleInstruction(stylePrompt: string, customPrompt: string): string {
+function buildStylePrompt(stylePrompt: string, customPrompt: string): string {
   const base = customPrompt.trim();
   const style = stylePrompt.trim();
-  const userRequest =
-    base && style ? `${base}. Style: ${style}` : base || style;
+  const request = base && style ? `${base}. Style: ${style}` : base || style;
   return (
     `Keep the exact same person from the input photo — identical face, skin tone, and body shape. ` +
-    `${userRequest}. ` +
-    `Preserve all facial features and the person's identity exactly as shown in the input image.`
+    `Do NOT add any new people, characters, or figures to the image. Only one person: the original. ` +
+    `${request}. ` +
+    `Preserve all facial features and the person's identity exactly as in the input image.`
   );
 }
 
 // ─── MODEL RUNNERS ────────────────────────────────────────────────────────────
 
 async function runFluxKontext(
-  image: string | string[],
+  image: string,
   prompt: string,
   aspectRatio: string
 ): Promise<string> {
@@ -289,6 +313,27 @@ async function runFluxKontext(
       output_quality: 100,
       safety_tolerance: 6,
       prompt_upsampling: false,
+    },
+  });
+  return extractUrl(output);
+}
+
+async function runFluxFillPro(
+  imageBase64: string,
+  maskBase64: string,
+  prompt: string
+): Promise<string> {
+  const output = await replicate.run(MODELS.fluxFillPro, {
+    input: {
+      image: imageBase64,
+      mask: maskBase64,
+      prompt,
+      output_format: "jpg",
+      output_quality: 100,
+      safety_tolerance: 6,
+      prompt_upsampling: false,
+      guidance: 30,
+      num_inference_steps: 50,
     },
   });
   return extractUrl(output);
@@ -325,9 +370,7 @@ async function runRealEsrgan(
 ): Promise<string> {
   const output = await replicate.run(
     MODELS.realEsrgan as `${string}/${string}:${string}`,
-    {
-      input: { image: imageUrl, scale, face_enhance: faceEnhance },
-    }
+    { input: { image: imageUrl, scale, face_enhance: faceEnhance } }
   );
   return extractUrl(output);
 }
