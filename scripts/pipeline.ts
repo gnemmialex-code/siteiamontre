@@ -144,7 +144,7 @@ async function runIdeogramV3(imageUrl: string, instruction: string): Promise<str
       resolution: "None",
       style_type: "Realistic",
       rendering_speed: "BALANCED",
-      magic_prompt_option: "OFF",
+      magic_prompt_option: "Off",
     },
   });
   return extractUrl(output);
