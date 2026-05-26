@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\alexi\\\\Documents\\\\FlutterProjects\\\\testsiteiacelebité\" -Recurse -File)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)",
+      "Bash(npm install *)",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/next/package.json'\\).version\\)\")",
+      "Bash(npm uninstall *)",
+      "Bash(npx tsc *)",
+      "Bash(timeout 15 npm run dev)",
+      "Bash(timeout 12 npm run dev)",
+      "Bash(timeout 10 npm run dev)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(curl -s http://localhost:3000/)",
+      "PowerShell(Start-Process \"http://localhost:3000\")",
+      "Bash(start *)",
+      "Bash(node *)",
+      "Bash(npx next *)"
+    ]
+  }
+}
