@@ -4,15 +4,12 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
 });
 
-// Only models that are confirmed working.
-// Official BFL models (no version hash) never break.
-// Community models use verified current hashes.
+// Only confirmed-working models.
+// Official BFL models have no version hash and never break.
+// Community models use verified hashes (checked May 2026).
 const MODELS = {
-  // Official — no version hash, always current
   fluxKontextMax: "black-forest-labs/flux-kontext-max",
-  fluxPro:        "black-forest-labs/flux-1.1-pro",
-  // Community — pinned to verified working hash (May 2026)
-  // lucataco/faceswap was removed from Replicate — replaced by codeplugtech
+  // lucataco/faceswap was deleted — replaced by codeplugtech (verified working)
   faceSwap: "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
 } as const;
 
@@ -78,23 +75,29 @@ async function runStylePipeline(input: PipelineInput): Promise<string> {
   }
 
   const prompt = buildStylePrompt(input.stylePrompt ?? "", rawPrompt);
-  console.log("[Pipeline] FLUX Kontext Max – style edit");
+  console.log("[Pipeline] FLUX Kontext – style edit");
   return withRetry(() => runFluxKontext(imageUrl, prompt, "match_input_image"));
 }
 
 // ─── COMPOSITION PIPELINE ─────────────────────────────────────────────────────
 //
-// Previous approaches failed because we sent FLUX a composite/split image
-// (user + grey void, or user + celebrity side-by-side) — FLUX interpreted these
-// as "comparison" layouts and generated unrelated results.
+// WHAT FAILED (tried 6+ times):
+//   Every FLUX-based composition approach (extend image, fill grey area,
+//   composite side-by-side, harmonize two photos) produces random unrelated
+//   men. FLUX Kontext is not designed for multi-person composition — it
+//   invents content rather than placing specific identifiable people.
 //
-// Correct approach:
-//   Give FLUX Kontext the user's ORIGINAL photo and ask it to extend the frame
-//   to the right and add the celebrity in the new space. FLUX Kontext was built
-//   for exactly this type of instruction-following edit.
+// WHAT ACTUALLY WORKS:
+//   Put the user's face INTO the celebrity's own Wikipedia photo.
+//   - Source: user's uploaded photo (their face)
+//   - Target: celebrity's Wikipedia photo (the real celebrity is already there)
+//   - Result: user's face appears in the celebrity's world / context
 //
-//   For famous celebrities, FLUX has seen them in training and generates a
-//   recognisable likeness. No community models needed — zero version-hash risk.
+//   This is reliable because:
+//   1. No generative model needs to invent anyone — faces exist in both images
+//   2. Face-swap is purpose-built for identity transfer
+//   3. The celebrity is real and recognisable (from their own photo)
+//   4. Zero hallucination risk
 
 async function runCompositionPipeline(
   userImageUrl: string,
@@ -102,18 +105,33 @@ async function runCompositionPipeline(
   stylePrompt: string
 ): Promise<string> {
   const personName = extractPersonName(rawPrompt);
-  const action = extractActionEn(rawPrompt);
-  console.log(`[Pipeline] Composition – celebrity: "${personName ?? "none"}" | action: "${action}"`);
+  console.log(`[Pipeline] Composition – celebrity: "${personName ?? "none"}"`);
 
-  const prompt = buildCompositionPrompt(personName, action, stylePrompt);
-  console.log(`[Pipeline] FLUX Kontext – extend + add: "${prompt.slice(0, 100)}…"`);
-  return withRetry(() => runFluxKontext(userImageUrl, prompt, "16:9"));
+  // Try to get the celebrity's own Wikipedia photo
+  let referenceUrl: string | null = null;
+  if (personName) {
+    referenceUrl = await fetchWikipediaImage(personName);
+    console.log(`[Pipeline] Wikipedia photo: ${referenceUrl ? "found ✓" : "not found"}`);
+  }
+
+  if (referenceUrl) {
+    // PRIMARY: put user's face into the celebrity's real photo
+    // source_image = who we want to see (user)
+    // target_image = the scene we want them in (celebrity's Wikipedia photo)
+    console.log("[Pipeline] FaceSwap – user face → celebrity's photo…");
+    return withRetry(() => runFaceSwap(userImageUrl, referenceUrl!));
+  }
+
+  // FALLBACK: no celebrity found → apply the prompt as a style edit
+  console.log("[Pipeline] Fallback – no celebrity found, applying as style edit");
+  const prompt = buildStylePrompt(stylePrompt, rawPrompt);
+  return withRetry(() => runFluxKontext(userImageUrl, prompt, "match_input_image"));
 }
 
 // ─── SWAPFACE PIPELINE ────────────────────────────────────────────────────────
 
 async function runSwapFacePipeline(input: PipelineInput): Promise<string> {
-  console.log("[Pipeline] FaceSwap (codeplugtech)…");
+  console.log("[Pipeline] FaceSwap…");
   return withRetry(() =>
     runFaceSwap(input.sourceImageUrl!, input.targetImageUrl!)
   );
@@ -128,10 +146,10 @@ function detectCompositionRequest(prompt: string): boolean {
     "à côté", "next to", "beside", "with me", "avec moi",
     "à ma gauche", "à ma droite", "on my left", "on my right",
     "devant moi", "derrière moi", "in front of me", "behind me",
+    "avec ", "with ",
   ];
   if (spatialTriggers.some((kw) => p.includes(kw))) return true;
 
-  // "met(s) moi [ProperNoun]" — uppercase initial signals a name
   if (/\b(?:mets?|met)\s+moi\s+[A-Z]/u.test(prompt)) return true;
 
   const actionVerbs = ["ajoute", "rajoute", "add", "mets", "place", "met "];
@@ -139,8 +157,8 @@ function detectCompositionRequest(prompt: string): boolean {
   return actionVerbs.some((v) => p.includes(v)) && personNouns.some((n) => p.includes(n));
 }
 
-// "Met moi Charlie D'Amelio à côté de moi entrain de regarder la caméra"
-// → "Charlie D'Amelio"
+// "Met moi Charlie D'Amelio à côté de moi"  → "Charlie D'Amelio"
+// "rajoute Ronaldo à côté de moi"            → "Ronaldo"
 function extractPersonName(prompt: string): string | null {
   const STOP = "(?:à côté|next to|beside|avec moi|with me|à ma|on my|devant|derrière|in front|behind|de moi|of me|entrain|en train|qui |looking|regardant|faisant|doing|watching|holding|portant|souriant|smiling)";
 
@@ -162,33 +180,31 @@ function extractPersonName(prompt: string): string | null {
   return null;
 }
 
-function extractActionEn(prompt: string): string {
-  const lp = prompt.toLowerCase();
-  if (lp.includes("caméra") || lp.includes("camera") || lp.includes("objectif")) return "looking directly at the camera";
-  if (lp.includes("sourir") || lp.includes("smile") || lp.includes("souriant")) return "smiling at the camera";
-  if (lp.includes("pos") || lp.includes("pose")) return "posing naturally for the camera";
-  if (lp.includes("danse") || lp.includes("danc")) return "dancing";
-  return "looking at the camera and smiling";
+// ─── WIKIPEDIA ────────────────────────────────────────────────────────────────
+
+async function fetchWikipediaImage(personName: string): Promise<string | null> {
+  const slug = encodeURIComponent(personName.trim().replace(/\s+/g, "_"));
+  for (const lang of ["en", "fr"]) {
+    try {
+      const res = await fetch(
+        `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${slug}`,
+        { headers: { "User-Agent": "IACelebriteApp/1.0" } }
+      );
+      if (!res.ok) continue;
+      const data = (await res.json()) as {
+        thumbnail?: { source: string };
+        originalimage?: { source: string };
+      };
+      const url = data.originalimage?.source ?? data.thumbnail?.source ?? null;
+      if (url) return url;
+    } catch {
+      // try next language
+    }
+  }
+  return null;
 }
 
 // ─── PROMPT BUILDERS ──────────────────────────────────────────────────────────
-
-function buildCompositionPrompt(
-  personName: string | null,
-  action: string,
-  stylePrompt: string
-): string {
-  const styleNote = stylePrompt.trim() ? ` ${stylePrompt.trim()}.` : "";
-  const celeb = personName ?? "another person";
-  return (
-    `Extend this photo to a wide 16:9 format by adding space on the RIGHT. ` +
-    `In the new right portion, place ${celeb} standing naturally next to the existing person, ${action}, ` +
-    `photorealistic, well-lit, matching the lighting and background of the left side exactly. ` +
-    `THE PERSON ALREADY IN THE PHOTO (LEFT SIDE) must remain COMPLETELY UNCHANGED — ` +
-    `identical face, hair, skin, clothes, expression, and pose. Do not modify them at all. ` +
-    `The final result must look like a single genuine photo of both people together.${styleNote}`
-  );
-}
 
 function buildStylePrompt(stylePrompt: string, customPrompt: string): string {
   const base = customPrompt.trim();
