@@ -3,21 +3,35 @@ import { createSupabaseServer } from "@/lib/supabase-server";
 import { runPipeline } from "@/scripts/pipeline";
 import { validateImageFile } from "@/lib/validation";
 import { uploadToStorage } from "@/lib/storage";
+import sharp from "sharp";
 
 export const maxDuration = 300; // 5 min — nécessite Vercel Pro
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
 const CREDITS_PER_IMAGE = 100;
+// GFPGAN GPU limit is ~2M pixels; 1400×1400 = 1.96M, safely under
+const MAX_IMAGE_DIMENSION = 1400;
 
 function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
+async function resizeIfNeeded(buffer: Buffer): Promise<Buffer> {
+  const meta = await sharp(buffer).metadata();
+  const w = meta.width ?? 0;
+  const h = meta.height ?? 0;
+  if (w <= MAX_IMAGE_DIMENSION && h <= MAX_IMAGE_DIMENSION) return buffer;
+  return sharp(buffer)
+    .resize(MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION, { fit: "inside", withoutEnlargement: true })
+    .toBuffer();
 }
 
 async function uploadFile(supabase: Awaited<ReturnType<typeof createSupabaseServer>>, file: File, userId: string): Promise<string> {
   const validation = validateImageFile(file, MAX_FILE_SIZE);
   if (!validation.valid) throw new Error(validation.error);
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const raw = Buffer.from(await file.arrayBuffer());
+  const buffer = await resizeIfNeeded(raw);
   const ext = file.name.split(".").pop() ?? "jpg";
   const path = `inputs/${userId}/${generateId()}.${ext}`;
   return uploadToStorage(supabase, buffer, path, file.type);
