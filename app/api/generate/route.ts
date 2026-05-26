@@ -76,20 +76,36 @@ export async function POST(req: NextRequest) {
       outputUrl = await runPipeline({ mode: "swapface", sourceImageUrl: sourceUrl, targetImageUrl: targetUrl, faceIndex, extraPrompt });
       styleLabel = "SwapFace";
 
-    } else {
-      // ── MODE STYLE IA ──────────────────────────────────────────────────────
+    } else if (mode === "style") {
+      // ── MODE STYLE IA (style optionnel, prompt libre suffisant) ───────────
       const imageFile = formData.get("image") as File | null;
       const styleId = formData.get("style_id") as string | null;
-      const stylePrompt = formData.get("style_prompt") as string | null;
+      const rawStylePrompt = formData.get("style_prompt") as string | null;
       const customPrompt = (formData.get("custom_prompt") as string) ?? "";
-      styleLabel = (formData.get("style_label") as string) ?? styleId ?? "Style IA";
+      styleLabel = (formData.get("style_label") as string) ?? "Génération IA";
 
-      if (!imageFile || !styleId || !stylePrompt) {
-        return NextResponse.json({ error: "Paramètres manquants" }, { status: 400 });
+      if (!imageFile) {
+        return NextResponse.json({ error: "Photo requise" }, { status: 400 });
+      }
+      if (!rawStylePrompt && !customPrompt.trim()) {
+        return NextResponse.json({ error: "Veuillez choisir un style ou entrer une description" }, { status: 400 });
       }
 
+      const stylePrompt = rawStylePrompt
+        || "photorealistic portrait, ultra HD, professional photography, perfect lighting, stunning quality, 8k";
+
       const inputImageUrl = await uploadFile(supabase, imageFile, effectiveUserId);
-      outputUrl = await runPipeline({ mode: "style", inputImageUrl, styleId, stylePrompt, customPrompt });
+      outputUrl = await runPipeline({
+        mode: "style",
+        inputImageUrl,
+        styleId: styleId ?? "custom",
+        stylePrompt,
+        customPrompt,
+      });
+
+    } else {
+      // ── MODE NON SUPPORTÉ (image, video, etc.) ─────────────────────────────
+      return NextResponse.json({ error: "Ce mode n'est pas encore disponible" }, { status: 400 });
     }
 
     // ── Sauvegarder + déduire les crédits ────────────────────────────────────

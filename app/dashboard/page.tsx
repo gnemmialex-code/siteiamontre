@@ -378,6 +378,16 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {userEmail === "gnemmialex@gmail.com" && (
+            <Link
+              href="/admin"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-accent-violet border border-accent-violet/30 hover:bg-accent-violet/10 transition-all text-sm font-semibold"
+            >
+              <Settings className="w-4 h-4" />
+              Espace Admin
+            </Link>
+          )}
+
           <motion.button
             onClick={handleLogout}
             whileHover={{ scale: 1.02 }}
