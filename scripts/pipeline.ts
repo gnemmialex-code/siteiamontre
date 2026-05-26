@@ -5,6 +5,8 @@ const replicate = new Replicate({
 });
 
 const MODELS = {
+  // InstructPix2Pix : édition d'image par instruction texte libre
+  instructPix2Pix: "timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60437c13c588468b9810ec23f",
   faceSwap: "lucataco/faceswap:9a4298548422074c3f57258c5d544497a19901a0f3834f7a26f796fee2a7e4c9",
   realEsrgan: "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
 } as const;
@@ -57,9 +59,14 @@ export async function runPipeline(input: PipelineInput): Promise<string> {
 }
 
 async function runStylePipeline(input: PipelineInput): Promise<string> {
-  const faceUrl = input.inputImageUrl!;
-  console.log("[Pipeline] Step 1: RealESRGAN upscale...");
-  return withRetry(() => runRealEsrgan(faceUrl));
+  const imageUrl = input.inputImageUrl!;
+  const instruction = buildInstruction(input.stylePrompt ?? "", input.customPrompt);
+
+  console.log("[Pipeline] Step 1: InstructPix2Pix image edit...");
+  const editedUrl = await withRetry(() => runInstructPix2Pix(imageUrl, instruction));
+
+  console.log("[Pipeline] Step 2: RealESRGAN upscale...");
+  return withRetry(() => runRealEsrgan(editedUrl));
 }
 
 async function runSwapFacePipeline(input: PipelineInput): Promise<string> {
@@ -89,6 +96,27 @@ async function runFaceSwap(sourceImageUrl: string, targetImageUrl: string, faceI
     },
   });
   return extractUrl(output);
+}
+
+async function runInstructPix2Pix(imageUrl: string, instruction: string): Promise<string> {
+  const output = await replicate.run(MODELS.instructPix2Pix as `${string}/${string}:${string}`, {
+    input: {
+      image: imageUrl,
+      prompt: instruction,
+      negative_prompt: "deformed, ugly, bad anatomy, watermark, text, low quality",
+      num_inference_steps: 30,
+      guidance_scale: 7.5,
+      image_guidance_scale: 1.5,
+    },
+  });
+  return extractUrl(output);
+}
+
+function buildInstruction(stylePrompt: string, customPrompt?: string): string {
+  const parts: string[] = [];
+  if (stylePrompt) parts.push(stylePrompt);
+  if (customPrompt?.trim()) parts.push(customPrompt.trim());
+  return parts.join(". ");
 }
 
 async function runRealEsrgan(imageUrl: string): Promise<string> {
