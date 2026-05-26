@@ -21,7 +21,7 @@ const replicate = new Replicate({
 // ── Meilleurs modèles disponibles sur Replicate ──────────────────────────────
 const MODELS = {
   // PuLID (FLUX) : meilleur modèle face-preserving du marché, basé sur FLUX
-  pulid: "fofr/pulid",
+  pulid: "fofr/pulid-flux",
 
   // Face Swap : ReActor haute qualité pour le mode SwapFace
   faceSwap: "lucataco/faceswap:9a4298548422074c3f57258c5d544497a19901a0f3834f7a26f796fee2a7e4c9",
