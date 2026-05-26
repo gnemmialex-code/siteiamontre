@@ -12,6 +12,7 @@ import { STYLES, Style } from "../components/StyleSelector";
 import Loader from "../components/Loader";
 import PaywallModal from "../components/PaywallModal";
 import { supabase } from "@/lib/supabase";
+import { resizeImageFile } from "@/lib/resize-image";
 import {
   Sparkles, AlertCircle, Shuffle, ChevronDown, ChevronUp, Film, Lock,
 } from "lucide-react";
@@ -308,7 +309,7 @@ export default function UploadPage() {
 
       if (mode === "create") {
         const enrichedPrompt = buildEnrichedPrompt(selectedStyle, clothing, mood, background, accessory);
-        formData.append("image", file!);
+        formData.append("image", await resizeImageFile(file!));
         if (selectedStyle) {
           formData.append("style_id", selectedStyle.id);
           formData.append("style_label", selectedStyle.label);
@@ -318,8 +319,8 @@ export default function UploadPage() {
         formData.append("mode", "style");
 
       } else if (mode === "swapface") {
-        formData.append("source_image", swapSourceFile!);
-        formData.append("target_image", swapTargetFile!);
+        formData.append("source_image", await resizeImageFile(swapSourceFile!));
+        formData.append("target_image", await resizeImageFile(swapTargetFile!));
         formData.append("face_index", faceIndex);
         if (swapExtraPrompt) formData.append("extra_prompt", swapExtraPrompt);
         formData.append("mode", "swapface");

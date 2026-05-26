@@ -12,6 +12,7 @@ import {
   ChevronRight, Check, Star, Replace, PlusCircle, AlertCircle,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { resizeImageFile } from "@/lib/resize-image";
 import UploadBox from "../components/UploadBox";
 import VideoUploadBox from "../components/VideoUploadBox";
 import { STYLES, Style } from "../components/StyleSelector";
@@ -344,7 +345,7 @@ export default function DashboardPage() {
       if (!styleFile) { setError("Veuillez uploader une photo."); return; }
       if (!selectedStyle && !freePrompt.trim()) { setError("Veuillez choisir un style ou entrer une description."); return; }
       const enriched = buildEnrichedPrompt(selectedStyle, clothing, mood, styleBg, accessory);
-      formData.append("image", styleFile);
+      formData.append("image", await resizeImageFile(styleFile));
       if (selectedStyle) {
         formData.append("style_id",    selectedStyle.id);
         formData.append("style_label", selectedStyle.label);
@@ -355,8 +356,8 @@ export default function DashboardPage() {
     } else if (genType === "swapface") {
       if (!swapSrcFile) { setError("Veuillez uploader votre visage source."); return; }
       if (!swapTgtFile) { setError("Veuillez uploader la photo cible."); return; }
-      formData.append("source_image", swapSrcFile);
-      formData.append("target_image", swapTgtFile);
+      formData.append("source_image", await resizeImageFile(swapSrcFile));
+      formData.append("target_image", await resizeImageFile(swapTgtFile));
       formData.append("face_index",   faceIndex);
       if (swapExtraPrompt) formData.append("extra_prompt", swapExtraPrompt);
       formData.append("mode", "swapface");

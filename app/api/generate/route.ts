@@ -3,36 +3,21 @@ import { createSupabaseServer } from "@/lib/supabase-server";
 import { runPipeline } from "@/scripts/pipeline";
 import { validateImageFile } from "@/lib/validation";
 import { uploadToStorage } from "@/lib/storage";
-import { Jimp, JimpMime } from "jimp";
 
 export const maxDuration = 300; // 5 min — nécessite Vercel Pro
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
 const CREDITS_PER_IMAGE = 100;
-// GFPGAN GPU limit is ~2M pixels; 1200×1200 = 1.44M, safely under
-const MAX_IMAGE_DIMENSION = 1200;
 
 function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
-}
-
-async function resizeIfNeeded(buffer: Buffer): Promise<Buffer> {
-  const image = await Jimp.read(buffer);
-  const w = image.bitmap.width;
-  const h = image.bitmap.height;
-  console.log(`[Resize] Input dimensions: ${w}x${h}`);
-  if (w <= MAX_IMAGE_DIMENSION && h <= MAX_IMAGE_DIMENSION) return buffer;
-  image.scaleToFit({ w: MAX_IMAGE_DIMENSION, h: MAX_IMAGE_DIMENSION });
-  console.log(`[Resize] Resized to ${image.bitmap.width}x${image.bitmap.height}`);
-  return await image.getBuffer(JimpMime.jpeg);
 }
 
 async function uploadFile(supabase: Awaited<ReturnType<typeof createSupabaseServer>>, file: File, userId: string): Promise<string> {
   const validation = validateImageFile(file, MAX_FILE_SIZE);
   if (!validation.valid) throw new Error(validation.error);
 
-  const raw = Buffer.from(await file.arrayBuffer());
-  const buffer = await resizeIfNeeded(raw);
+  const buffer = Buffer.from(await file.arrayBuffer());
   const ext = file.name.split(".").pop() ?? "jpg";
   const path = `inputs/${userId}/${generateId()}.${ext}`;
   return uploadToStorage(supabase, buffer, path, file.type);
