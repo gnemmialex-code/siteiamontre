@@ -6,7 +6,7 @@ const replicate = new Replicate({
 
 const MODELS = {
   faceSwap: "lucataco/faceswap:9a4298548422074c3f57258c5d544497a19901a0f3834f7a26f796fee2a7e4c9",
-  codeFormer: "sczhou/codeformer",
+  gfpgan: "tencentarc/gfpgan",
   realEsrgan: "nightmareai/real-esrgan",
 } as const;
 
@@ -60,8 +60,8 @@ export async function runPipeline(input: PipelineInput): Promise<string> {
 async function runStylePipeline(input: PipelineInput): Promise<string> {
   const faceUrl = input.inputImageUrl!;
 
-  console.log("[Pipeline] Step 1: CodeFormer face restoration...");
-  const restoredUrl = await withRetry(() => runCodeFormer(faceUrl));
+  console.log("[Pipeline] Step 1: GFPGAN face restoration...");
+  const restoredUrl = await withRetry(() => runGfpgan(faceUrl));
 
   console.log("[Pipeline] Step 2: RealESRGAN 4K upscale...");
   const upscaledUrl = await withRetry(() => runRealEsrgan(restoredUrl));
@@ -77,8 +77,8 @@ async function runSwapFacePipeline(input: PipelineInput): Promise<string> {
   console.log("[Pipeline] Step 1: Face swap...");
   const swappedUrl = await withRetry(() => runFaceSwap(sourceUrl, targetUrl, faceIndex));
 
-  console.log("[Pipeline] Step 2: CodeFormer restoration...");
-  const restoredUrl = await withRetry(() => runCodeFormer(swappedUrl));
+  console.log("[Pipeline] Step 2: GFPGAN restoration...");
+  const restoredUrl = await withRetry(() => runGfpgan(swappedUrl));
 
   console.log("[Pipeline] Step 3: RealESRGAN 4K upscale...");
   const upscaledUrl = await withRetry(() => runRealEsrgan(restoredUrl));
@@ -103,14 +103,12 @@ async function runFaceSwap(sourceImageUrl: string, targetImageUrl: string, faceI
   return extractUrl(output);
 }
 
-async function runCodeFormer(imageUrl: string): Promise<string> {
-  const output = await replicate.run(MODELS.codeFormer as `${string}/${string}`, {
+async function runGfpgan(imageUrl: string): Promise<string> {
+  const output = await replicate.run(MODELS.gfpgan as `${string}/${string}`, {
     input: {
-      image: imageUrl,
-      codeformer_fidelity: 0.7,
-      background_enhance: true,
-      face_upsample: true,
-      upscale: 2,
+      img: imageUrl,
+      version: "v1.4",
+      scale: 2,
     },
   });
   return extractUrl(output);
