@@ -4,15 +4,16 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
 });
 
+// Only models that are confirmed working.
+// Official BFL models (no version hash) never break.
+// Community models use verified current hashes.
 const MODELS = {
-  // Image editing — style transforms only
+  // Official — no version hash, always current
   fluxKontextMax: "black-forest-labs/flux-kontext-max",
-  // Text-to-image — generates the 2-person composition template
-  fluxPro: "black-forest-labs/flux-1.1-pro",
-  // Face identity swap
-  faceSwap: "lucataco/faceswap:9a4298548422074c3f57258c5d544497a19901a0f3834f7a26f796fee2a7e4c9",
-  // Upscaler
-  realEsrgan: "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
+  fluxPro:        "black-forest-labs/flux-1.1-pro",
+  // Community — pinned to verified working hash (May 2026)
+  // lucataco/faceswap was removed from Replicate — replaced by codeplugtech
+  faceSwap: "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
 } as const;
 
 export interface PipelineInput {
@@ -77,31 +78,23 @@ async function runStylePipeline(input: PipelineInput): Promise<string> {
   }
 
   const prompt = buildStylePrompt(input.stylePrompt ?? "", rawPrompt);
-  console.log("[Pipeline] 1/2 FLUX Kontext Max – style edit");
-  const edited = await withRetry(() =>
-    runFluxKontext(imageUrl, prompt, "match_input_image")
-  );
-
-  console.log("[Pipeline] 2/2 RealESRGAN 4× upscale");
-  return withRetry(() => runRealEsrgan(edited, 4, true));
+  console.log("[Pipeline] FLUX Kontext Max – style edit");
+  return withRetry(() => runFluxKontext(imageUrl, prompt, "match_input_image"));
 }
 
 // ─── COMPOSITION PIPELINE ─────────────────────────────────────────────────────
 //
-// Why this approach:
-//   Previous attempts sent FLUX a side-by-side composite → model interpreted
-//   it as a "comparison image" and generated 2 unrelated men. Sending a grey
-//   void → model invented a random person. Both were architectural mistakes.
+// Previous approaches failed because we sent FLUX a composite/split image
+// (user + grey void, or user + celebrity side-by-side) — FLUX interpreted these
+// as "comparison" layouts and generated unrelated results.
 //
-//   The correct approach:
-//   1. FLUX Pro generates a fresh, clean 2-person scene (its speciality)
-//   2. FaceSwap replaces face 0 with the user's actual face
-//   3. FaceSwap replaces face 1 with the celebrity's actual face (Wikipedia)
-//   4. RealESRGAN 4× upscale
+// Correct approach:
+//   Give FLUX Kontext the user's ORIGINAL photo and ask it to extend the frame
+//   to the right and add the celebrity in the new space. FLUX Kontext was built
+//   for exactly this type of instruction-following edit.
 //
-//   Face-swap is purpose-built for identity transfer. FLUX Pro is purpose-built
-//   for generating coherent multi-person scenes. We use each tool for what it
-//   was designed for.
+//   For famous celebrities, FLUX has seen them in training and generates a
+//   recognisable likeness. No community models needed — zero version-hash risk.
 
 async function runCompositionPipeline(
   userImageUrl: string,
@@ -112,50 +105,18 @@ async function runCompositionPipeline(
   const action = extractActionEn(rawPrompt);
   console.log(`[Pipeline] Composition – celebrity: "${personName ?? "none"}" | action: "${action}"`);
 
-  // Fetch Wikipedia reference image for the celebrity's face
-  let referenceUrl: string | null = null;
-  if (personName) {
-    referenceUrl = await fetchWikipediaImage(personName);
-    console.log(`[Pipeline] Wikipedia face reference: ${referenceUrl ? "found ✓" : "not found"}`);
-  }
-
-  // 1. Generate a clean 2-person template with FLUX Pro (text-to-image)
-  const templatePrompt = buildTemplatePrompt(personName, action, stylePrompt);
-  console.log(`[Pipeline] 1/4 FLUX Pro – generate template: "${templatePrompt.slice(0, 100)}…"`);
-  const templateUrl = await withRetry(() => runFluxPro(templatePrompt));
-
-  // 2. Face-swap the user's face onto the LEFT person (face index 0)
-  console.log("[Pipeline] 2/4 FaceSwap – user → person 0 (left)…");
-  const withUser = await withRetry(() =>
-    runFaceSwap(userImageUrl, templateUrl, "0")
-  );
-
-  // 3. Face-swap the celebrity's face onto the RIGHT person (face index 1)
-  let composed = withUser;
-  if (referenceUrl) {
-    console.log("[Pipeline] 3/4 FaceSwap – celebrity → person 1 (right)…");
-    composed = await withRetry(() =>
-      runFaceSwap(referenceUrl!, withUser, "1")
-    ).catch((e) => {
-      console.warn("[Pipeline] 3/4 celebrity swap skipped (face not detected):", (e as Error).message);
-      return withUser;
-    });
-  }
-
-  // 4. 4× upscale with face enhancement
-  console.log("[Pipeline] 4/4 RealESRGAN 4× upscale");
-  return withRetry(() => runRealEsrgan(composed, 4, true));
+  const prompt = buildCompositionPrompt(personName, action, stylePrompt);
+  console.log(`[Pipeline] FLUX Kontext – extend + add: "${prompt.slice(0, 100)}…"`);
+  return withRetry(() => runFluxKontext(userImageUrl, prompt, "16:9"));
 }
 
 // ─── SWAPFACE PIPELINE ────────────────────────────────────────────────────────
 
 async function runSwapFacePipeline(input: PipelineInput): Promise<string> {
-  console.log("[Pipeline] 1/2 Face swap…");
-  const swapped = await withRetry(() =>
-    runFaceSwap(input.sourceImageUrl!, input.targetImageUrl!, input.faceIndex ?? "0")
+  console.log("[Pipeline] FaceSwap (codeplugtech)…");
+  return withRetry(() =>
+    runFaceSwap(input.sourceImageUrl!, input.targetImageUrl!)
   );
-  console.log("[Pipeline] 2/2 RealESRGAN 4× upscale");
-  return withRetry(() => runRealEsrgan(swapped, 4, true));
 }
 
 // ─── INTENT DETECTION ─────────────────────────────────────────────────────────
@@ -163,7 +124,6 @@ async function runSwapFacePipeline(input: PipelineInput): Promise<string> {
 function detectCompositionRequest(prompt: string): boolean {
   const p = prompt.toLowerCase();
 
-  // Explicit spatial terms
   const spatialTriggers = [
     "à côté", "next to", "beside", "with me", "avec moi",
     "à ma gauche", "à ma droite", "on my left", "on my right",
@@ -174,7 +134,6 @@ function detectCompositionRequest(prompt: string): boolean {
   // "met(s) moi [ProperNoun]" — uppercase initial signals a name
   if (/\b(?:mets?|met)\s+moi\s+[A-Z]/u.test(prompt)) return true;
 
-  // Action verb + person noun
   const actionVerbs = ["ajoute", "rajoute", "add", "mets", "place", "met "];
   const personNouns = ["personne", "homme", "femme", "quelqu'un", "person", "man", "woman", "someone", "celebrity", "célébrité"];
   return actionVerbs.some((v) => p.includes(v)) && personNouns.some((n) => p.includes(n));
@@ -208,50 +167,26 @@ function extractActionEn(prompt: string): string {
   if (lp.includes("caméra") || lp.includes("camera") || lp.includes("objectif")) return "looking directly at the camera";
   if (lp.includes("sourir") || lp.includes("smile") || lp.includes("souriant")) return "smiling at the camera";
   if (lp.includes("pos") || lp.includes("pose")) return "posing naturally for the camera";
-  if (lp.includes("danse") || lp.includes("danc")) return "dancing together";
+  if (lp.includes("danse") || lp.includes("danc")) return "dancing";
   return "looking at the camera and smiling";
-}
-
-// ─── WIKIPEDIA REFERENCE ──────────────────────────────────────────────────────
-
-async function fetchWikipediaImage(personName: string): Promise<string | null> {
-  const slug = encodeURIComponent(personName.trim().replace(/\s+/g, "_"));
-  for (const lang of ["en", "fr"]) {
-    try {
-      const res = await fetch(
-        `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${slug}`,
-        { headers: { "User-Agent": "IACelebriteApp/1.0" } }
-      );
-      if (!res.ok) continue;
-      const data = (await res.json()) as {
-        thumbnail?: { source: string };
-        originalimage?: { source: string };
-      };
-      const url = data.originalimage?.source ?? data.thumbnail?.source ?? null;
-      if (url) return url;
-    } catch {
-      // try next language
-    }
-  }
-  return null;
 }
 
 // ─── PROMPT BUILDERS ──────────────────────────────────────────────────────────
 
-function buildTemplatePrompt(
+function buildCompositionPrompt(
   personName: string | null,
   action: string,
   stylePrompt: string
 ): string {
-  const styleNote = stylePrompt.trim() ? `, ${stylePrompt.trim()}` : "";
-  const celebHint = personName
-    ? `, one of them is ${personName}`
-    : "";
+  const styleNote = stylePrompt.trim() ? ` ${stylePrompt.trim()}.` : "";
+  const celeb = personName ?? "another person";
   return (
-    `A professional photograph of exactly two people standing side by side${celebHint}, ` +
-    `both ${action}, photorealistic, well-lit, sharp focus on both faces, ` +
-    `upper body clearly visible, both facing the camera, ` +
-    `high quality professional photography${styleNote}`
+    `Extend this photo to a wide 16:9 format by adding space on the RIGHT. ` +
+    `In the new right portion, place ${celeb} standing naturally next to the existing person, ${action}, ` +
+    `photorealistic, well-lit, matching the lighting and background of the left side exactly. ` +
+    `THE PERSON ALREADY IN THE PHOTO (LEFT SIDE) must remain COMPLETELY UNCHANGED — ` +
+    `identical face, hair, skin, clothes, expression, and pose. Do not modify them at all. ` +
+    `The final result must look like a single genuine photo of both people together.${styleNote}`
   );
 }
 
@@ -289,22 +224,9 @@ async function runFluxKontext(
   return extractUrl(output);
 }
 
-async function runFluxPro(prompt: string): Promise<string> {
-  const output = await replicate.run(MODELS.fluxPro, {
-    input: {
-      prompt,
-      aspect_ratio: "4:3",
-      output_format: "jpg",
-      output_quality: 100,
-    },
-  });
-  return extractUrl(output);
-}
-
 async function runFaceSwap(
   sourceImageUrl: string,
-  targetImageUrl: string,
-  faceIndex: string
+  targetImageUrl: string
 ): Promise<string> {
   const output = await replicate.run(
     MODELS.faceSwap as `${string}/${string}:${string}`,
@@ -312,27 +234,8 @@ async function runFaceSwap(
       input: {
         source_image: sourceImageUrl,
         target_image: targetImageUrl,
-        source_indexes: "0",
-        target_indexes: faceIndex === "auto" ? "0" : faceIndex,
-        face_restore: "CodeFormer",
-        restore_factor: 0.75,
-        face_upsample: true,
-        upscale: 2,
-        max_face_num: 2,
       },
     }
-  );
-  return extractUrl(output);
-}
-
-async function runRealEsrgan(
-  imageUrl: string,
-  scale: 2 | 4 = 4,
-  faceEnhance = true
-): Promise<string> {
-  const output = await replicate.run(
-    MODELS.realEsrgan as `${string}/${string}:${string}`,
-    { input: { image: imageUrl, scale, face_enhance: faceEnhance } }
   );
   return extractUrl(output);
 }
