@@ -23,9 +23,6 @@ const MODELS = {
   // PuLID (FLUX) : meilleur modèle face-preserving du marché, basé sur FLUX
   pulid: "fofr/pulid",
 
-  // InstantID : backup si PuLID échoue, excellent pour portraits stylisés
-  instantId: "zsxkib/instant-id",
-
   // Face Swap : ReActor haute qualité pour le mode SwapFace
   faceSwap: "lucataco/faceswap:9a4298548422074c3f57258c5d544497a19901a0f3834f7a26f796fee2a7e4c9",
 
@@ -107,13 +104,7 @@ async function runStylePipeline(input: PipelineInput): Promise<string> {
 
   // Étape 1 : PuLID (FLUX) — génération stylisée face-preserving
   console.log("[Pipeline] Step 1: PuLID style generation...");
-  let styledUrl: string;
-  try {
-    styledUrl = await withRetry(() => runPuLID(faceUrl, prompt));
-  } catch (err) {
-    console.warn("[Pipeline] PuLID failed, falling back to InstantID:", err);
-    styledUrl = await withRetry(() => runInstantID(faceUrl, prompt));
-  }
+  const styledUrl = await withRetry(() => runPuLID(faceUrl, prompt));
 
   // Étape 2 : CodeFormer — restauration & amélioration du visage
   console.log("[Pipeline] Step 2: CodeFormer face restoration...");
@@ -162,22 +153,6 @@ async function runPuLID(faceImageUrl: string, prompt: string): Promise<string> {
       guidance_scale: 7.5,
       output_format: "png",
       output_quality: 100,
-    },
-  });
-  return extractUrl(output);
-}
-
-async function runInstantID(faceImageUrl: string, prompt: string): Promise<string> {
-  const output = await replicate.run(MODELS.instantId as `${string}/${string}`, {
-    input: {
-      image: faceImageUrl,
-      prompt,
-      negative_prompt: buildNegativePrompt(),
-      num_inference_steps: 30,
-      guidance_scale: 7.5,
-      ip_adapter_scale: 0.8,
-      controlnet_conditioning_scale: 0.8,
-      output_format: "png",
     },
   });
   return extractUrl(output);
