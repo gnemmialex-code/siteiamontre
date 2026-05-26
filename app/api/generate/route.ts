@@ -3,7 +3,7 @@ import { createSupabaseServer } from "@/lib/supabase-server";
 import { runPipeline } from "@/scripts/pipeline";
 import { validateImageFile } from "@/lib/validation";
 import { uploadToStorage } from "@/lib/storage";
-import Jimp from "jimp";
+import { Jimp, JimpMime } from "jimp";
 
 export const maxDuration = 300; // 5 min — nécessite Vercel Pro
 
@@ -22,9 +22,9 @@ async function resizeIfNeeded(buffer: Buffer): Promise<Buffer> {
   const h = image.bitmap.height;
   console.log(`[Resize] Input dimensions: ${w}x${h}`);
   if (w <= MAX_IMAGE_DIMENSION && h <= MAX_IMAGE_DIMENSION) return buffer;
-  image.scaleToFit(MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION);
+  image.scaleToFit({ w: MAX_IMAGE_DIMENSION, h: MAX_IMAGE_DIMENSION });
   console.log(`[Resize] Resized to ${image.bitmap.width}x${image.bitmap.height}`);
-  return await image.getBufferAsync(Jimp.MIME_JPEG);
+  return await image.getBuffer(JimpMime.jpeg);
 }
 
 async function uploadFile(supabase: Awaited<ReturnType<typeof createSupabaseServer>>, file: File, userId: string): Promise<string> {
