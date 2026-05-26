@@ -20,10 +20,19 @@ async function resizeBuffer(buffer: Buffer): Promise<Buffer> {
   const img = await Jimp.read(buffer);
   const w: number = img.bitmap.width;
   const h: number = img.bitmap.height;
-  if (w <= MAX_PX && h <= MAX_PX) return buffer;
-  img.resize(MAX_PX, Jimp.AUTO);
-  console.log(`[Resize] ${w}x${h} → ${img.bitmap.width}x${img.bitmap.height}`);
-  return img.getBufferAsync(Jimp.MIME_JPEG);
+  console.log(`[Resize] input ${w}x${h}, MAX_PX=${MAX_PX}`);
+  if (w <= MAX_PX && h <= MAX_PX) {
+    console.log("[Resize] no resize needed");
+    return buffer;
+  }
+  const scale = MAX_PX / Math.max(w, h);
+  const newW = Math.round(w * scale);
+  const newH = Math.round(h * scale);
+  console.log(`[Resize] resizing to ${newW}x${newH}`);
+  img.resize(newW, newH);
+  const out: Buffer = await img.getBufferAsync("image/jpeg");
+  console.log(`[Resize] done, buffer ${out.length} bytes`);
+  return out;
 }
 
 async function uploadFile(supabase: Awaited<ReturnType<typeof createSupabaseServer>>, file: File, userId: string): Promise<string> {
