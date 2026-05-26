@@ -1,26 +1,108 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
-  Sparkles, Download, Trash2, Clock, Zap, Plus, LogOut,
-  Shuffle, ImageIcon, Film, Crown, Settings, History,
-  ChevronRight, Check, Star, Replace, PlusCircle, Wand2, AlertCircle,
+  Sparkles, Download, Trash2, Zap, Plus, LogOut,
+  Shuffle, Film, Crown, Settings, History,
+  ChevronRight, Check, Star, Replace, PlusCircle, AlertCircle,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import UploadBox from "../components/UploadBox";
 import VideoUploadBox from "../components/VideoUploadBox";
-import StyleSelector, { Style } from "../components/StyleSelector";
+import { STYLES, Style } from "../components/StyleSelector";
 import PaywallModal from "../components/PaywallModal";
 import LiveNotification from "../components/LiveNotification";
 
+/* ─── Refinement options ─────────────────────────────────── */
+interface OptionItem { id: string; label: string; prompt: string; }
+
+const CLOTHING_OPTIONS: OptionItem[] = [
+  { id: "casual",        label: "👕 Casual chic",    prompt: "casual chic outfit, relaxed stylish attire" },
+  { id: "formal_suit",   label: "🤵 Costume formel", prompt: "wearing a formal suit, sharp elegant attire" },
+  { id: "elegant_dress", label: "👗 Robe élégante",  prompt: "wearing an elegant evening dress, glamorous" },
+  { id: "streetwear",    label: "🧢 Streetwear",     prompt: "streetwear urban fashion, trendy look" },
+  { id: "haute_couture", label: "✨ Haute couture",  prompt: "haute couture designer fashion, luxury outfit" },
+  { id: "sporty",        label: "⚡ Sportswear",     prompt: "athletic sportswear, dynamic sporty look" },
+];
+
+const MOOD_OPTIONS: OptionItem[] = [
+  { id: "glamour",      label: "💫 Glamour",      prompt: "glamorous confident stunning expression" },
+  { id: "edgy",         label: "🖤 Edgy",          prompt: "edgy rock aesthetic, intense bold look" },
+  { id: "romantic",     label: "🌸 Romantique",    prompt: "romantic soft aesthetic, gentle warm expression" },
+  { id: "professional", label: "💼 Pro",           prompt: "professional confident businesslike look" },
+  { id: "mysterious",   label: "🌙 Mystérieux",    prompt: "mysterious alluring dark expression" },
+  { id: "futuristic",   label: "🤖 Futuriste",     prompt: "futuristic cyberpunk aesthetic, neon vibes" },
+];
+
+const BACKGROUND_OPTIONS: OptionItem[] = [
+  { id: "studio",     label: "⬜ Studio",     prompt: "clean professional studio background" },
+  { id: "city_night", label: "🌃 Ville nuit", prompt: "nighttime cityscape background, bokeh lights" },
+  { id: "nature",     label: "🌿 Nature",     prompt: "lush green nature outdoor background" },
+  { id: "luxury",     label: "💎 Luxe",       prompt: "luxury opulent interior background" },
+  { id: "beach",      label: "🏖️ Plage",      prompt: "golden hour tropical beach background" },
+  { id: "abstract",   label: "🎨 Abstrait",   prompt: "abstract colorful artistic background" },
+];
+
+const ACCESSORY_OPTIONS: OptionItem[] = [
+  { id: "none",       label: "❌ Aucun",      prompt: "" },
+  { id: "sunglasses", label: "🕶️ Lunettes",   prompt: "wearing stylish designer sunglasses" },
+  { id: "jewelry",    label: "💍 Bijoux",     prompt: "wearing luxury gold jewelry and accessories" },
+  { id: "hat",        label: "🎩 Chapeau",    prompt: "wearing a stylish fashionable hat" },
+  { id: "scarf",      label: "🧣 Écharpe",    prompt: "wearing an elegant silk scarf" },
+];
+
+function buildEnrichedPrompt(
+  style: Style | null,
+  clothing: string | null,
+  mood: string | null,
+  bg: string | null,
+  accessory: string | null,
+): string {
+  const parts: string[] = [];
+  if (style) parts.push(style.prompt);
+  const cp = CLOTHING_OPTIONS.find(o => o.id === clothing)?.prompt;
+  if (cp) parts.push(cp);
+  const mp = MOOD_OPTIONS.find(o => o.id === mood)?.prompt;
+  if (mp) parts.push(mp);
+  const bp = BACKGROUND_OPTIONS.find(o => o.id === bg)?.prompt;
+  if (bp) parts.push(bp);
+  const ap = ACCESSORY_OPTIONS.find(o => o.id === accessory)?.prompt;
+  if (ap && accessory !== "none") parts.push(ap);
+  return parts.join(", ");
+}
+
+function DashOptionChips({ title, options, selected, onSelect }: {
+  title: string; options: OptionItem[]; selected: string | null;
+  onSelect: (id: string | null) => void;
+}) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-1.5">{title}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map(opt => (
+          <button key={opt.id}
+            onClick={() => onSelect(selected === opt.id ? null : opt.id)}
+            className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
+              selected === opt.id
+                ? "bg-accent-violet/20 border-accent-violet text-white"
+                : "border-surface-border text-white/45 hover:border-accent-violet/40 hover:text-white"
+            }`}>
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Types ─────────────────────────────────────────────── */
 type NavView = "create" | "history" | "subscription" | "settings";
-type GenType = "style" | "swapface" | "image" | "video";
+type GenType = "create" | "swapface" | "video";
 type ObjectOption = "addObject" | "fullGeneration" | "replaceObject";
 
 interface Generation {
@@ -45,10 +127,9 @@ const NAV_ITEMS = [
 ];
 
 const GEN_TABS: { id: GenType; label: string; icon: React.ElementType }[] = [
-  { id: "style",    label: "Style Celebrity",  icon: Sparkles  },
-  { id: "swapface", label: "SwapFace",         icon: Shuffle   },
-  { id: "image",    label: "Image IA",         icon: ImageIcon },
-  { id: "video",    label: "Vidéo IA",         icon: Film      },
+  { id: "create",   label: "Créer",    icon: Sparkles },
+  { id: "swapface", label: "SwapFace", icon: Shuffle  },
+  { id: "video",    label: "Vidéo IA", icon: Film     },
 ];
 
 const PLANS_DATA = [
@@ -140,7 +221,7 @@ function NavButton({
 export default function DashboardPage() {
   const router = useRouter();
   const [navView, setNavView]   = useState<NavView>("create");
-  const [genType, setGenType]   = useState<GenType>("style");
+  const [genType, setGenType]   = useState<GenType>("create");
 
   /* data */
   const [generations, setGenerations] = useState<Generation[]>([]);
@@ -148,11 +229,15 @@ export default function DashboardPage() {
   const [loading,     setLoading]     = useState(true);
   const [userEmail,   setUserEmail]   = useState<string | null>(null);
 
-  /* generation state – style */
+  /* generation state – create (style + image fusionnés) */
   const [styleFile,     setStyleFile]     = useState<File | null>(null);
   const [stylePreview,  setStylePreview]  = useState<string | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<Style | null>(null);
-  const [customPrompt,  setCustomPrompt]  = useState("");
+  const [clothing,      setClothing]      = useState<string | null>(null);
+  const [mood,          setMood]          = useState<string | null>(null);
+  const [styleBg,       setStyleBg]       = useState<string | null>(null);
+  const [accessory,     setAccessory]     = useState<string | null>(null);
+  const [freePrompt,    setFreePrompt]    = useState("");
 
   /* generation state – swapface */
   const [swapSrcFile,     setSwapSrcFile]     = useState<File | null>(null);
@@ -161,12 +246,6 @@ export default function DashboardPage() {
   const [swapTgtPreview,  setSwapTgtPreview]  = useState<string | null>(null);
   const [faceIndex,       setFaceIndex]       = useState<"0"|"1"|"auto">("auto");
   const [swapExtraPrompt, setSwapExtraPrompt] = useState("");
-
-  /* generation state – image */
-  const [imageFile,          setImageFile]          = useState<File | null>(null);
-  const [imagePreview,       setImagePreview]        = useState<string | null>(null);
-  const [imagePrompt,        setImagePrompt]         = useState("");
-  const [imageObjectOptions, setImageObjectOptions]  = useState<Set<ObjectOption>>(new Set());
 
   /* generation state – video */
   const [videoFile,         setVideoFile]         = useState<File | null>(null);
@@ -236,6 +315,15 @@ export default function DashboardPage() {
     setOptions(next);
   };
 
+  const handleStyleSelect = (style: Style) => {
+    if (selectedStyle?.id === style.id) {
+      setSelectedStyle(null);
+      setClothing(null); setMood(null); setStyleBg(null); setAccessory(null);
+    } else {
+      setSelectedStyle(style);
+    }
+  };
+
   const simulateProgress = () => {
     let p = 0;
     const iv = setInterval(() => {
@@ -252,14 +340,18 @@ export default function DashboardPage() {
 
     const formData = new FormData();
 
-    if (genType === "style") {
-      if (!styleFile)     { setError("Veuillez uploader une photo."); return; }
-      if (!selectedStyle) { setError("Veuillez choisir un style."); return; }
-      formData.append("image",        styleFile);
-      formData.append("style_id",     selectedStyle.id);
-      formData.append("style_prompt", selectedStyle.prompt + (customPrompt ? `, ${customPrompt}` : ""));
-      formData.append("style_label",  selectedStyle.label);
-      formData.append("mode",         "style");
+    if (genType === "create") {
+      if (!styleFile) { setError("Veuillez uploader une photo."); return; }
+      if (!selectedStyle && !freePrompt.trim()) { setError("Veuillez choisir un style ou entrer une description."); return; }
+      const enriched = buildEnrichedPrompt(selectedStyle, clothing, mood, styleBg, accessory);
+      formData.append("image", styleFile);
+      if (selectedStyle) {
+        formData.append("style_id",    selectedStyle.id);
+        formData.append("style_label", selectedStyle.label);
+      }
+      if (enriched)             formData.append("style_prompt", enriched);
+      if (freePrompt.trim())    formData.append("custom_prompt", freePrompt.trim());
+      formData.append("mode", "style");
     } else if (genType === "swapface") {
       if (!swapSrcFile) { setError("Veuillez uploader votre visage source."); return; }
       if (!swapTgtFile) { setError("Veuillez uploader la photo cible."); return; }
@@ -268,13 +360,6 @@ export default function DashboardPage() {
       formData.append("face_index",   faceIndex);
       if (swapExtraPrompt) formData.append("extra_prompt", swapExtraPrompt);
       formData.append("mode", "swapface");
-    } else if (genType === "image") {
-      if (!imageObjectOptions.has("fullGeneration") && !imageFile) { setError("Uploader une image ou activer la génération 100%."); return; }
-      if (!imagePrompt) { setError("Veuillez entrer un prompt."); return; }
-      if (imageFile) formData.append("image", imageFile);
-      formData.append("prompt",          imagePrompt);
-      formData.append("object_options",  JSON.stringify([...imageObjectOptions]));
-      formData.append("mode",            "image");
     } else if (genType === "video") {
       if (!videoFile)   { setError("Veuillez uploader une vidéo."); return; }
       if (!videoPrompt) { setError("Veuillez entrer un prompt."); return; }
@@ -465,24 +550,131 @@ export default function DashboardPage() {
                   {/* ── Forms — compacts, centrés, glass ── */}
                   <div className="max-w-4xl mx-auto pb-10">
 
-                  {/* ── STYLE IA ── */}
-                  {genType === "style" && (
+                  {/* ── CRÉER (Style IA + Image IA fusionnés) ── */}
+                  {genType === "create" && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      {/* Col gauche — upload */}
                       <div className="lg:col-span-1">
                         <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
                           <h2 className="font-semibold text-sm mb-3 flex items-center gap-2">
                             <StepBadge n={1} />Votre photo
                           </h2>
-                          <UploadBox onFileSelected={(f,p)=>{setStyleFile(f);setStylePreview(p);setError(null);}} onClear={()=>{setStyleFile(null);setStylePreview(null);}} preview={stylePreview} label="Photo de visage" />
+                          <UploadBox
+                            onFileSelected={(f,p)=>{setStyleFile(f);setStylePreview(p);setError(null);}}
+                            onClear={()=>{setStyleFile(null);setStylePreview(null);}}
+                            preview={stylePreview}
+                            label="Photo de visage"
+                          />
                           <p className="text-white/30 text-xs mt-2">💡 Visage bien visible.</p>
                         </div>
                       </div>
+
+                      {/* Col droite — style + options + prompt + generate */}
                       <div className="lg:col-span-2 space-y-4">
+
+                        {/* Style Celebrity — optionnel */}
                         <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
-                          <h2 className="font-semibold text-sm mb-3 flex items-center gap-2"><StepBadge n={2} />Style Celebrity</h2>
-                          <StyleSelector selected={selectedStyle?.id ?? null} onSelect={setSelectedStyle} customPrompt={customPrompt} onCustomPromptChange={setCustomPrompt} />
+                          <div className="flex items-center justify-between mb-3">
+                            <h2 className="font-semibold text-sm flex items-center gap-2">
+                              <StepBadge n={2} />
+                              Style Celebrity
+                              <span className="text-white/30 text-[10px] font-normal">(optionnel)</span>
+                            </h2>
+                            {selectedStyle && (
+                              <span className="text-[10px] font-semibold text-accent-violet bg-accent-violet/10 border border-accent-violet/30 px-2 py-0.5 rounded-full">
+                                {selectedStyle.emoji} {selectedStyle.label}
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {STYLES.map(style => {
+                              const isSelected = selectedStyle?.id === style.id;
+                              return (
+                                <button
+                                  key={style.id}
+                                  onClick={() => handleStyleSelect(style)}
+                                  className={`relative rounded-xl border text-left transition-all overflow-hidden ${
+                                    isSelected ? "border-accent-violet" : "border-surface-border bg-surface hover:border-accent-violet/40"
+                                  }`}
+                                >
+                                  {style.previewImg && (
+                                    <div className="w-full h-12 overflow-hidden bg-surface-hover relative">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img src={style.previewImg} alt={style.label} className="w-full h-full object-cover"
+                                        onError={e=>{(e.currentTarget.parentElement as HTMLElement).style.display="none";}} />
+                                      {isSelected && <div className="absolute inset-0 bg-accent-violet/20" />}
+                                    </div>
+                                  )}
+                                  <div className={`px-2 py-1.5 ${isSelected ? "bg-accent-violet/10" : ""}`}>
+                                    {isSelected && (
+                                      <div className="absolute top-1 right-1 w-3.5 h-3.5 bg-accent-violet rounded-full flex items-center justify-center z-10">
+                                        <span className="text-white text-[8px]">✓</span>
+                                      </div>
+                                    )}
+                                    <span className="text-sm block">{style.emoji}</span>
+                                    <p className="font-semibold text-[10px] text-white leading-tight">{style.label}</p>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                        <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} canGenerate={!!(styleFile && selectedStyle && consent)} credits={100} step={3} />
+
+                        {/* Personnalisation — visible uniquement si style sélectionné */}
+                        <AnimatePresence>
+                          {selectedStyle && (
+                            <motion.div
+                              key="refinement"
+                              initial={{ opacity: 0, y: -6 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -6 }}
+                              transition={{ duration: 0.18 }}
+                              className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4 space-y-3"
+                            >
+                              <h2 className="font-semibold text-sm flex items-center gap-2">
+                                <StepBadge n={3} />
+                                Personnaliser
+                                <span className="text-white/30 text-[10px] font-normal">(optionnel)</span>
+                              </h2>
+                              <DashOptionChips title="Vêtements"    options={CLOTHING_OPTIONS}   selected={clothing}  onSelect={setClothing} />
+                              <DashOptionChips title="Ambiance"     options={MOOD_OPTIONS}        selected={mood}      onSelect={setMood} />
+                              <DashOptionChips title="Décor / Fond" options={BACKGROUND_OPTIONS}  selected={styleBg}   onSelect={setStyleBg} />
+                              <DashOptionChips title="Accessoires"  options={ACCESSORY_OPTIONS}   selected={accessory} onSelect={setAccessory} />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        {/* Description libre */}
+                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
+                          <h2 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                            <StepBadge n={selectedStyle ? 4 : 3} />
+                            Description libre
+                            {selectedStyle
+                              ? <span className="text-white/30 text-[10px] font-normal">(optionnel)</span>
+                              : <span className="text-red-400/50 text-[10px] font-normal">(requis sans style)</span>
+                            }
+                          </h2>
+                          <textarea
+                            value={freePrompt}
+                            onChange={e => setFreePrompt(e.target.value)}
+                            placeholder={selectedStyle
+                              ? "Ajoutez des détails : expression, lumière, couleur de cheveux…"
+                              : "Décrivez la transformation souhaitée : tenue, ambiance, fond, lumière…"
+                            }
+                            rows={2}
+                            className="w-full bg-surface border border-surface-border rounded-xl px-3 py-2 text-white text-sm placeholder-white/20 focus:outline-none focus:border-accent-violet/60 resize-none"
+                          />
+                        </div>
+
+                        <GenerateCard
+                          consent={consent}
+                          setConsent={setConsent}
+                          error={error}
+                          onGenerate={handleGenerate}
+                          canGenerate={!!(styleFile && (selectedStyle || freePrompt.trim()) && consent)}
+                          credits={100}
+                          step={selectedStyle ? 5 : 4}
+                        />
                       </div>
                     </div>
                   )}
@@ -521,60 +713,6 @@ export default function DashboardPage() {
                       </div>
                       <div className="lg:col-span-1">
                         <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} canGenerate={!!(swapSrcFile && swapTgtFile && consent)} credits={120} step={3} />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ── IMAGE IA ── */}
-                  {genType === "image" && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                      <div className="lg:col-span-1">
-                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
-                          <h2 className="font-semibold text-sm mb-3 flex items-center gap-2"><StepBadge n={1} />Image de base</h2>
-                          {imageObjectOptions.has("fullGeneration") ? (
-                            <div className="aspect-square rounded-2xl border-2 border-dashed border-surface-border flex flex-col items-center justify-center opacity-40">
-                              <Wand2 className="w-8 h-8 text-white/30 mb-2" />
-                              <p className="text-white/40 text-xs">Non requis</p>
-                            </div>
-                          ) : (
-                            <UploadBox onFileSelected={(f,p)=>{setImageFile(f);setImagePreview(p);}} onClear={()=>{setImageFile(null);setImagePreview(null);}} preview={imagePreview} label="Image de base" />
-                          )}
-                        </div>
-                      </div>
-                      <div className="lg:col-span-2 space-y-4">
-                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
-                          <h2 className="font-semibold text-sm mb-3 flex items-center gap-2"><StepBadge n={2} />Prompt</h2>
-                          <textarea value={imagePrompt} onChange={e=>setImagePrompt(e.target.value)}
-                            placeholder="Décrivez ce que vous souhaitez générer ou modifier…" rows={3}
-                            className="w-full bg-surface border border-surface-border rounded-xl px-3 py-2 text-white text-sm placeholder-white/20 focus:outline-none focus:border-accent-violet/60 resize-none" />
-                        </div>
-                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
-                          <h2 className="font-semibold text-sm mb-3 flex items-center gap-2"><StepBadge n={3} />Type <span className="text-white/30 text-xs font-normal">(optionnel)</span></h2>
-                          <div className="space-y-2">
-                            {([
-                              {id:"addObject" as ObjectOption, icon:PlusCircle, label:"Ajouter un objet", desc:"Insère sur l'image"},
-                              {id:"fullGeneration" as ObjectOption, icon:Wand2, label:"Génération 100%", desc:"Sans image de base"},
-                              {id:"replaceObject" as ObjectOption, icon:Replace, label:"Remplacer un objet", desc:"Remplace un élément"},
-                            ]).map(({id,icon:Icon,label,desc})=>{
-                              const checked = imageObjectOptions.has(id);
-                              const disabled = id!=="fullGeneration" && imageObjectOptions.has("fullGeneration") && !checked;
-                              return (
-                                <button key={id} onClick={()=>toggleObjectOption(imageObjectOptions,setImageObjectOptions,id)} disabled={disabled}
-                                  className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${checked?"bg-accent-violet/15 border-accent-violet":disabled?"border-surface-border opacity-30 cursor-not-allowed":"border-surface-border hover:border-accent-violet/40 hover:bg-surface-hover"}`}>
-                                  <div className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center ${checked?"bg-accent-violet border-accent-violet":"border-surface-border"}`}>
-                                    {checked&&<span className="text-white text-xs">✓</span>}
-                                  </div>
-                                  <Icon className={`w-4 h-4 flex-shrink-0 ${checked?"text-accent-violet":"text-white/40"}`} />
-                                  <div>
-                                    <p className={`text-sm font-semibold ${checked?"text-white":"text-white/70"}`}>{label}</p>
-                                    <p className="text-white/35 text-xs">{desc}</p>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                        <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} canGenerate={!!((imageObjectOptions.has("fullGeneration")||imageFile) && imagePrompt && consent)} credits={80} step={4} />
                       </div>
                     </div>
                   )}
