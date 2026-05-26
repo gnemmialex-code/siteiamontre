@@ -6,6 +6,8 @@ const replicate = new Replicate({
 
 const MODELS = {
   fluxKontextMax: "black-forest-labs/flux-kontext-max",
+  fluxKontextPro: "black-forest-labs/flux-kontext-pro",
+  ideogramV3: "ideogram-ai/ideogram-v3-balanced",
   faceSwap: "lucataco/faceswap:9a4298548422074c3f57258c5d544497a19901a0f3834f7a26f796fee2a7e4c9",
   realEsrgan: "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
 } as const;
@@ -59,10 +61,18 @@ export async function runPipeline(input: PipelineInput): Promise<string> {
 
 async function runStylePipeline(input: PipelineInput): Promise<string> {
   const imageUrl = input.inputImageUrl!;
-  const instruction = buildInstruction(input.stylePrompt ?? "", input.customPrompt);
+  const rawPrompt = input.customPrompt?.trim() || "";
+  const isCompositionRequest = detectCompositionRequest(rawPrompt);
+  const instruction = buildInstruction(input.stylePrompt ?? "", rawPrompt, isCompositionRequest);
 
-  console.log("[Pipeline] Step 1: FLUX Kontext Max image edit...");
-  const editedUrl = await withRetry(() => runFluxKontextMax(imageUrl, instruction));
+  let editedUrl: string;
+  if (isCompositionRequest) {
+    console.log("[Pipeline] Step 1: Ideogram v3 — composition (add person)...");
+    editedUrl = await withRetry(() => runIdeogramV3(imageUrl, instruction));
+  } else {
+    console.log("[Pipeline] Step 1: FLUX Kontext Max — style edit...");
+    editedUrl = await withRetry(() => runFluxKontextMax(imageUrl, instruction));
+  }
 
   console.log("[Pipeline] Step 2: RealESRGAN upscale...");
   return withRetry(() => runRealEsrgan(editedUrl));
@@ -97,6 +107,19 @@ async function runFaceSwap(sourceImageUrl: string, targetImageUrl: string, faceI
   return extractUrl(output);
 }
 
+// Détecte si l'utilisateur veut ajouter/composer quelqu'un plutôt que transformer son apparence.
+function detectCompositionRequest(prompt: string): boolean {
+  const lower = prompt.toLowerCase();
+  const addKeywords = [
+    "ajoute", "rajoute", "add", "mets", "place", "met ",
+    "à côté", "next to", "beside", "with me", "avec moi",
+    "à ma gauche", "à ma droite", "on my left", "on my right",
+    "devant moi", "derrière moi", "in front of me", "behind me",
+    "une personne", "un homme", "une femme", "quelqu'un", "a person", "a man", "a woman", "someone",
+  ];
+  return addKeywords.some((kw) => lower.includes(kw));
+}
+
 async function runFluxKontextMax(imageUrl: string, instruction: string): Promise<string> {
   const output = await replicate.run(MODELS.fluxKontextMax, {
     input: {
@@ -112,13 +135,44 @@ async function runFluxKontextMax(imageUrl: string, instruction: string): Promise
   return extractUrl(output);
 }
 
-function buildInstruction(stylePrompt: string, customPrompt?: string): string {
-  const base = customPrompt?.trim() || "";
-  const style = stylePrompt?.trim() || "";
+async function runIdeogramV3(imageUrl: string, instruction: string): Promise<string> {
+  const output = await replicate.run(MODELS.ideogramV3, {
+    input: {
+      image: imageUrl,
+      prompt: instruction,
+      image_weight: 80,
+      resolution: "None",
+      style_type: "Realistic",
+      rendering_speed: "BALANCED",
+      magic_prompt_option: "OFF",
+    },
+  });
+  return extractUrl(output);
+}
+
+function buildInstruction(stylePrompt: string, customPrompt: string, isComposition: boolean): string {
+  const base = customPrompt.trim();
+  const style = stylePrompt.trim();
   const userRequest = base && style ? `${base}. Style: ${style}` : (base || style);
-  // FLUX Kontext Max est un éditeur : sans instruction explicite de conserver la personne,
-  // il peut la remplacer. On force la préservation de l'identité.
-  return `Keep the exact same person with their identical face, skin tone, body shape, and likeness from the input photo. ${userRequest}. Preserve all facial features and the person's identity exactly as shown in the input image.`;
+
+  if (isComposition) {
+    // Pour "ajouter quelqu'un" : on décrit la composition finale sans bloquer l'ajout.
+    // On distingue clairement "personne existante à conserver" et "personne à ajouter".
+    return (
+      `This photo contains a person (call them Person A). ` +
+      `${userRequest}. ` +
+      `IMPORTANT: Person A must remain completely unchanged — same face, same expression, same skin tone, same clothes, same exact position. ` +
+      `Only add the requested person/element alongside Person A. ` +
+      `Both must be clearly visible in the final image. Make it look photorealistic and natural.`
+    );
+  }
+
+  // Pour les transformations de style/apparence : préserver l'identité, changer le look.
+  return (
+    `Keep the exact same person from the input photo — identical face, skin tone, and body shape. ` +
+    `${userRequest}. ` +
+    `Preserve all facial features and the person's identity exactly as shown in the input image.`
+  );
 }
 
 async function runRealEsrgan(imageUrl: string): Promise<string> {
