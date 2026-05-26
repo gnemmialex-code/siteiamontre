@@ -248,8 +248,8 @@ async function runFaceSwap(
     MODELS.faceSwap as `${string}/${string}:${string}`,
     {
       input: {
-        source_image: sourceImageUrl,
-        target_image: targetImageUrl,
+        swap_image: sourceImageUrl,   // the face to use
+        input_image: targetImageUrl,  // the scene to place it into
       },
     }
   );
