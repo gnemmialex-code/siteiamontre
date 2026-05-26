@@ -181,27 +181,93 @@ function extractPersonName(prompt: string): string | null {
 }
 
 // ─── WIKIPEDIA ────────────────────────────────────────────────────────────────
+//
+// Returns the image as a base64 data URI — NOT the raw Wikipedia URL.
+// Wikimedia blocks direct hotlinking from cloud servers (403), so we must
+// download the image on our side and forward it as base64.
+//
+// Tries multiple name variants and languages for robustness.
 
 async function fetchWikipediaImage(personName: string): Promise<string | null> {
-  const slug = encodeURIComponent(personName.trim().replace(/\s+/g, "_"));
-  for (const lang of ["en", "fr"]) {
-    try {
-      const res = await fetch(
-        `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${slug}`,
-        { headers: { "User-Agent": "IACelebriteApp/1.0" } }
-      );
-      if (!res.ok) continue;
-      const data = (await res.json()) as {
-        thumbnail?: { source: string };
-        originalimage?: { source: string };
-      };
-      const url = data.originalimage?.source ?? data.thumbnail?.source ?? null;
-      if (url) return url;
-    } catch {
-      // try next language
+  // Generate name variants to maximise hit rate
+  // e.g. "Charlie D'Amelio" → also try "Charli D'Amelio", "charlie d amelio"
+  const variants = buildNameVariants(personName);
+
+  for (const variant of variants) {
+    const slug = encodeURIComponent(variant.trim().replace(/\s+/g, "_"));
+    for (const lang of ["en", "fr", "es"]) {
+      try {
+        const apiRes = await fetch(
+          `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${slug}`,
+          { headers: { "User-Agent": "IACelebriteApp/1.0 (contact: gnemmialex@gmail.com)" } }
+        );
+        if (!apiRes.ok) continue;
+        const data = (await apiRes.json()) as {
+          thumbnail?: { source: string };
+          originalimage?: { source: string };
+          type?: string;
+        };
+        // Skip disambiguation pages
+        if (data.type === "disambiguation") continue;
+        const imageUrl = data.originalimage?.source ?? data.thumbnail?.source ?? null;
+        if (!imageUrl) continue;
+
+        // Download the image ourselves — Wikimedia blocks cloud IPs on direct hotlinks
+        const base64 = await downloadImageAsBase64(imageUrl);
+        if (base64) {
+          console.log(`[Pipeline] Wikipedia image downloaded for "${variant}" (${lang})`);
+          return base64;
+        }
+      } catch {
+        // try next variant / language
+      }
     }
   }
   return null;
+}
+
+// Build name variants to handle common misspellings and alternate spellings.
+// "Charlie D'Amelio" → ["Charlie D'Amelio", "Charli D'Amelio", "Charlie DAmelio"]
+function buildNameVariants(name: string): string[] {
+  const variants = new Set<string>();
+  variants.add(name);
+
+  // Remove trailing 'e' on first name (Charlie → Charli, etc.)
+  const withoutE = name.replace(/^(\w+)e\b/, "$1");
+  if (withoutE !== name) variants.add(withoutE);
+
+  // Add trailing 'e' on first name (Charli → Charlie, etc.)
+  const withE = name.replace(/^(\w+i)\b/, "$1e");
+  if (withE !== name) variants.add(withE);
+
+  // Remove apostrophes  (D'Amelio → DAmelio)
+  variants.add(name.replace(/'/g, ""));
+
+  // Replace apostrophes with space (D'Amelio → D Amelio)
+  variants.add(name.replace(/'/g, " "));
+
+  return [...variants];
+}
+
+async function downloadImageAsBase64(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        // Browser-like headers so Wikimedia doesn't block us
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": "https://en.wikipedia.org/",
+        "Accept": "image/webp,image/jpeg,image/png,image/*",
+      },
+    });
+    if (!res.ok) return null;
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const contentType = res.headers.get("content-type") ?? "image/jpeg";
+    // Only accept image content types
+    if (!contentType.startsWith("image/")) return null;
+    return `data:${contentType};base64,${buffer.toString("base64")}`;
+  } catch {
+    return null;
+  }
 }
 
 // ─── PROMPT BUILDERS ──────────────────────────────────────────────────────────
