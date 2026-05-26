@@ -3,46 +3,24 @@ import { createSupabaseServer } from "@/lib/supabase-server";
 import { runPipeline } from "@/scripts/pipeline";
 import { validateImageFile } from "@/lib/validation";
 import { uploadToStorage } from "@/lib/storage";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Jimp = require("jimp");
 
 export const maxDuration = 300;
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024;
 const CREDITS_PER_IMAGE = 100;
-const MAX_PX = 1200;
 
 function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
-}
-
-async function resizeBuffer(buffer: Buffer): Promise<Buffer> {
-  const img = await Jimp.read(buffer);
-  const w: number = img.bitmap.width;
-  const h: number = img.bitmap.height;
-  console.log(`[Resize] input ${w}x${h}, MAX_PX=${MAX_PX}`);
-  if (w <= MAX_PX && h <= MAX_PX) {
-    console.log("[Resize] no resize needed");
-    return buffer;
-  }
-  const scale = MAX_PX / Math.max(w, h);
-  const newW = Math.round(w * scale);
-  const newH = Math.round(h * scale);
-  console.log(`[Resize] resizing to ${newW}x${newH}`);
-  img.resize(newW, newH);
-  const out: Buffer = await img.getBufferAsync("image/jpeg");
-  console.log(`[Resize] done, buffer ${out.length} bytes`);
-  return out;
 }
 
 async function uploadFile(supabase: Awaited<ReturnType<typeof createSupabaseServer>>, file: File, userId: string): Promise<string> {
   const validation = validateImageFile(file, MAX_FILE_SIZE);
   if (!validation.valid) throw new Error(validation.error);
 
-  const raw = Buffer.from(await file.arrayBuffer());
-  const buf = await resizeBuffer(raw);
-  const path = `inputs/${userId}/${generateId()}.jpg`;
-  return uploadToStorage(supabase, buf, path, "image/jpeg");
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `inputs/${userId}/${generateId()}.${ext}`;
+  return uploadToStorage(supabase, buffer, path, file.type);
 }
 
 export async function POST(req: NextRequest) {

@@ -6,7 +6,6 @@ const replicate = new Replicate({
 
 const MODELS = {
   faceSwap: "lucataco/faceswap:9a4298548422074c3f57258c5d544497a19901a0f3834f7a26f796fee2a7e4c9",
-  gfpgan: "tencentarc/gfpgan:0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c",
   realEsrgan: "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
 } as const;
 
@@ -59,14 +58,8 @@ export async function runPipeline(input: PipelineInput): Promise<string> {
 
 async function runStylePipeline(input: PipelineInput): Promise<string> {
   const faceUrl = input.inputImageUrl!;
-
-  console.log("[Pipeline] Step 1: GFPGAN face restoration...");
-  const restoredUrl = await withRetry(() => runGfpgan(faceUrl));
-
-  console.log("[Pipeline] Step 2: RealESRGAN 4K upscale...");
-  const upscaledUrl = await withRetry(() => runRealEsrgan(restoredUrl));
-
-  return upscaledUrl;
+  console.log("[Pipeline] Step 1: RealESRGAN upscale...");
+  return withRetry(() => runRealEsrgan(faceUrl));
 }
 
 async function runSwapFacePipeline(input: PipelineInput): Promise<string> {
@@ -77,13 +70,8 @@ async function runSwapFacePipeline(input: PipelineInput): Promise<string> {
   console.log("[Pipeline] Step 1: Face swap...");
   const swappedUrl = await withRetry(() => runFaceSwap(sourceUrl, targetUrl, faceIndex));
 
-  console.log("[Pipeline] Step 2: GFPGAN restoration...");
-  const restoredUrl = await withRetry(() => runGfpgan(swappedUrl));
-
-  console.log("[Pipeline] Step 3: RealESRGAN 4K upscale...");
-  const upscaledUrl = await withRetry(() => runRealEsrgan(restoredUrl));
-
-  return upscaledUrl;
+  console.log("[Pipeline] Step 2: RealESRGAN upscale...");
+  return withRetry(() => runRealEsrgan(swappedUrl));
 }
 
 async function runFaceSwap(sourceImageUrl: string, targetImageUrl: string, faceIndex: string): Promise<string> {
@@ -103,20 +91,9 @@ async function runFaceSwap(sourceImageUrl: string, targetImageUrl: string, faceI
   return extractUrl(output);
 }
 
-async function runGfpgan(imageUrl: string): Promise<string> {
-  const output = await replicate.run(MODELS.gfpgan as `${string}/${string}:${string}`, {
-    input: {
-      img: imageUrl,
-      version: "v1.4",
-      scale: 2,
-    },
-  });
-  return extractUrl(output);
-}
-
 async function runRealEsrgan(imageUrl: string): Promise<string> {
   const output = await replicate.run(MODELS.realEsrgan as `${string}/${string}:${string}`, {
-    input: { image: imageUrl, scale: 4, face_enhance: true },
+    input: { image: imageUrl, scale: 2, face_enhance: false },
   });
   return extractUrl(output);
 }
