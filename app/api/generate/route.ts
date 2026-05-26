@@ -3,24 +3,42 @@ import { createSupabaseServer } from "@/lib/supabase-server";
 import { runPipeline } from "@/scripts/pipeline";
 import { validateImageFile } from "@/lib/validation";
 import { uploadToStorage } from "@/lib/storage";
+import { createCanvas, loadImage } from "canvas";
 
-export const maxDuration = 300; // 5 min — nécessite Vercel Pro
+export const maxDuration = 300;
 
-const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
+const MAX_FILE_SIZE = 15 * 1024 * 1024;
 const CREDITS_PER_IMAGE = 100;
+const MAX_PX = 1200;
 
 function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
+async function resizeBuffer(buffer: Buffer): Promise<{ buf: Buffer; mime: string }> {
+  const img = await loadImage(buffer);
+  const { width, height } = img;
+  if (width <= MAX_PX && height <= MAX_PX) {
+    return { buf: buffer, mime: "image/jpeg" };
+  }
+  const scale = Math.min(MAX_PX / width, MAX_PX / height);
+  const w = Math.round(width * scale);
+  const h = Math.round(height * scale);
+  const canvas = createCanvas(w, h);
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0, w, h);
+  console.log(`[Resize] ${width}x${height} → ${w}x${h}`);
+  return { buf: canvas.toBuffer("image/jpeg", { quality: 0.92 }), mime: "image/jpeg" };
 }
 
 async function uploadFile(supabase: Awaited<ReturnType<typeof createSupabaseServer>>, file: File, userId: string): Promise<string> {
   const validation = validateImageFile(file, MAX_FILE_SIZE);
   if (!validation.valid) throw new Error(validation.error);
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const path = `inputs/${userId}/${generateId()}.${ext}`;
-  return uploadToStorage(supabase, buffer, path, file.type);
+  const raw = Buffer.from(await file.arrayBuffer());
+  const { buf, mime } = await resizeBuffer(raw);
+  const path = `inputs/${userId}/${generateId()}.jpg`;
+  return uploadToStorage(supabase, buf, path, mime);
 }
 
 export async function POST(req: NextRequest) {
