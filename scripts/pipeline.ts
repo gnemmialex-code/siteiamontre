@@ -2,9 +2,8 @@
  * CelebSwap AI Pipeline — Multi-Model Ultra HD
  *
  * Mode Style IA :
- *   1. FLUX Dev img2img    — transformation stylisée de l'image
- *   2. CodeFormer          — restauration & rehaussement du visage
- *   3. Clarity Upscaler    — upscale 4K avec préservation des détails
+ *   1. CodeFormer          — restauration & rehaussement du visage
+ *   2. Clarity Upscaler    — upscale 4K avec préservation des détails
  *
  * Mode SwapFace :
  *   1. FaceSwap (ReActor)  — swap du visage haute fidélité
@@ -20,9 +19,6 @@ const replicate = new Replicate({
 
 // ── Meilleurs modèles disponibles sur Replicate ──────────────────────────────
 const MODELS = {
-  // FLUX Dev : img2img fiable pour transformation stylisée
-  fluxDev: "black-forest-labs/flux-dev",
-
   // Face Swap : ReActor haute qualité pour le mode SwapFace
   faceSwap: "lucataco/faceswap:9a4298548422074c3f57258c5d544497a19901a0f3834f7a26f796fee2a7e4c9",
 
@@ -100,18 +96,13 @@ export async function runPipeline(input: PipelineInput): Promise<string> {
 
 async function runStylePipeline(input: PipelineInput): Promise<string> {
   const faceUrl = input.inputImageUrl!;
-  const prompt = buildFullPrompt(input.stylePrompt ?? "", input.customPrompt);
 
-  // Étape 1 : FLUX Dev img2img — transformation stylisée
-  console.log("[Pipeline] Step 1: FLUX Dev img2img style generation...");
-  const styledUrl = await withRetry(() => runFluxDev(faceUrl, prompt));
+  // Étape 1 : CodeFormer — restauration & amélioration du visage
+  console.log("[Pipeline] Step 1: CodeFormer face restoration...");
+  const restoredUrl = await withRetry(() => runCodeFormer(faceUrl));
 
-  // Étape 2 : CodeFormer — restauration & amélioration du visage
-  console.log("[Pipeline] Step 2: CodeFormer face restoration...");
-  const restoredUrl = await withRetry(() => runCodeFormer(styledUrl));
-
-  // Étape 3 : Clarity Upscaler — upscale 4K ultra détaillé
-  console.log("[Pipeline] Step 3: Clarity 4K upscale...");
+  // Étape 2 : Clarity Upscaler — upscale 4K ultra détaillé
+  console.log("[Pipeline] Step 2: Clarity 4K upscale...");
   const upscaledUrl = await withRetry(() => runClarityUpscaler(restoredUrl));
 
   return upscaledUrl;
@@ -140,22 +131,6 @@ async function runSwapFacePipeline(input: PipelineInput): Promise<string> {
 }
 
 // ── MODÈLES ──────────────────────────────────────────────────────────────────
-
-async function runFluxDev(imageUrl: string, prompt: string): Promise<string> {
-  const output = await replicate.run(MODELS.fluxDev as `${string}/${string}`, {
-    input: {
-      image: imageUrl,
-      prompt,
-      strength: 0.75,
-      num_outputs: 1,
-      num_inference_steps: 28,
-      guidance: 3.5,
-      output_format: "png",
-      output_quality: 100,
-    },
-  });
-  return extractUrl(output);
-}
 
 async function runFaceSwap(
   sourceImageUrl: string,
