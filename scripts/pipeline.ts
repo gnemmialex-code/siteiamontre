@@ -32,14 +32,6 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: StyleModelSpec[] = [
   {
-    spec: "ideogram-ai/ideogram-v3-balanced",
-    buildInput: (prompt, neg, width, height) => ({
-      prompt,
-      negative_prompt: neg,
-      aspect_ratio:    toAspectRatio(width, height),
-    }),
-  },
-  {
     spec: "stability-ai/sdxl",
     supportsNeg: true,
     buildInput: (prompt, neg, width, height) => ({
