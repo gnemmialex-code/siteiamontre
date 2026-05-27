@@ -483,7 +483,16 @@ export default function DashboardPage() {
       setGenProgress(100);
 
       if (res.status === 402) { setIsGenerating(false); setShowPaywall(true); return; }
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Erreur lors de la génération"); }
+      if (!res.ok) {
+        let errorMsg = "Erreur lors de la génération";
+        try {
+          const d = await res.json();
+          errorMsg = d.error ?? errorMsg;
+        } catch {
+          try { errorMsg = await res.text(); } catch { /* keep default */ }
+        }
+        throw new Error(errorMsg);
+      }
 
       const data = await res.json();
       if (data.output_image_url) {
