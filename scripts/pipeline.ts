@@ -10,123 +10,53 @@ const MODELS = {
   realEsrgan: "nightmareai/real-esrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc3a73abf41610695738c1d7b",
 } as const;
 
-// ─── Créer mode: multi-model fallback chain ───────────────────────────────────
+// ─── Créer mode: img2img fallback chain ──────────────────────────────────────
 //
-// Models are tried in order (fastest/best first).
-// If a prediction fails/cancels, the poll handler restarts with the next model.
-// No face-swap. Photo is used only for the image analysis step.
+// These models take the uploaded photo as DIRECT visual input (image-to-image).
+// The person in the photo is preserved; the prompt controls scene/style.
+// If a prediction fails/cancels, the poll handler retries with the next model.
 
-type StyleModelSpec = {
-  spec:           string;
-  supportsNeg?:   boolean;  // model accepts a separate negative_prompt field
-  buildInput:     (prompt: string, negPrompt: string, width: number, height: number) => Record<string, unknown>;
+type Img2ImgModelSpec = {
+  spec:       string;
+  buildInput: (prompt: string, negPrompt: string, imageUrl: string, strength: number) => Record<string, unknown>;
 };
 
-function toAspectRatio(width: number, height: number): string {
-  if (width === height) return "1:1";
-  if (width < height)  return "3:4";
-  return "16:9";
-}
+const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly, deformed, nsfw, different person, extra limbs";
 
-const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly, deformed, nsfw";
-
-export const STYLE_MODELS: StyleModelSpec[] = [
+export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    spec: "stability-ai/sdxl",
-    supportsNeg: true,
-    buildInput: (prompt, neg, width, height) => ({
-      prompt,
-      negative_prompt:     neg,
-      width,
-      height,
-      num_inference_steps: 30,
-      guidance_scale:      7.5,
-    }),
-  },
-  {
-    spec: "luma/photon",
-    buildInput: (prompt, _neg, width, height) => ({
-      prompt,
-      aspect_ratio: toAspectRatio(width, height),
-    }),
-  },
-  {
-    spec: "stability-ai/stable-diffusion-3.5-large",
-    buildInput: (prompt, neg, width, height) => ({
-      prompt,
-      negative_prompt: neg,
-      aspect_ratio:    toAspectRatio(width, height),
-      output_format:   "jpeg",
-      output_quality:  80,
-    }),
-  },
-  {
-    spec: "recraft-ai/recraft-v3",
-    buildInput: (prompt, _neg, width, height) => ({
-      prompt,
-      size:  `${width}x${height}`,
-      style: "realistic_image",
-    }),
-  },
-  {
+    // Fast photorealistic img2img — primary model
     spec: "adirik/realvisxl-v3.0-turbo",
-    buildInput: (prompt, neg, width, height) => ({
+    buildInput: (prompt, neg, imageUrl, strength) => ({
+      image:               imageUrl,
       prompt,
       negative_prompt:     neg,
-      width,
-      height,
+      strength,
       num_inference_steps: 20,
       guidance_scale:      7,
     }),
   },
   {
-    spec: "nvidia/sana",
-    buildInput: (prompt, _neg, width, height) => ({
+    // SDXL — reliable img2img fallback
+    spec: "stability-ai/sdxl",
+    buildInput: (prompt, neg, imageUrl, strength) => ({
+      image:               imageUrl,
       prompt,
-      width,
-      height,
-      guidance_scale:      5,
-      num_inference_steps: 20,
+      negative_prompt:     neg,
+      prompt_strength:     strength,
+      num_inference_steps: 50,
     }),
   },
   {
-    spec: "ideogram-ai/ideogram-v3-quality",
-    buildInput: (prompt, neg, width, height) => ({
+    // Realistic Vision v5.1 — second fallback
+    spec: "lucataco/realistic-vision-v5.1",
+    buildInput: (prompt, neg, imageUrl, strength) => ({
+      init_image:          imageUrl,
       prompt,
-      negative_prompt: neg,
-      aspect_ratio:    toAspectRatio(width, height),
-    }),
-  },
-  {
-    spec: "google/imagen-3-fast",
-    buildInput: (prompt, _neg, width, height) => ({
-      prompt,
-      aspect_ratio:  toAspectRatio(width, height),
-      output_format: "jpg",
-    }),
-  },
-  {
-    spec: "google/imagen-3",
-    buildInput: (prompt, _neg, width, height) => ({
-      prompt,
-      aspect_ratio:  toAspectRatio(width, height),
-      output_format: "jpg",
-    }),
-  },
-  {
-    spec: "google/imagen-4",
-    buildInput: (prompt, _neg, width, height) => ({
-      prompt,
-      aspect_ratio:  toAspectRatio(width, height),
-      output_format: "jpg",
-    }),
-  },
-  {
-    spec: "prunaai/wan-2.2-image",
-    buildInput: (prompt, _neg, width, height) => ({
-      prompt,
-      width,
-      height,
+      negative_prompt:     neg,
+      prompt_strength:     strength,
+      num_inference_steps: 30,
+      guidance_scale:      7.5,
     }),
   },
 ];
@@ -163,7 +93,6 @@ export interface PipelineInput {
   styleId?:           string;
   stylePrompt?:       string;
   customPrompt?:      string;
-  personDescription?: string;  // auto-extracted from uploaded image
   sourceImageUrl?:    string;
   targetImageUrl?:    string;
   faceIndex?:         string;
@@ -195,61 +124,21 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
   throw new Error("Max retries exceeded");
 }
 
-// ─── IMAGE ANALYSIS ───────────────────────────────────────────────────────────
-//
-// Runs synchronously in the POST handler before generation starts.
-// Uses BLIP image captioning to describe the uploaded photo.
-// The description is embedded in the generation prompt so models produce
-// someone matching the uploaded person.
-
-export async function analyzePersonImage(imageB64: string): Promise<string> {
-  try {
-    const pred = await replicate.predictions.create({
-      model: "salesforce/blip",
-      input: {
-        image: imageB64,
-        task:  "image_captioning",
-      },
-    });
-
-    // Poll up to 5×2s = 10s — non-blocking if analysis takes longer
-    for (let i = 0; i < 5; i++) {
-      await new Promise(r => setTimeout(r, 2000));
-      const updated = await replicate.predictions.get(pred.id);
-      if (updated.status === "succeeded") {
-        const raw = Array.isArray(updated.output)
-          ? updated.output.join("")
-          : String(updated.output ?? "");
-        const text = raw.replace(/^Caption:\s*/i, "").trim();
-        console.log(`[Analysis] Image caption: "${text}"`);
-        return text.slice(0, 150);
-      }
-      if (updated.status === "failed" || updated.status === "canceled") break;
-    }
-    return "";
-  } catch (err) {
-    console.warn("[Analysis] Skipped:", err instanceof Error ? err.message : err);
-    return "";
-  }
-}
-
 // ─── PROMPT BUILDER ───────────────────────────────────────────────────────────
 //
-// Structure: [person from image analysis] + [user's scene/style description] + [quality]
-// Person description comes FIRST so the model anchors on the person's appearance.
+// For img2img: the person comes FROM the image — prompt describes the
+// target scene/style only. No person description needed.
 
 function buildStylePrompt(
-  customPrompt:      string,
-  stylePrompt:       string,
-  personDescription: string,
-  renderStyle?:      string,
-  intensity?:        string,
-  preserveOutfit?:   boolean,
+  customPrompt:    string,
+  stylePrompt:     string,
+  renderStyle?:    string,
+  intensity?:      string,
+  preserveOutfit?: boolean,
 ): { positive: string; negative: string } {
-  const translated  = translateToEnglish(customPrompt.trim());
-  const style       = stylePrompt.trim();
+  const translated = translateToEnglish(customPrompt.trim());
+  const style      = stylePrompt.trim();
 
-  // 1. What the scene/style should look like (user's intent)
   let sceneDesc = "";
   if (translated && style) {
     sceneDesc = `${translated}, ${style}`;
@@ -257,26 +146,15 @@ function buildStylePrompt(
     sceneDesc = translated || style || "professional portrait with perfect lighting";
   }
 
-  // 2. Optional intensity modifier
   const intensityMap: Record<string, string> = {
-    light:  "subtle and natural",
-    strong: "dramatic and bold",
+    light:  "subtle natural transformation",
+    strong: "dramatic bold transformation",
   };
   const intensityNote = intensityMap[intensity ?? "moderate"] ?? "";
-
-  // 3. Outfit preservation
-  const outfitNote = preserveOutfit ? "keep original clothing" : "";
-
-  // 4. Render style
-  const renderDesc = (renderStyle && RENDER_STYLE_PROMPTS[renderStyle])
-    ? RENDER_STYLE_PROMPTS[renderStyle]
-    : "";
-
-  // 5. Person anchor: image analysis comes first so the model knows who it's generating
-  const personAnchor = personDescription || "person";
+  const outfitNote    = preserveOutfit ? "preserve original clothing" : "";
+  const renderDesc    = RENDER_STYLE_PROMPTS[renderStyle ?? ""] ?? "";
 
   const positive = [
-    personAnchor,
     sceneDesc,
     intensityNote,
     outfitNote,
@@ -284,9 +162,20 @@ function buildStylePrompt(
     "photorealistic, high resolution, professional photography, sharp focus",
   ].filter(Boolean).join(", ").replace(/,\s*,+/g, ",").replace(/\s+/g, " ").trim();
 
-  const negative = NEG;
+  return { positive, negative: NEG };
+}
 
-  return { positive, negative };
+// ─── img2img strength — controlled by transformIntensity ─────────────────────
+//
+// lower = preserve more of the original person
+// higher = follow the prompt more aggressively
+
+function intensityToStrength(intensity?: string): number {
+  switch (intensity) {
+    case "light":  return 0.45;
+    case "strong": return 0.78;
+    default:       return 0.62; // moderate
+  }
 }
 
 // ─── FRENCH → ENGLISH TRANSLATOR ─────────────────────────────────────────────
@@ -426,18 +315,18 @@ function extractUrl(output: unknown): string {
 
 // ─── ASYNC JOB API ────────────────────────────────────────────────────────────
 //
-// Créer mode:    text-to-image model (auto-fallback chain) → optional upscale (Ultra)
+// Créer mode:    img2img model chain (photo is actual input) → optional upscale (Ultra)
 // SwapFace mode: face-swap → optional upscale (Ultra)
 
 export type AsyncJobConfig = {
-  mode:        "style" | "swapface";
-  qualityTier: keyof typeof QUALITY_SETTINGS;
-  prompt?:     string;
-  negPrompt?:  string;
-  width?:      number;
-  height?:     number;
-  sourceB64?:  string;   // swapface only
-  modelIndex?: number;   // style only: current index in STYLE_MODELS
+  mode:           "style" | "swapface";
+  qualityTier:    keyof typeof QUALITY_SETTINGS;
+  prompt?:        string;
+  negPrompt?:     string;
+  inputImageUrl?: string;  // img2img: the uploaded image URL passed to the model
+  strength?:      number;  // img2img strength (0–1)
+  sourceB64?:     string;  // swapface only
+  modelIndex?:    number;  // style only: current index in STYLE_MODELS
 };
 
 async function createPred(
@@ -462,24 +351,21 @@ export function buildAsyncJobConfig(
   }
 
   const { positive, negative } = buildStylePrompt(
-    input.customPrompt      ?? "",
-    input.stylePrompt       ?? "",
-    input.personDescription ?? "",
+    input.customPrompt ?? "",
+    input.stylePrompt  ?? "",
     input.renderStyle,
     input.transformIntensity,
     input.preserveOutfit ?? false,
   );
 
-  const dims = ZIMAGE_DIMS[input.outputFormat ?? "auto"] ?? { width: 832, height: 1152 };
-
   return {
-    mode:        "style",
-    qualityTier: tier,
-    prompt:      positive,
-    negPrompt:   negative,
-    width:       dims.width,
-    height:      dims.height,
-    modelIndex:  0,
+    mode:         "style",
+    qualityTier:  tier,
+    prompt:       positive,
+    negPrompt:    negative,
+    inputImageUrl: input.inputImageUrl,
+    strength:     intensityToStrength(input.transformIntensity),
+    modelIndex:   0,
   };
 }
 
@@ -499,16 +385,20 @@ export async function startAsyncJob(
   const model    = STYLE_MODELS[modelIdx];
   if (!model) throw new Error(`Tous les ${STYLE_MODEL_COUNT} modèles ont échoué`);
 
-  console.log(`[Pipeline] Model [${modelIdx}]: ${model.spec}`);
+  if (!config.inputImageUrl) throw new Error("Image source manquante pour la génération");
+
+  console.log(`[Pipeline] img2img model [${modelIdx}]: ${model.spec}`);
   console.log(`[Pipeline] Prompt: "${(config.prompt ?? "").slice(0, 200)}"`);
+  console.log(`[Pipeline] Image: ${config.inputImageUrl.slice(0, 80)}`);
+  console.log(`[Pipeline] Strength: ${config.strength ?? 0.62}`);
 
   const p = await createPred(
     model.spec,
     model.buildInput(
       config.prompt    ?? "",
       config.negPrompt ?? NEG,
-      config.width  ?? 832,
-      config.height ?? 1152,
+      config.inputImageUrl,
+      config.strength  ?? 0.62,
     ),
   );
   return p.id;
@@ -526,7 +416,6 @@ export async function advanceAsyncJob(
   const q         = QUALITY_SETTINGS[config.qualityTier];
   const outputUrl = extractUrl(predOutput);
 
-  // ── SWAPFACE: face-swap done → optional upscale ───────────────────────────
   if (config.mode === "swapface") {
     if (step === 1 && q.upscale) {
       const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
@@ -535,7 +424,7 @@ export async function advanceAsyncJob(
     return { done: true, outputUrl };
   }
 
-  // ── STYLE step 1: generation done → optional upscale (Ultra) or done ─────
+  // Style step 1: img2img done → optional upscale (Ultra) or done
   if (step === 1) {
     if (q.upscale) {
       const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });

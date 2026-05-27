@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import {
-  analyzePersonImage,
   buildAsyncJobConfig,
   startAsyncJob,
   type AsyncJobConfig,
@@ -144,16 +143,12 @@ export async function POST(req: NextRequest) {
       const { url: inputImageUrl, b64: sourceB64 } = await uploadFile(supabase, imageFile, effectiveUserId);
       inputImageForRecord = inputImageUrl;
 
-      let personDescription = "";
-      try { personDescription = await analyzePersonImage(sourceB64); } catch { /* non-fatal */ }
-
       const pipelineInput: PipelineInput = {
         mode:              "style",
         inputImageUrl,
         styleId:           styleId ?? "custom",
         stylePrompt,
         customPrompt,
-        personDescription,
         qualityTier,
         renderStyle,
         transformIntensity,
