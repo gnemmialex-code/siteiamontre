@@ -492,9 +492,8 @@ export default function DashboardPage() {
 
       // ── POLL until done ────────────────────────────────────────────────────
       const STEP_LABELS: Record<number, string> = {
-        1: "Génération de la scène…",
-        2: "Intégration de votre visage…",
-        3: "Finalisation Ultra 4K…",
+        1: "Génération IA en cours…",
+        2: "Finalisation Ultra 4K…",
       };
 
       let outputUrl: string | null = null;

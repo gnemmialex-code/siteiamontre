@@ -2,18 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import {
   advanceAsyncJob,
+  startAsyncJob,
   replicate,
   type AsyncJobConfig,
+  STYLE_MODEL_COUNT,
 } from "@/scripts/pipeline";
 
-export const maxDuration = 30;
+export const maxDuration = 45;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const jobId        = searchParams.get("job_id");
   const predictionId = searchParams.get("prediction_id"); // anonymous users
 
-  // ── Anonymous: direct prediction check (FLUX, single step) ────────────────
+  // ── Anonymous: direct prediction check (single step) ──────────────────────
   if (!jobId && predictionId) {
     try {
       const pred = await replicate.predictions.get(predictionId);
@@ -23,7 +25,6 @@ export async function GET(req: NextRequest) {
       if (pred.status === "failed" || pred.status === "canceled") {
         return NextResponse.json({ status: "error", error: String(pred.error ?? "Génération échouée") });
       }
-      // succeeded
       const output = Array.isArray(pred.output) ? pred.output[0] : pred.output;
       return NextResponse.json({ status: "done", output_image_url: String(output) });
     } catch (err) {
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "job_id manquant" }, { status: 400 });
   }
 
-  // ── Authenticated: DB-backed multi-step pipeline ───────────────────────────
+  // ── Authenticated: DB-backed pipeline ─────────────────────────────────────
   const supabase = await createSupabaseServer();
 
   const { data: job } = await supabase
@@ -49,7 +50,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ status: "error", error: "Job introuvable" });
   }
 
-  // Already finished
   if (job.status === "done") {
     return NextResponse.json({ status: "done", output_image_url: job.output_image_url });
   }
@@ -71,8 +71,31 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ status: "pending", step: job.step });
   }
 
+  // ── Prediction failed — try next model in fallback chain (style mode only) ─
   if (pred.status === "failed" || pred.status === "canceled") {
-    const errMsg = String(pred.error ?? "Replicate prediction failed");
+    const jobConfig = job.job_config as AsyncJobConfig;
+
+    if (jobConfig?.mode === "style") {
+      const nextIdx = (jobConfig.modelIndex ?? 0) + 1;
+      if (nextIdx < STYLE_MODEL_COUNT) {
+        console.log(`[Poll] Model [${jobConfig.modelIndex ?? 0}] failed — trying model [${nextIdx}]`);
+        const newConfig: AsyncJobConfig = { ...jobConfig, modelIndex: nextIdx };
+        try {
+          const newPredId = await startAsyncJob(newConfig);
+          await supabase.from("generations").update({
+            prediction_id: newPredId,
+            job_config:    newConfig,
+            step:          1,
+          }).eq("id", jobId);
+          return NextResponse.json({ status: "pending", step: 1 });
+        } catch (retryErr) {
+          console.error("[Poll] Fallback start failed:", retryErr instanceof Error ? retryErr.message : retryErr);
+          // fall through to error below
+        }
+      }
+    }
+
+    const errMsg = String(pred.error ?? "Génération échouée");
     await supabase.from("generations").update({ status: "error" }).eq("id", jobId);
     return NextResponse.json({ status: "error", error: errMsg });
   }
@@ -90,12 +113,11 @@ export async function GET(req: NextRequest) {
         output_image_url: result.outputUrl,
         status:           "done",
         prediction_id:    null,
-        job_config:       null, // clear large data once done
+        job_config:       null,
       }).eq("id", jobId);
       return NextResponse.json({ status: "done", output_image_url: result.outputUrl });
     }
 
-    // More steps — update DB with next prediction
     await supabase.from("generations").update({
       prediction_id: result.predictionId,
       step:          result.step,

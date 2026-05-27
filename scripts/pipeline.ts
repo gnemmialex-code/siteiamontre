@@ -4,17 +4,139 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
 });
 
+// Face-swap and upscale — used only by SwapFace mode and Ultra upscale
 const MODELS = {
-  // Z-Image Turbo — text-to-image (generates scene, then face-swap injects user's face)
-  zImageTurbo: "prunaai/z-image-turbo",
-  // Face swap — injects user face into the generated scene
-  faceSwap: "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
-  // 4× upscale for Ultra tier
+  faceSwap:  "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
   realEsrgan: "nightmareai/real-esrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc3a73abf41610695738c1d7b",
 } as const;
 
-// Width × Height for Z-Image Turbo based on output format choice
-const ZIMAGE_DIMS: Record<string, { width: number; height: number }> = {
+// ─── Créer mode: multi-model fallback chain ───────────────────────────────────
+//
+// Models are tried in order. On failure (prediction failed/canceled), the poll
+// handler automatically restarts the job with the next model.
+// All text-to-image — no face-swap, no input image required.
+
+type StyleModelSpec = {
+  spec:       string;
+  buildInput: (prompt: string, width: number, height: number) => Record<string, unknown>;
+};
+
+function toAspectRatio(width: number, height: number): string {
+  if (width === height) return "1:1";
+  if (width < height) return "3:4";
+  return "16:9";
+}
+
+export const STYLE_MODELS: StyleModelSpec[] = [
+  {
+    spec: "prunaai/z-image-turbo",
+    buildInput: (prompt, width, height) => ({
+      prompt, width, height, num_inference_steps: 20, guidance_scale: 7,
+    }),
+  },
+  {
+    spec: "ideogram-ai/ideogram-v3-turbo",
+    buildInput: (prompt, width, height) => ({
+      prompt, aspect_ratio: toAspectRatio(width, height),
+    }),
+  },
+  {
+    spec: "black-forest-labs/flux-dev",
+    buildInput: (prompt, width, height) => ({
+      prompt,
+      aspect_ratio:        toAspectRatio(width, height),
+      num_inference_steps: 28,
+      guidance:            3.5,
+      output_format:       "jpg",
+    }),
+  },
+  {
+    spec: "stability-ai/sdxl",
+    buildInput: (prompt, width, height) => ({
+      prompt, width, height, num_inference_steps: 30, guidance_scale: 7.5,
+    }),
+  },
+  {
+    spec: "luma/photon-flash",
+    buildInput: (prompt, width, height) => ({
+      prompt, aspect_ratio: toAspectRatio(width, height),
+    }),
+  },
+  {
+    spec: "luma/photon",
+    buildInput: (prompt, width, height) => ({
+      prompt, aspect_ratio: toAspectRatio(width, height),
+    }),
+  },
+  {
+    spec: "ideogram-ai/ideogram-v3-balanced",
+    buildInput: (prompt, width, height) => ({
+      prompt, aspect_ratio: toAspectRatio(width, height),
+    }),
+  },
+  {
+    spec: "stability-ai/stable-diffusion-3.5-large",
+    buildInput: (prompt, width, height) => ({
+      prompt,
+      aspect_ratio:   toAspectRatio(width, height),
+      output_format:  "jpeg",
+      output_quality: 80,
+    }),
+  },
+  {
+    spec: "recraft-ai/recraft-v3",
+    buildInput: (prompt, width, height) => ({
+      prompt, size: `${width}x${height}`, style: "realistic_image",
+    }),
+  },
+  {
+    spec: "ideogram-ai/ideogram-v3-quality",
+    buildInput: (prompt, width, height) => ({
+      prompt, aspect_ratio: toAspectRatio(width, height),
+    }),
+  },
+  {
+    spec: "nvidia/sana",
+    buildInput: (prompt, width, height) => ({
+      prompt, width, height, guidance_scale: 5, num_inference_steps: 20,
+    }),
+  },
+  {
+    spec: "adirik/realvisxl-v3.0-turbo",
+    buildInput: (prompt, width, height) => ({
+      prompt, width, height, num_inference_steps: 20, guidance_scale: 7,
+    }),
+  },
+  {
+    spec: "google/imagen-3-fast",
+    buildInput: (prompt, width, height) => ({
+      prompt, aspect_ratio: toAspectRatio(width, height), output_format: "jpg",
+    }),
+  },
+  {
+    spec: "google/imagen-3",
+    buildInput: (prompt, width, height) => ({
+      prompt, aspect_ratio: toAspectRatio(width, height), output_format: "jpg",
+    }),
+  },
+  {
+    spec: "google/imagen-4",
+    buildInput: (prompt, width, height) => ({
+      prompt, aspect_ratio: toAspectRatio(width, height), output_format: "jpg",
+    }),
+  },
+  {
+    spec: "prunaai/wan-2.2-image",
+    buildInput: (prompt, width, height) => ({
+      prompt, width, height,
+    }),
+  },
+];
+
+export const STYLE_MODEL_COUNT = STYLE_MODELS.length;
+
+// ─── Dimension table (shared by style models that accept width/height) ────────
+export const ZIMAGE_DIMS: Record<string, { width: number; height: number }> = {
   square:    { width: 1024, height: 1024 },
   portrait:  { width: 832,  height: 1152 },
   landscape: { width: 1216, height: 832  },
@@ -78,11 +200,8 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
 }
 
 // ─── PROMPT BUILDER ───────────────────────────────────────────────────────────
-//
-// Z-Image Turbo is text-to-image — the prompt must describe the desired scene.
-// Always include a portrait subject so face-swap has a face target.
 
-function buildIdeogramPrompt(
+function buildStylePrompt(
   customPrompt: string,
   stylePrompt: string,
   renderStyle?: string,
@@ -132,11 +251,8 @@ function translateToEnglish(text: string): string {
 
   type Rule = [RegExp, string];
   const rules: Rule[] = [
-    // ── Remove French filler phrases ──────────────────────────────────────────
     [/\b(?:mets?(?:\s+moi)?|met(?:\s+moi)?|fais(?:\s+moi)?|donne(?:\s+moi)?|place(?:\s+moi)?|change(?:\s+moi)?|transforme(?:\s+moi)?|rends?(?:\s+moi)?)\b/gi, ""],
     [/\b(?:s'il te plaît|stp|svp|please)\b/gi, ""],
-
-    // ── Background / scene ────────────────────────────────────────────────────
     [/fond\s+(?:de\s+)?plage|fond\s+plage/gi, "beach background with ocean"],
     [/fond\s+(?:de\s+)?ville|fond\s+urbain/gi, "city skyline background"],
     [/fond\s+(?:de\s+)?forêt/gi, "forest background"],
@@ -150,8 +266,6 @@ function translateToEnglish(text: string): string {
     [/fond\s+(?:de\s+)?luxe|fond\s+(?:de\s+)?villa/gi, "luxury villa background"],
     [/(?:change|remplace)\s+(?:le\s+)?fond/gi, "replace the background with"],
     [/\bfond\b/gi, "background"],
-
-    // ── Scene / location ──────────────────────────────────────────────────────
     [/à\s+la\s+plage/gi, "at the beach"],
     [/à\s+paris/gi, "in Paris"],
     [/à\s+new\s*york/gi, "in New York"],
@@ -161,8 +275,6 @@ function translateToEnglish(text: string): string {
     [/dans\s+une?\s+forêt/gi, "in a forest"],
     [/au\s+bureau/gi, "in an office setting"],
     [/en\s+plein\s+air/gi, "outdoors in natural setting"],
-
-    // ── Colour / tone ─────────────────────────────────────────────────────────
     [/noir\s+et\s+blanc|n&b|n&w|nbw/gi, "black and white"],
     [/sépia/gi, "sepia tone"],
     [/coloré/gi, "vibrant colors"],
@@ -171,8 +283,6 @@ function translateToEnglish(text: string): string {
     [/ton\s+froid|tons?\s+froids?/gi, "cool blue color tones"],
     [/contraste\s+(?:élevé|fort|haut)/gi, "high contrast"],
     [/saturé/gi, "vibrant saturated colors"],
-
-    // ── Style / aesthetic ─────────────────────────────────────────────────────
     [/style\s+(?:artistique|art)/gi, "artistic fine art style"],
     [/style\s+vintage|effet\s+vintage/gi, "vintage retro photography style"],
     [/style\s+cinématographique|look\s+ciném/gi, "cinematic film style"],
@@ -187,8 +297,6 @@ function translateToEnglish(text: string): string {
     [/professionnel/gi, "professional"],
     [/futuriste|cyberpunk/gi, "futuristic cyberpunk aesthetic"],
     [/luxueux|luxe/gi, "luxury high-end"],
-
-    // ── Lighting ──────────────────────────────────────────────────────────────
     [/lumière\s+(?:dorée|chaude)/gi, "warm golden hour lighting"],
     [/lumière\s+naturelle/gi, "soft natural daylight"],
     [/lumière\s+(?:de\s+)?studio/gi, "professional studio lighting"],
@@ -198,8 +306,6 @@ function translateToEnglish(text: string): string {
     [/néon/gi, "neon lights"],
     [/lumière\s+bleue/gi, "blue light"],
     [/lumière\s+rose/gi, "pink light"],
-
-    // ── Clothing ──────────────────────────────────────────────────────────────
     [/tenue\s+de\s+soirée|costume\s+de\s+soirée/gi, "elegant formal evening attire"],
     [/tenue\s+(?:décontractée|casual)/gi, "casual stylish outfit"],
     [/tenue\s+sportive|look\s+sportif/gi, "athletic sportswear outfit"],
@@ -210,8 +316,6 @@ function translateToEnglish(text: string): string {
     [/en\s+costume/gi, "wearing a tailored suit"],
     [/robe\s+rouge/gi, "red dress"],
     [/en\s+jean/gi, "wearing jeans"],
-
-    // ── Hair / appearance ─────────────────────────────────────────────────────
     [/cheveux\s+blonds/gi, "blonde hair"],
     [/cheveux\s+bruns/gi, "brown hair"],
     [/cheveux\s+noirs/gi, "black hair"],
@@ -225,13 +329,9 @@ function translateToEnglish(text: string): string {
     [/maquillage\s+(?:fort|prononcé)/gi, "bold dramatic makeup"],
     [/maquillage\s+naturel/gi, "natural minimal makeup"],
     [/sans\s+maquillage/gi, "no makeup natural look"],
-
-    // ── Quality ───────────────────────────────────────────────────────────────
     [/haute\s+qualité|hd|4k|8k/gi, "ultra high definition quality"],
     [/améliore?\s+(?:la\s+)?qualité/gi, "improve overall image quality"],
     [/nettoie?\s+(?:la\s+)?photo/gi, "clean and enhance the photo"],
-
-    // ── Misc French → English ────────────────────────────────────────────────
     [/\bavec\s+/gi, "with "],
     [/\bsur\s+/gi, "on "],
     [/\bdans\s+/gi, "in "],
@@ -249,11 +349,10 @@ function translateToEnglish(text: string): string {
   for (const [pattern, replacement] of rules) {
     result = result.replace(pattern, replacement);
   }
-
   return result.replace(/\s+/g, " ").trim();
 }
 
-// ─── IMAGE LOADER ─────────────────────────────────────────────────────────────
+// ─── IMAGE UTILITIES ──────────────────────────────────────────────────────────
 
 async function downloadImageAsBase64(url: string): Promise<string | null> {
   try {
@@ -278,7 +377,6 @@ async function loadImageAsBase64(urlOrData: string): Promise<string> {
   if (urlOrData.startsWith("data:")) return urlOrData;
   const b64 = await downloadImageAsBase64(urlOrData);
   if (!b64) throw new Error(`Impossible de charger l'image depuis : ${urlOrData.slice(0, 80)}`);
-  console.log(`[Pipeline] Image loaded as base64 (${Math.round(b64.length / 1024)}KB)`);
   return b64;
 }
 
@@ -292,21 +390,21 @@ function extractUrl(output: unknown): string {
 
 // ─── ASYNC JOB API ────────────────────────────────────────────────────────────
 //
-// Style pipeline:   Z-Image Turbo (text→image) → face injection → optional upscale (Ultra)
-// Swapface pipeline: face-swap → optional upscale (Ultra)
-// POST /api/generate starts the job and returns immediately (<5s).
-// GET /api/generate/poll checks status and advances one step at a time (<5s each).
+// Créer pipeline:   text-to-image model (auto-fallback chain) → optional upscale (Ultra)
+//                   face-swap is NOT used in this mode
+// SwapFace pipeline: face-swap → optional upscale (Ultra)
 
 export type AsyncJobConfig = {
   mode:        "style" | "swapface";
   qualityTier: keyof typeof QUALITY_SETTINGS;
-  prompt?:     string;    // scene description for Z-Image Turbo
+  prompt?:     string;
   width?:      number;
   height?:     number;
-  sourceB64?:  string;   // user's face (needed for face-swap step)
+  sourceB64?:  string;   // swapface only: user's face
+  modelIndex?: number;   // style only: current index in STYLE_MODELS (for fallback)
 };
 
-// Wraps replicate.predictions.create for both versioned and unversioned model specs
+// Wraps replicate.predictions.create for versioned and unversioned model specs
 async function createPred(
   spec:  string,
   input: Record<string, unknown>,
@@ -328,7 +426,7 @@ export function buildAsyncJobConfig(
     return { mode: "swapface", qualityTier: tier, sourceB64 };
   }
 
-  const prompt = buildIdeogramPrompt(
+  const prompt = buildStylePrompt(
     input.customPrompt   ?? "",
     input.stylePrompt    ?? "",
     input.renderStyle,
@@ -341,17 +439,17 @@ export function buildAsyncJobConfig(
   return {
     mode:        "style",
     qualityTier: tier,
-    sourceB64,   // user's face — injected via face-swap after scene generation
     prompt,
-    width:  dims.width,
-    height: dims.height,
+    width:       dims.width,
+    height:      dims.height,
+    modelIndex:  0,
   };
 }
 
 // Start step 1 — returns Replicate prediction ID immediately (non-blocking)
 export async function startAsyncJob(
   config:     AsyncJobConfig,
-  targetB64?: string, // swapface mode only: the target photo
+  targetB64?: string, // swapface only: the target photo
 ): Promise<string> {
   if (config.mode === "swapface") {
     const p = await createPred(MODELS.faceSwap, {
@@ -361,15 +459,16 @@ export async function startAsyncJob(
     return p.id;
   }
 
-  // Style: Z-Image Turbo generates the scene (text-to-image)
-  // guidance_scale ≥ 1 required — 0 means fully unconditional (prompt ignored)
-  const p = await createPred(MODELS.zImageTurbo, {
-    prompt:              config.prompt!,
-    width:               config.width  ?? 832,
-    height:              config.height ?? 1152,
-    num_inference_steps: 20,
-    guidance_scale:      7,
-  });
+  // Style: pick model from fallback chain
+  const modelIdx = config.modelIndex ?? 0;
+  const model    = STYLE_MODELS[modelIdx];
+  if (!model) throw new Error(`Tous les ${STYLE_MODEL_COUNT} modèles ont échoué — réessayez plus tard`);
+
+  console.log(`[Pipeline] Style model [${modelIdx}/${STYLE_MODEL_COUNT - 1}]: ${model.spec}`);
+  const p = await createPred(
+    model.spec,
+    model.buildInput(config.prompt!, config.width ?? 832, config.height ?? 1152),
+  );
   return p.id;
 }
 
@@ -377,8 +476,7 @@ export type AdvanceResult =
   | { done: true;  outputUrl: string }
   | { done: false; predictionId: string; step: number };
 
-// Called by the poll handler after a prediction completes.
-// Starts the next step or returns the final output URL.
+// Called by the poll handler after a prediction succeeds.
 export async function advanceAsyncJob(
   config:     AsyncJobConfig,
   step:       number,
@@ -387,7 +485,7 @@ export async function advanceAsyncJob(
   const q         = QUALITY_SETTINGS[config.qualityTier];
   const outputUrl = extractUrl(predOutput);
 
-  // ── SWAPFACE: 1 step + optional upscale ──────────────────────────────────
+  // ── SWAPFACE: face-swap done → optional upscale ───────────────────────────
   if (config.mode === "swapface") {
     if (step === 1 && q.upscale) {
       const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
@@ -396,28 +494,17 @@ export async function advanceAsyncJob(
     return { done: true, outputUrl };
   }
 
-  // ── STYLE step 1: Z-Image Turbo scene done → inject user's face ─────────
+  // ── STYLE step 1: text-to-image done → optional upscale (Ultra) or done ──
   if (step === 1) {
-    const sceneB64 = await loadImageAsBase64(outputUrl);
-    const p = await createPred(MODELS.faceSwap, {
-      swap_image:  config.sourceB64!,
-      input_image: sceneB64,
-    });
-    return { done: false, predictionId: p.id, step: 2 };
-  }
-
-  // ── STYLE step 2: face injected → optional upscale (Ultra) or done ───────
-  if (step === 2) {
     if (q.upscale) {
       const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
-      return { done: false, predictionId: p.id, step: 3 };
+      return { done: false, predictionId: p.id, step: 2 };
     }
     return { done: true, outputUrl };
   }
 
-  // step 3+: upscale done
+  // step 2+: upscale done
   return { done: true, outputUrl };
 }
 
-// Kept for use by poll route
-export { replicate, withRetry };
+export { replicate, withRetry, loadImageAsBase64 };
