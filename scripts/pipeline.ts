@@ -25,14 +25,15 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    spec: "lucataco/realistic-vision-v5.1",
-    buildInput: (prompt, neg, imageUrl, strength) => ({
-      init_image:          imageUrl,
+    // flux-dev used as img2img: image param is the uploaded photo
+    spec: "black-forest-labs/flux-dev",
+    buildInput: (prompt, _neg, imageUrl, strength) => ({
+      image:               imageUrl,
       prompt,
-      negative_prompt:     neg,
       prompt_strength:     strength,
-      num_inference_steps: 30,
-      guidance_scale:      7.5,
+      num_inference_steps: 28,
+      guidance:            3.5,
+      output_format:       "jpg",
     }),
   },
 ];
