@@ -25,15 +25,13 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    // instruct-pix2pix: instruction-based img2img — takes photo + text instruction
-    // Uses version hash to bypass model-slug API 404 issues with community models
-    spec: "timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60dc6215a3a4f91c799e30a44",
-    buildInput: (prompt, _neg, imageUrl, _strength) => ({
-      image:            imageUrl,
+    spec: "bytedance/seedream-4.5",
+    buildInput: (prompt, neg, imageUrl, strength) => ({
       prompt,
-      image_cfg_scale:  1.5,
-      text_cfg_scale:   7.5,
-      num_inference_steps: 100,
+      negative_prompt: neg,
+      image:           imageUrl,
+      strength,
+      aspect_ratio:    "3:4",
     }),
   },
 ];
