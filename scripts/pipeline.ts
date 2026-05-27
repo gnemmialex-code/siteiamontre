@@ -26,12 +26,9 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
     spec: "bytedance/seedream-4.5",
-    buildInput: (prompt, neg, imageUrl, strength) => ({
+    buildInput: (prompt, _neg, _imageUrl, _strength) => ({
       prompt,
-      negative_prompt: neg,
-      image:           imageUrl,
-      strength,
-      aspect_ratio:    "3:4",
+      aspect_ratio: "3:4",
     }),
   },
 ];
