@@ -32,14 +32,6 @@ export const STYLE_MODELS: Img2ImgModelSpec[] = [
       openai_api_key: process.env.OPENAI_API_KEY!,
     }),
   },
-  {
-    spec: "google/nano-banana-pro",
-    buildInput: (prompt, _neg, imageUrl, strength) => ({
-      prompt,
-      image:    imageUrl,
-      strength,
-    }),
-  },
 ];
 
 export const STYLE_MODEL_COUNT = STYLE_MODELS.length;
