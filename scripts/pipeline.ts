@@ -28,7 +28,8 @@ export const STYLE_MODELS: Img2ImgModelSpec[] = [
     spec: "openai/gpt-image-1",
     buildInput: (prompt, _neg, imageUrl, _strength) => ({
       prompt,
-      image: imageUrl,
+      image:          imageUrl,
+      openai_api_key: process.env.OPENAI_API_KEY!,
     }),
   },
   {
