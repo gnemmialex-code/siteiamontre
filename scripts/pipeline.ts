@@ -486,6 +486,20 @@ async function downloadImageAsBase64(url: string): Promise<string | null> {
   }
 }
 
+// ─── IMAGE LOADER ─────────────────────────────────────────────────────────────
+//
+// Replicate must be able to fetch the input image.
+// Supabase private buckets return 403, so we always convert to base64 first.
+// This guarantees the model receives the actual pixels regardless of bucket policy.
+
+async function loadImageAsBase64(urlOrData: string): Promise<string> {
+  if (urlOrData.startsWith("data:")) return urlOrData; // Already base64
+  const b64 = await downloadImageAsBase64(urlOrData);
+  if (!b64) throw new Error(`Impossible de charger l'image depuis : ${urlOrData.slice(0, 80)}`);
+  console.log(`[Pipeline] Image loaded as base64 (${Math.round(b64.length / 1024)}KB)`);
+  return b64;
+}
+
 // ─── MODEL RUNNERS ────────────────────────────────────────────────────────────
 
 async function runFluxKontext(
@@ -495,9 +509,15 @@ async function runFluxKontext(
   quality: number,
   format: "jpg" | "png" | "webp",
 ): Promise<string> {
+  // Always convert to base64 — Replicate cannot access private Supabase URLs
+  const imageData = await loadImageAsBase64(image);
+
+  console.log(`[Pipeline] FLUX Kontext Max — aspect: ${aspectRatio}, quality: ${quality}, format: ${format}`);
+  console.log(`[Pipeline] Prompt: "${prompt.slice(0, 200)}"`);
+
   const output = await replicate.run(MODELS.fluxKontextMax, {
     input: {
-      image,
+      image:             imageData,
       prompt,
       aspect_ratio:      aspectRatio,
       output_format:     format,
@@ -506,20 +526,31 @@ async function runFluxKontext(
       prompt_upsampling: false,
     },
   });
-  return extractUrl(output);
+  const url = extractUrl(output);
+  console.log(`[Pipeline] FLUX output: ${url.slice(0, 80)}`);
+  return url;
 }
 
 async function runFaceSwap(sourceImageUrl: string, targetImageUrl: string): Promise<string> {
+  // Convert both images to base64 for reliability
+  const [swapData, inputData] = await Promise.all([
+    loadImageAsBase64(sourceImageUrl),
+    loadImageAsBase64(targetImageUrl),
+  ]);
+
+  console.log("[Pipeline] Face swap — source and target loaded");
   const output = await replicate.run(
     MODELS.faceSwap as `${string}/${string}:${string}`,
     {
       input: {
-        swap_image:  sourceImageUrl,
-        input_image: targetImageUrl,
+        swap_image:  swapData,   // user's face
+        input_image: inputData,  // celebrity's photo
       },
     }
   );
-  return extractUrl(output);
+  const url = extractUrl(output);
+  console.log(`[Pipeline] FaceSwap output: ${url.slice(0, 80)}`);
+  return url;
 }
 
 async function runUpscale(imageUrl: string): Promise<string> {

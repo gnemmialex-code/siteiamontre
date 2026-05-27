@@ -300,6 +300,11 @@ export default function DashboardPage() {
   const [genFormat,     setGenFormat]     = useState<string>("auto");
   const [preserveOutfit,setPreserveOutfit]= useState(false);
 
+  /* debug / prompt preview */
+  const [showDebug,     setShowDebug]     = useState(false);
+  const [debugInfo,     setDebugInfo]     = useState<Record<string, unknown> | null>(null);
+  const [loadingDebug,  setLoadingDebug]  = useState(false);
+
   /* generation state – swapface */
   const [swapSrcFile,     setSwapSrcFile]     = useState<File | null>(null);
   const [swapSrcPreview,  setSwapSrcPreview]  = useState<string | null>(null);
@@ -384,6 +389,34 @@ export default function DashboardPage() {
       setClothing(null); setMood(null); setStyleBg(null); setAccessory(null);
     } else {
       setSelectedStyle(style);
+    }
+  };
+
+  const handleDebugPrompt = async () => {
+    if (genType !== "create") return;
+    setLoadingDebug(true);
+    setShowDebug(true);
+    try {
+      const enriched = buildEnrichedPrompt(selectedStyle, clothing, mood, styleBg, accessory);
+      const res = await fetch("/api/debug-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          custom_prompt:   freePrompt.trim(),
+          style_prompt:    enriched,
+          style_label:     selectedStyle?.label ?? "Custom",
+          render_style:    renderStyle ?? "",
+          intensity,
+          output_format:   genFormat,
+          preserve_outfit: preserveOutfit ? "1" : "0",
+        }),
+      });
+      const data = await res.json();
+      setDebugInfo(data);
+    } catch {
+      setDebugInfo({ error: "Impossible de charger le debug" });
+    } finally {
+      setLoadingDebug(false);
     }
   };
 
@@ -784,6 +817,57 @@ export default function DashboardPage() {
                           step={selectedStyle ? 6 : 5}
                           plan={stats?.plan}
                         />
+
+                        {/* Bouton debug — voir le prompt exact */}
+                        {genType === "create" && (
+                          <div>
+                            <button
+                              onClick={handleDebugPrompt}
+                              disabled={loadingDebug}
+                              className="w-full py-2 rounded-xl border border-surface-border text-white/35 hover:text-white/60 hover:border-accent-violet/30 text-xs transition-all flex items-center justify-center gap-2"
+                            >
+                              🔍 {loadingDebug ? "Chargement…" : "Voir le prompt exact envoyé à l'IA"}
+                            </button>
+
+                            <AnimatePresence>
+                              {showDebug && debugInfo && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: -6 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -6 }}
+                                  className="bg-surface border border-surface-border rounded-2xl p-4 space-y-3 text-xs mt-2"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <p className="font-bold text-white/80">Diagnostic — ce qui est envoyé à FLUX Kontext Max</p>
+                                    <button onClick={() => setShowDebug(false)} className="text-white/30 hover:text-white">✕</button>
+                                  </div>
+
+                                  {(debugInfo as { debug?: Record<string,unknown> }).debug && (
+                                    <div className="grid grid-cols-2 gap-2">
+                                      {Object.entries((debugInfo as { debug: Record<string,unknown> }).debug).map(([k, v]) => (
+                                        <div key={k} className="bg-surface-hover rounded-lg p-2">
+                                          <p className="text-white/35 text-[10px] uppercase tracking-wider">{k.replace(/_/g, " ")}</p>
+                                          <p className="text-white/80 font-medium break-all">{String(v)}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  <div className="bg-surface-hover rounded-xl p-3">
+                                    <p className="text-white/35 text-[10px] uppercase tracking-wider mb-2">Instruction complète → FLUX Kontext</p>
+                                    <p className="text-white/70 leading-relaxed whitespace-pre-wrap">
+                                      {String((debugInfo as { instruction_sent_to_flux?: string }).instruction_sent_to_flux ?? "")}
+                                    </p>
+                                  </div>
+
+                                  <p className="text-amber-400/70 text-[10px]">
+                                    ⚠️ Si l&apos;image source n&apos;est pas accessible (bucket privé), le modèle ignorera complètement votre photo.
+                                  </p>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
