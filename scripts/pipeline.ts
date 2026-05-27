@@ -794,11 +794,11 @@ export function buildAsyncJobConfig(
     };
   }
 
+  // FLUX edits the photo directly in step 1 — sourceB64 is passed live, not stored in DB
   return {
     pipeline:        "flux",
     mode:            "style",
     qualityTier:     tier,
-    sourceB64,
     fluxInstruction: buildEditInstruction(
       input.customPrompt   ?? "",
       input.stylePrompt    ?? "",

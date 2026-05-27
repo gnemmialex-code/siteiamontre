@@ -295,7 +295,7 @@ export default function DashboardPage() {
   const [freePrompt,    setFreePrompt]    = useState("");
 
   /* engine selector */
-  const [engine,        setEngine]        = useState<"ideogram" | "flux">("ideogram");
+  const [engine,        setEngine]        = useState<"ideogram" | "flux">("flux");
 
   /* generation precision options */
   const [renderStyle,   setRenderStyle]   = useState<string | null>(null);
@@ -510,16 +510,16 @@ export default function DashboardPage() {
 
         const pollRes  = await fetch(pollUrl);
         const pollText = await pollRes.text();
-        let poll: Record<string, unknown>;
+        let poll: Record<string, unknown> = {};
         try { poll = JSON.parse(pollText); }
-        catch { throw new Error(pollText || "Erreur de poll"); }
+        catch { throw new Error(pollText || `Erreur serveur poll (${pollRes.status})`); }
 
+        if (!pollRes.ok || poll.status === "error") {
+          throw new Error((poll.error as string) || `Erreur serveur (${pollRes.status})`);
+        }
         if (poll.status === "done" && poll.output_image_url) {
           outputUrl = poll.output_image_url as string;
           break;
-        }
-        if (poll.status === "error") {
-          throw new Error((poll.error as string) || "Erreur lors de la génération");
         }
 
         // Update progress label based on current step

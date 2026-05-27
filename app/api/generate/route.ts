@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
   const effectiveUserId = userId ?? "anon";
 
   // ── Options de génération ──────────────────────────────────────────────────
-  const engine             = ((formData.get("engine") as string | null) ?? "ideogram") as "ideogram" | "flux";
+  const engine             = ((formData.get("engine") as string | null) ?? "flux") as "ideogram" | "flux";
   const renderStyle        = (formData.get("render_style")    as string | null) ?? undefined;
   const transformIntensity = (formData.get("intensity")       as string | null) ?? "moderate";
   const outputFormat       = (formData.get("output_format")   as string | null) ?? "auto";
@@ -168,17 +168,26 @@ export async function POST(req: NextRequest) {
     // ── Déduire les crédits + sauvegarder le job ────────────────────────────
     if (userId) {
       await supabase.rpc("decrement_credits", { user_id: userId, amount: CREDITS_PER_IMAGE });
-      await supabase.from("generations").insert({
-        id:              generationId,
-        user_id:         userId,
-        input_image_url: inputImageForRecord,
+
+      // Strip sourceB64 from job_config before storing (too large for DB row)
+      const configForDb = { ...jobConfig, sourceB64: undefined };
+
+      const { error: insertError } = await supabase.from("generations").insert({
+        id:               generationId,
+        user_id:          userId,
+        input_image_url:  inputImageForRecord,
         output_image_url: "",
-        style:           styleLabel,
-        status:          "pending",
-        prediction_id:   predictionId,
-        step:            1,
-        job_config:      jobConfig,
+        style:            styleLabel,
+        status:           "pending",
+        prediction_id:    predictionId,
+        step:             1,
+        job_config:       configForDb,
       });
+
+      if (insertError) {
+        console.error("[Generate] DB insert error:", insertError.message);
+        throw new Error(`Erreur DB : ${insertError.message}`);
+      }
     }
 
     const response = NextResponse.json({ job_id: generationId, prediction_id: predictionId });
