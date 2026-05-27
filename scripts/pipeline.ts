@@ -18,7 +18,7 @@ const ZIMAGE_DIMS: Record<string, { width: number; height: number }> = {
   square:    { width: 1024, height: 1024 },
   portrait:  { width: 832,  height: 1152 },
   landscape: { width: 1216, height: 832  },
-  auto:      { width: 832,  height: 1152 }, // portrait default for face shots
+  auto:      { width: 832,  height: 1152 },
 };
 
 // ─── Quality settings per subscription tier ───────────────────────────────────
@@ -29,22 +29,6 @@ const QUALITY_SETTINGS = {
   ultra:     { quality: 100, format: "png" as const, upscale: true  },
 } as const;
 
-// ─── Aspect ratio mapping ─────────────────────────────────────────────────────
-const ASPECT_RATIOS: Record<string, string> = {
-  square:    "1:1",
-  portrait:  "3:4",
-  landscape: "16:9",
-  auto:      "match_input_image",
-};
-
-// Ideogram doesn't support "match_input_image" — remap to portrait default
-const IDEOGRAM_ASPECT_RATIOS: Record<string, string> = {
-  square:    "1:1",
-  portrait:  "3:4",
-  landscape: "16:9",
-  auto:      "3:4",   // Default portrait for face shots
-};
-
 // ─── Render style descriptors ─────────────────────────────────────────────────
 const RENDER_STYLE_PROMPTS: Record<string, string> = {
   photoreal: "ultra-photorealistic, sharp natural details, true-to-life colors",
@@ -53,27 +37,16 @@ const RENDER_STYLE_PROMPTS: Record<string, string> = {
   artistic:  "fine art portrait photography, creative lighting, artistic composition",
 };
 
-// ─── Intensity modifiers ──────────────────────────────────────────────────────
-const INTENSITY_PREFIX: Record<string, string> = {
-  light:    "Subtly and minimally",
-  moderate: "",
-  strong:   "Boldly and dramatically",
-};
-
 export interface PipelineInput {
   mode: "style" | "swapface";
-  // Style mode
   inputImageUrl?: string;
   styleId?: string;
   stylePrompt?: string;
   customPrompt?: string;
-  // SwapFace mode
   sourceImageUrl?: string;
   targetImageUrl?: string;
   faceIndex?: string;
   extraPrompt?: string;
-  // Generation options
-  engine?: "ideogram" | "flux";  // "ideogram" = Ideogram v3 Turbo (default), "flux" = FLUX Kontext
   qualityTier?: keyof typeof QUALITY_SETTINGS;
   renderStyle?: string;
   transformIntensity?: string;
@@ -104,227 +77,10 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
   throw new Error("Max retries exceeded");
 }
 
-export async function runPipeline(input: PipelineInput): Promise<string> {
-  const start = Date.now();
-  const tier = input.qualityTier ?? "essentiel";
-  console.log(`[Pipeline] Mode: ${input.mode} | Tier: ${tier}`);
-  try {
-    const result =
-      input.mode === "swapface"
-        ? await runSwapFacePipeline(input)
-        : await runStylePipeline(input);
-    console.log(`[Pipeline] Done in ${((Date.now() - start) / 1000).toFixed(1)}s`);
-    return result;
-  } catch (err) {
-    console.error("[Pipeline] Error:", err);
-    throw err;
-  }
-}
-
-// ─── STYLE PIPELINE ───────────────────────────────────────────────────────────
+// ─── PROMPT BUILDER ───────────────────────────────────────────────────────────
 //
-// Two engines available:
-//   "ideogram" (default): Ideogram v3 Turbo generates the scene → face-swap injects user's face
-//   "flux":               FLUX Kontext edits the original photo directly
-
-async function runStylePipeline(input: PipelineInput): Promise<string> {
-  const imageUrl    = input.inputImageUrl!;
-  const rawPrompt   = input.customPrompt?.trim() || "";
-  const stylePrompt = input.stylePrompt?.trim() || "";
-  const engine      = input.engine ?? "ideogram";
-
-  // Composition requests (celebrity mentions) always use face-swap regardless of engine
-  if (isCompositionRequest(rawPrompt)) {
-    console.log("[Pipeline] → Composition detected");
-    return runCompositionPipeline(imageUrl, rawPrompt, input);
-  }
-
-  if (engine === "ideogram") {
-    console.log("[Pipeline] → Ideogram v3 Turbo + FaceSwap");
-    return runIdeogramFaceSwapPipeline(imageUrl, rawPrompt, stylePrompt, input);
-  }
-
-  console.log("[Pipeline] → FLUX Kontext (direct edit)");
-  return runFluxEditPipeline(imageUrl, rawPrompt, stylePrompt, input);
-}
-
-// ─── IDEOGRAM V3 TURBO PIPELINE ───────────────────────────────────────────────
-//
-// Step 1 — Ideogram v3 Turbo generates a high-quality scene matching style/prompt
-//           (includes a portrait subject as face-swap target)
-// Step 2 — Face-swap injects the user's real face into that scene
-// Result — User's identity in a photorealistic AI-generated world
-
-async function runIdeogramFaceSwapPipeline(
-  userImageUrl: string,
-  rawPrompt: string,
-  stylePrompt: string,
-  input: PipelineInput,
-): Promise<string> {
-  const ideogramPrompt = buildIdeogramPrompt(
-    rawPrompt,
-    stylePrompt,
-    input.renderStyle,
-    input.transformIntensity,
-    input.preserveOutfit ?? false,
-  );
-
-  const aspectRatio = IDEOGRAM_ASPECT_RATIOS[input.outputFormat ?? "auto"] ?? "3:4";
-  const q           = QUALITY_SETTINGS[input.qualityTier ?? "essentiel"];
-
-  console.log(`[Pipeline] Ideogram v3 Turbo prompt: "${ideogramPrompt.slice(0, 200)}"`);
-  console.log(`[Pipeline] Ideogram aspect ratio: ${aspectRatio}`);
-
-  // Step 1: Generate scene with Ideogram — no silent fallback, errors must be visible
-  const sceneUrl = await withRetry(() => runIdeogramV3Turbo(ideogramPrompt, aspectRatio));
-  console.log(`[Pipeline] Ideogram scene: ${sceneUrl.slice(0, 80)}`);
-
-  // Step 2: Swap user's face into the generated scene
-  console.log("[Pipeline] → Face-swapping user into Ideogram scene…");
-  let result: string;
-  try {
-    result = await withRetry(() => runFaceSwap(userImageUrl, sceneUrl));
-  } catch (err) {
-    console.warn("[Pipeline] Face-swap failed — returning raw Ideogram scene:", err instanceof Error ? err.message : err);
-    result = sceneUrl;
-  }
-
-  if (q.upscale) {
-    console.log("[Pipeline] → Upscaling (Ultra tier)…");
-    result = await runUpscale(result);
-  }
-
-  return result;
-}
-
-// ─── FLUX KONTEXT PIPELINE (direct image edit) ────────────────────────────────
-
-async function runFluxEditPipeline(
-  imageUrl: string,
-  rawPrompt: string,
-  stylePrompt: string,
-  input: PipelineInput,
-): Promise<string> {
-  const instruction = buildEditInstruction(
-    rawPrompt,
-    stylePrompt,
-    input.renderStyle,
-    input.transformIntensity,
-    input.preserveOutfit ?? false,
-  );
-  console.log(`[Pipeline] FLUX instruction: "${instruction.slice(0, 150)}…"`);
-
-  const aspectRatio = ASPECT_RATIOS[input.outputFormat ?? "auto"] ?? "match_input_image";
-  const q           = QUALITY_SETTINGS[input.qualityTier ?? "essentiel"];
-
-  let result = await withRetry(() =>
-    runFluxKontext(imageUrl, instruction, aspectRatio, q.quality, q.format)
-  );
-
-  if (q.upscale) {
-    console.log("[Pipeline] → Upscaling (Ultra tier)…");
-    result = await runUpscale(result);
-  }
-
-  return result;
-}
-
-// ─── COMPOSITION PIPELINE ────────────────────────────────────────────────────
-
-async function runCompositionPipeline(
-  userImageUrl: string,
-  rawPrompt: string,
-  input: PipelineInput,
-): Promise<string> {
-  const personName = extractPersonName(rawPrompt);
-  console.log(`[Pipeline] Celebrity: "${personName ?? "none"}"`);
-
-  if (personName) {
-    const refBase64 = await fetchWikipediaImageAsBase64(personName);
-    if (refBase64) {
-      console.log("[Pipeline] Wikipedia photo found — face-swapping user into it…");
-      return withRetry(() => runFaceSwap(userImageUrl, refBase64));
-    }
-    console.log("[Pipeline] Wikipedia photo not found — falling back to style pipeline");
-  }
-
-  // Fallback: use the engine pipeline with the raw prompt
-  return runStylePipeline({ ...input, customPrompt: rawPrompt });
-}
-
-// ─── SWAPFACE PIPELINE ────────────────────────────────────────────────────────
-
-async function runSwapFacePipeline(input: PipelineInput): Promise<string> {
-  console.log("[Pipeline] FaceSwap…");
-  const result = await withRetry(() =>
-    runFaceSwap(input.sourceImageUrl!, input.targetImageUrl!)
-  );
-
-  // Upscale swap result for Ultra tier too
-  const q = QUALITY_SETTINGS[input.qualityTier ?? "essentiel"];
-  if (q.upscale) {
-    console.log("[Pipeline] → Upscaling swap result (Ultra tier)…");
-    return runUpscale(result);
-  }
-  return result;
-}
-
-// ─── INTENT DETECTION ─────────────────────────────────────────────────────────
-
-function isCompositionRequest(prompt: string): boolean {
-  const p = prompt.toLowerCase();
-
-  const clearTriggers = [
-    "à côté de moi", "next to me", "beside me",
-    "avec moi",      "with me",
-    "à ma gauche",   "à ma droite",
-    "on my left",    "on my right",
-    "devant moi",    "derrière moi",
-    "in front of me","behind me",
-  ];
-  if (clearTriggers.some((kw) => p.includes(kw))) return true;
-  if (/\b(?:mets?|met)\s+moi\s+[A-Z]/u.test(prompt)) return true;
-  if (/\b(?:avec|with)\s+[A-Z]/u.test(prompt)) return true;
-
-  const actionVerbs = ["ajoute", "rajoute", "add", "mets ", "place", "met "];
-  const personNouns = [
-    "personne", "quelqu'un", "someone",
-    "celebrity", "célébrité",
-    "homme", "femme", "man", "woman", "person",
-  ];
-  return actionVerbs.some((v) => p.includes(v)) && personNouns.some((n) => p.includes(n));
-}
-
-function extractPersonName(prompt: string): string | null {
-  const STOP =
-    "(?:à côté|next to|beside|avec moi|with me|à ma|on my|" +
-    "devant|derrière|in front|behind|de moi|of me|" +
-    "entrain|en train|qui |looking|regardant|faisant|doing|watching|portant|souriant|smiling)";
-
-  const patterns = [
-    new RegExp(`\\b(?:mets?|met)\\s+moi\\s+(.+?)(?:\\s+${STOP}.*)?$`, "iu"),
-    new RegExp(`(?:rajoute|ajoute|add|place)\\s+(?:moi\\s+(?:avec|with)\\s+)?(.+?)(?:\\s+${STOP}.*)?$`, "iu"),
-    new RegExp(`(?:mets|met)\\s+(?:moi\\s+)?(?:avec|with)\\s+(.+?)(?:\\s+${STOP}.*)?$`, "iu"),
-    new RegExp(`(?:avec|with)\\s+([A-Z].+?)(?:\\s+${STOP}.*)?$`, "u"),
-  ];
-
-  for (const re of patterns) {
-    const match = prompt.match(re);
-    if (match) {
-      const candidate = match[1].trim();
-      if (/^(une?|un|a|an)\s+/i.test(candidate)) continue;
-      if (/^(le|la|les|du|des|un|une)\s+/i.test(candidate)) continue;
-      if (candidate.length > 1 && candidate.length < 60) return candidate;
-    }
-  }
-  return null;
-}
-
-// ─── IDEOGRAM PROMPT BUILDER ─────────────────────────────────────────────────
-//
-// Ideogram v3 Turbo is text-to-image — the prompt must describe the desired scene.
-// It must always include a portrait subject so face-swap has a face target.
-// Ideogram excels at photorealistic portraits when given precise descriptions.
+// Z-Image Turbo is text-to-image — the prompt must describe the desired scene.
+// Always include a portrait subject so face-swap has a face target.
 
 function buildIdeogramPrompt(
   customPrompt: string,
@@ -336,7 +92,6 @@ function buildIdeogramPrompt(
   const translated = translateToEnglish(customPrompt.trim());
   const style = stylePrompt.trim();
 
-  // Scene / style description
   let sceneDesc = "";
   if (translated && style) {
     sceneDesc = `${style}, ${translated}`;
@@ -344,12 +99,10 @@ function buildIdeogramPrompt(
     sceneDesc = translated || style || "professional portrait, perfect studio lighting";
   }
 
-  // Render quality
   const renderDesc = (renderStyle && RENDER_STYLE_PROMPTS[renderStyle])
     ? RENDER_STYLE_PROMPTS[renderStyle]
     : "ultra-photorealistic, sharp natural details";
 
-  // Intensity
   const intensityDesc: Record<string, string> = {
     light:    "subtle, natural, minimal",
     moderate: "",
@@ -357,7 +110,6 @@ function buildIdeogramPrompt(
   };
   const mood = intensityDesc[intensity ?? "moderate"] ?? "";
 
-  // Always include a portrait subject for face-swap
   const outfitNote = preserveOutfit ? ", keeping current clothing style" : "";
   const subject = `a person, close portrait shot, face clearly visible${outfitNote}`;
 
@@ -371,65 +123,6 @@ function buildIdeogramPrompt(
   ].filter(Boolean);
 
   return parts.join(", ").replace(/,\s*,+/g, ",").replace(/\s+/g, " ").trim();
-}
-
-// ─── INSTRUCTION BUILDER ──────────────────────────────────────────────────────
-//
-// Produces a precise FLUX Kontext editing directive.
-// Structure: [intensity prefix] [what to change]. [render quality]. Preserve: [what to keep].
-
-function buildEditInstruction(
-  customPrompt: string,
-  stylePrompt: string,
-  renderStyle?: string,
-  intensity?: string,
-  preserveOutfit = false,
-): string {
-  const translated = translateToEnglish(customPrompt.trim());
-  const style = stylePrompt.trim();
-
-  // What to change
-  let changeDesc: string;
-  if (translated && style) {
-    changeDesc = `Apply this visual style — ${style}. Additional adjustment: ${translated}`;
-  } else if (style) {
-    changeDesc = `Apply this visual style — ${style}`;
-  } else if (translated) {
-    changeDesc = translated;
-  } else {
-    changeDesc = "Enhance the photo quality, lighting, and professional aesthetic";
-  }
-
-  // Render quality modifier
-  const renderDesc = (renderStyle && RENDER_STYLE_PROMPTS[renderStyle])
-    ? `Render quality: ${RENDER_STYLE_PROMPTS[renderStyle]}.`
-    : "";
-
-  // Intensity prefix
-  const prefix = (intensity && INTENSITY_PREFIX[intensity])
-    ? `${INTENSITY_PREFIX[intensity]} transform: `
-    : "";
-
-  // What to preserve
-  const preserveList = [
-    "the person's face, eyes, nose, mouth, and all facial features",
-    "their exact skin tone and complexion",
-    "their hair color, texture, and style",
-    "their body shape and proportions",
-  ];
-  if (preserveOutfit) {
-    preserveList.push("their current clothing and outfit (do not change clothes)");
-  }
-
-  const preserveStr = preserveList.join("; ");
-
-  return [
-    `${prefix}${changeDesc}.`,
-    renderDesc,
-    `Preserve exactly: ${preserveStr}.`,
-    "Do NOT alter the person's identity, duplicate them, or add any new people.",
-    "The result must look photorealistic and professionally photographed.",
-  ].filter(Boolean).join(" ");
 }
 
 // ─── FRENCH → ENGLISH TRANSLATOR ─────────────────────────────────────────────
@@ -560,50 +253,7 @@ function translateToEnglish(text: string): string {
   return result.replace(/\s+/g, " ").trim();
 }
 
-// ─── WIKIPEDIA ────────────────────────────────────────────────────────────────
-
-async function fetchWikipediaImageAsBase64(personName: string): Promise<string | null> {
-  const variants = buildNameVariants(personName);
-
-  for (const variant of variants) {
-    const slug = encodeURIComponent(variant.trim().replace(/\s+/g, "_"));
-    for (const lang of ["en", "fr", "es"]) {
-      try {
-        const apiRes = await fetch(
-          `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${slug}`,
-          { headers: { "User-Agent": "IACelebriteApp/1.0 (contact: gnemmialex@gmail.com)" } }
-        );
-        if (!apiRes.ok) continue;
-        const data = (await apiRes.json()) as {
-          thumbnail?: { source: string };
-          originalimage?: { source: string };
-          type?: string;
-        };
-        if (data.type === "disambiguation") continue;
-        const imageUrl = data.originalimage?.source ?? data.thumbnail?.source ?? null;
-        if (!imageUrl) continue;
-
-        const base64 = await downloadImageAsBase64(imageUrl);
-        if (base64) {
-          console.log(`[Pipeline] Wikipedia image: "${variant}" (${lang}) ✓`);
-          return base64;
-        }
-      } catch {
-        // try next
-      }
-    }
-  }
-  return null;
-}
-
-function buildNameVariants(name: string): string[] {
-  const variants = new Set<string>([name]);
-  variants.add(name.replace(/e\b/, ""));
-  variants.add(name.replace(/i\b/, "ie"));
-  variants.add(name.replace(/'/g, ""));
-  variants.add(name.replace(/'/g, " "));
-  return [...variants].filter((v) => v.length > 1);
-}
+// ─── IMAGE LOADER ─────────────────────────────────────────────────────────────
 
 async function downloadImageAsBase64(url: string): Promise<string | null> {
   try {
@@ -624,112 +274,12 @@ async function downloadImageAsBase64(url: string): Promise<string | null> {
   }
 }
 
-// ─── IMAGE LOADER ─────────────────────────────────────────────────────────────
-//
-// Replicate must be able to fetch the input image.
-// Supabase private buckets return 403, so we always convert to base64 first.
-// This guarantees the model receives the actual pixels regardless of bucket policy.
-
 async function loadImageAsBase64(urlOrData: string): Promise<string> {
-  if (urlOrData.startsWith("data:")) return urlOrData; // Already base64
+  if (urlOrData.startsWith("data:")) return urlOrData;
   const b64 = await downloadImageAsBase64(urlOrData);
   if (!b64) throw new Error(`Impossible de charger l'image depuis : ${urlOrData.slice(0, 80)}`);
   console.log(`[Pipeline] Image loaded as base64 (${Math.round(b64.length / 1024)}KB)`);
   return b64;
-}
-
-// ─── MODEL RUNNERS ────────────────────────────────────────────────────────────
-//
-// Ideogram v3 Turbo — primary generation engine
-// Takes a text prompt, returns a photorealistic scene URL
-// (no input image; user's face is injected via face-swap afterward)
-
-
-async function runIdeogramV3Turbo(prompt: string, aspectRatio: string): Promise<string> {
-  console.log(`[Pipeline] Ideogram v3 Turbo — aspect: ${aspectRatio}`);
-  console.log(`[Pipeline] Model: ${MODELS.ideogramV3Turbo}`);
-  const output = await replicate.run(MODELS.ideogramV3Turbo, {
-    input: {
-      prompt,
-      aspect_ratio: aspectRatio,
-    },
-  });
-  const url = extractUrl(output);
-  console.log(`[Pipeline] Ideogram output: ${url.slice(0, 80)}`);
-  return url;
-}
-
-async function runFluxKontext(
-  image: string,
-  prompt: string,
-  aspectRatio: string,
-  quality: number,
-  format: "jpg" | "png" | "webp",
-): Promise<string> {
-  // Always convert to base64 — Replicate cannot access private Supabase URLs
-  const imageData = await loadImageAsBase64(image);
-
-  console.log(`[Pipeline] FLUX Kontext Max — aspect: ${aspectRatio}, quality: ${quality}, format: ${format}`);
-  console.log(`[Pipeline] Prompt: "${prompt.slice(0, 200)}"`);
-
-  const output = await replicate.run(MODELS.fluxKontextMax, {
-    input: {
-      image:             imageData,
-      prompt,
-      aspect_ratio:      aspectRatio,
-      output_format:     format,
-      output_quality:    quality,
-      safety_tolerance:  6,
-      prompt_upsampling: false,
-    },
-  });
-  const url = extractUrl(output);
-  console.log(`[Pipeline] FLUX output: ${url.slice(0, 80)}`);
-  return url;
-}
-
-async function runFaceSwap(sourceImageUrl: string, targetImageUrl: string): Promise<string> {
-  // Convert both images to base64 for reliability
-  const [swapData, inputData] = await Promise.all([
-    loadImageAsBase64(sourceImageUrl),
-    loadImageAsBase64(targetImageUrl),
-  ]);
-
-  console.log("[Pipeline] Face swap — source and target loaded");
-  const output = await replicate.run(
-    MODELS.faceSwap as `${string}/${string}:${string}`,
-    {
-      input: {
-        swap_image:  swapData,   // user's face
-        input_image: inputData,  // celebrity's photo
-      },
-    }
-  );
-  const url = extractUrl(output);
-  console.log(`[Pipeline] FaceSwap output: ${url.slice(0, 80)}`);
-  return url;
-}
-
-async function runUpscale(imageUrl: string): Promise<string> {
-  try {
-    const output = await replicate.run(
-      MODELS.realEsrgan as `${string}/${string}:${string}`,
-      {
-        input: {
-          image:        imageUrl,
-          scale:        4,
-          face_enhance: true,
-        },
-      }
-    );
-    const upscaled = extractUrl(output);
-    console.log("[Pipeline] Upscale done ✓");
-    return upscaled;
-  } catch (err) {
-    // Upscaling is bonus — never break the pipeline for it
-    console.warn("[Pipeline] Upscale failed (graceful fallback):", err instanceof Error ? err.message : err);
-    return imageUrl;
-  }
 }
 
 function extractUrl(output: unknown): string {
@@ -788,7 +338,7 @@ export function buildAsyncJobConfig(
   const dims = ZIMAGE_DIMS[input.outputFormat ?? "auto"] ?? { width: 832, height: 1152 };
 
   return {
-    mode:       "style",
+    mode:        "style",
     qualityTier: tier,
     sourceB64,
     prompt,
@@ -799,7 +349,7 @@ export function buildAsyncJobConfig(
 
 // Start step 1 — returns Replicate prediction ID immediately (non-blocking)
 export async function startAsyncJob(
-  config:    AsyncJobConfig,
+  config:     AsyncJobConfig,
   targetB64?: string, // swapface mode only: the target photo
 ): Promise<string> {
   if (config.mode === "swapface") {
@@ -810,7 +360,7 @@ export async function startAsyncJob(
     return p.id;
   }
 
-  // Style: Z-Image Turbo generates the scene (text-to-image, no user photo needed here)
+  // Style: Z-Image Turbo generates the scene (text-to-image)
   const p = await createPred(MODELS.zImageTurbo, {
     prompt:              config.prompt!,
     width:               config.width  ?? 832,
@@ -867,4 +417,5 @@ export async function advanceAsyncJob(
   return { done: true, outputUrl };
 }
 
-export { replicate };
+// Kept for use by poll route
+export { replicate, withRetry };
