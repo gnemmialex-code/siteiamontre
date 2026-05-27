@@ -28,7 +28,7 @@ export const STYLE_MODELS: Img2ImgModelSpec[] = [
     spec: "qwen/qwen-image-edit-plus",
     buildInput: (prompt, _neg, imageUrl, _strength) => ({
       prompt,
-      image: imageUrl,
+      image: [imageUrl],
     }),
   },
   {
