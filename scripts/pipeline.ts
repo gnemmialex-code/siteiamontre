@@ -204,10 +204,12 @@ function buildStylePrompt(
 // higher = follow the prompt more aggressively
 
 function intensityToStrength(intensity?: string): number {
+  // Kept low so the person remains visible in the img2img output,
+  // ensuring the face-injection step (step 2) has a face to anchor onto.
   switch (intensity) {
-    case "light":  return 0.45;
-    case "strong": return 0.78;
-    default:       return 0.62; // moderate
+    case "light":  return 0.20;
+    case "strong": return 0.50;
+    default:       return 0.32; // moderate
   }
 }
 
@@ -459,8 +461,18 @@ export async function advanceAsyncJob(
     return { done: true, outputUrl };
   }
 
-  // Style step 1: img2img done → optional upscale (Ultra) or done
+  // Style step 1: img2img done → face injection (re-inject original face into generated scene)
   if (step === 1) {
+    if (config.inputImageUrl) {
+      console.log("[Pipeline] Step 2 — face injection: swapping original face into generated scene");
+      const originalFaceB64 = await loadImageAsBase64(config.inputImageUrl);
+      const p = await createPred(MODELS.faceSwap, {
+        swap_image:  originalFaceB64,
+        input_image: outputUrl,
+      });
+      return { done: false, predictionId: p.id, step: 2 };
+    }
+    // No source URL stored — skip face injection
     if (q.upscale) {
       const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
       return { done: false, predictionId: p.id, step: 2 };
@@ -468,7 +480,17 @@ export async function advanceAsyncJob(
     return { done: true, outputUrl };
   }
 
-  // step 2+: upscale done
+  // Style step 2: face injection done → optional upscale (Ultra) or done
+  if (step === 2) {
+    if (q.upscale) {
+      console.log("[Pipeline] Step 3 — upscaling face-injected image");
+      const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
+      return { done: false, predictionId: p.id, step: 3 };
+    }
+    return { done: true, outputUrl };
+  }
+
+  // step 3+: upscale done
   return { done: true, outputUrl };
 }
 
