@@ -492,13 +492,12 @@ export default function DashboardPage() {
 
       // ── POLL until done ────────────────────────────────────────────────────
       const STEP_LABELS: Record<number, string> = {
-        1: "Génération de la scène IA…",
-        2: "Application du visage…",
-        3: "Upscaling 4K…",
+        1: "Génération IA en cours…",
+        2: "Finalisation Ultra 4K…",
       };
 
       let outputUrl: string | null = null;
-      for (let attempt = 0; attempt < 120; attempt++) {
+      for (let attempt = 0; attempt < 180; attempt++) {
         await new Promise((r) => setTimeout(r, 3000));
 
         const pollUrl = jobId
