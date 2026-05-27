@@ -483,21 +483,20 @@ export default function DashboardPage() {
       setGenProgress(100);
 
       if (res.status === 402) { setIsGenerating(false); setShowPaywall(true); return; }
-      if (!res.ok) {
-        let errorMsg = "Erreur lors de la génération";
-        try {
-          const d = await res.json();
-          errorMsg = d.error ?? errorMsg;
-        } catch {
-          try { errorMsg = await res.text(); } catch { /* keep default */ }
-        }
-        throw new Error(errorMsg);
-      }
 
-      const data = await res.json();
+      const rawText = await res.text();
+      let data: Record<string, unknown>;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        throw new Error(rawText || `Erreur serveur (${res.status})`);
+      }
+      if (!res.ok) {
+        throw new Error((data.error as string) || `Erreur serveur (${res.status})`);
+      }
       if (data.output_image_url) {
-        setResultUrl(data.output_image_url);
-        setResultStyle(data.style ?? "");
+        setResultUrl(data.output_image_url as string);
+        setResultStyle((data.style as string) ?? "");
         toast.success("Génération terminée !");
         await fetchGenerations();
         await fetchStats();
