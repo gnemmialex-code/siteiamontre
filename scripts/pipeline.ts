@@ -25,19 +25,7 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    // Fast photorealistic img2img — primary model
-    spec: "adirik/realvisxl-v3.0-turbo",
-    buildInput: (prompt, neg, imageUrl, strength) => ({
-      image:               imageUrl,
-      prompt,
-      negative_prompt:     neg,
-      strength,
-      num_inference_steps: 20,
-      guidance_scale:      7,
-    }),
-  },
-  {
-    // SDXL — reliable img2img fallback
+    // Primary img2img — reliable, well-documented
     spec: "stability-ai/sdxl",
     buildInput: (prompt, neg, imageUrl, strength) => ({
       image:               imageUrl,
@@ -48,7 +36,7 @@ export const STYLE_MODELS: Img2ImgModelSpec[] = [
     }),
   },
   {
-    // Realistic Vision v5.1 — second fallback
+    // Fallback — Realistic Vision v5.1 img2img
     spec: "lucataco/realistic-vision-v5.1",
     buildInput: (prompt, neg, imageUrl, strength) => ({
       init_image:          imageUrl,
