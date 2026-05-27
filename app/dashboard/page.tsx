@@ -295,7 +295,7 @@ export default function DashboardPage() {
   const [freePrompt,    setFreePrompt]    = useState("");
 
   /* engine selector */
-  const [engine,        setEngine]        = useState<"imagen" | "flux">("imagen");
+  const [engine,        setEngine]        = useState<"ideogram" | "flux">("ideogram");
 
   /* generation precision options */
   const [renderStyle,   setRenderStyle]   = useState<string | null>(null);
@@ -672,19 +672,19 @@ export default function DashboardPage() {
                           <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-2">Moteur IA</p>
                           <div className="grid grid-cols-2 gap-2">
                             <button
-                              onClick={() => setEngine("imagen")}
+                              onClick={() => setEngine("ideogram")}
                               className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all ${
-                                engine === "imagen"
+                                engine === "ideogram"
                                   ? "border-blue-400/60 bg-blue-500/15 text-blue-300"
                                   : "border-surface-border text-white/40 hover:border-blue-400/30 hover:text-white/70"
                               }`}
                             >
                               <span className="text-base">🔵</span>
                               <div className="text-left">
-                                <p className="leading-none">Google Imagen 4 Ultra</p>
-                                <p className={`text-[10px] font-normal mt-0.5 ${engine === "imagen" ? "text-blue-300/70" : "text-white/25"}`}>Génération + Face-swap</p>
+                                <p className="leading-none">Ideogram v3 Turbo</p>
+                                <p className={`text-[10px] font-normal mt-0.5 ${engine === "ideogram" ? "text-blue-300/70" : "text-white/25"}`}>Génération + Face-swap</p>
                               </div>
-                              {engine === "imagen" && <span className="ml-auto text-blue-400 text-[10px] font-bold">✓</span>}
+                              {engine === "ideogram" && <span className="ml-auto text-blue-400 text-[10px] font-bold">✓</span>}
                             </button>
                             <button
                               onClick={() => setEngine("flux")}
@@ -703,8 +703,8 @@ export default function DashboardPage() {
                             </button>
                           </div>
                           <p className="text-white/20 text-[10px] mt-2">
-                            {engine === "imagen"
-                              ? "🔵 Imagen génère une scène magnifique, puis votre visage y est injecté automatiquement."
+                            {engine === "ideogram"
+                              ? "🔵 Ideogram génère une scène réaliste, puis votre visage y est injecté automatiquement."
                               : "🟡 FLUX modifie directement votre photo en préservant votre identité."}
                           </p>
                         </div>

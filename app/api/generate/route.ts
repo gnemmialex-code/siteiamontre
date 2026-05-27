@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
   const effectiveUserId = userId ?? "anon";
 
   // ── Options de génération ────────────────────────────────────────────────
-  const engine            = ((formData.get("engine") as string | null) ?? "imagen") as "imagen" | "flux";
+  const engine            = ((formData.get("engine") as string | null) ?? "ideogram") as "ideogram" | "flux";
   const renderStyle       = (formData.get("render_style")    as string | null) ?? undefined;
   const transformIntensity = (formData.get("intensity")       as string | null) ?? "moderate";
   const outputFormat      = (formData.get("output_format")   as string | null) ?? "auto";

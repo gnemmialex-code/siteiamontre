@@ -5,11 +5,11 @@ const replicate = new Replicate({
 });
 
 const MODELS = {
-  // Google Imagen 4 Ultra — primary text-to-image model (generates scene, then face-swap)
-  imagen4Ultra: "google/imagen-4-ultra",
+  // Ideogram v3 Turbo — primary text-to-image model (generates scene, then face-swap)
+  ideogramV3Turbo: "ideogram-ai/ideogram-v3-turbo",
   // FLUX Kontext Max — fallback image-to-image editing
   fluxKontextMax: "black-forest-labs/flux-kontext-max",
-  // Face swap — injects user face into Imagen-generated scene
+  // Face swap — injects user face into Ideogram-generated scene
   faceSwap: "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
   // 4× upscale for Ultra tier
   realEsrgan: "nightmareai/real-esrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc3a73abf41610695738c1d7b",
@@ -31,8 +31,8 @@ const ASPECT_RATIOS: Record<string, string> = {
   auto:      "match_input_image",
 };
 
-// Imagen doesn't support "match_input_image" — remap to portrait default
-const IMAGEN_ASPECT_RATIOS: Record<string, string> = {
+// Ideogram doesn't support "match_input_image" — remap to portrait default
+const IDEOGRAM_ASPECT_RATIOS: Record<string, string> = {
   square:    "1:1",
   portrait:  "3:4",
   landscape: "16:9",
@@ -67,7 +67,7 @@ export interface PipelineInput {
   faceIndex?: string;
   extraPrompt?: string;
   // Generation options
-  engine?: "imagen" | "flux";  // "imagen" = Imagen 4 Ultra (default), "flux" = FLUX Kontext
+  engine?: "ideogram" | "flux";  // "ideogram" = Ideogram v3 Turbo (default), "flux" = FLUX Kontext
   qualityTier?: keyof typeof QUALITY_SETTINGS;
   renderStyle?: string;
   transformIntensity?: string;
@@ -118,14 +118,14 @@ export async function runPipeline(input: PipelineInput): Promise<string> {
 // ─── STYLE PIPELINE ───────────────────────────────────────────────────────────
 //
 // Two engines available:
-//   "imagen" (default): Imagen 4 Ultra generates the scene → face-swap injects user's face
-//   "flux":             FLUX Kontext edits the original photo directly
+//   "ideogram" (default): Ideogram v3 Turbo generates the scene → face-swap injects user's face
+//   "flux":               FLUX Kontext edits the original photo directly
 
 async function runStylePipeline(input: PipelineInput): Promise<string> {
   const imageUrl    = input.inputImageUrl!;
   const rawPrompt   = input.customPrompt?.trim() || "";
   const stylePrompt = input.stylePrompt?.trim() || "";
-  const engine      = input.engine ?? "imagen";
+  const engine      = input.engine ?? "ideogram";
 
   // Composition requests (celebrity mentions) always use face-swap regardless of engine
   if (isCompositionRequest(rawPrompt)) {
@@ -133,29 +133,29 @@ async function runStylePipeline(input: PipelineInput): Promise<string> {
     return runCompositionPipeline(imageUrl, rawPrompt, input);
   }
 
-  if (engine === "imagen") {
-    console.log("[Pipeline] → Imagen 4 Ultra + FaceSwap");
-    return runImagenFaceSwapPipeline(imageUrl, rawPrompt, stylePrompt, input);
+  if (engine === "ideogram") {
+    console.log("[Pipeline] → Ideogram v3 Turbo + FaceSwap");
+    return runIdeogramFaceSwapPipeline(imageUrl, rawPrompt, stylePrompt, input);
   }
 
   console.log("[Pipeline] → FLUX Kontext (direct edit)");
   return runFluxEditPipeline(imageUrl, rawPrompt, stylePrompt, input);
 }
 
-// ─── IMAGEN 4 ULTRA PIPELINE ──────────────────────────────────────────────────
+// ─── IDEOGRAM V3 TURBO PIPELINE ───────────────────────────────────────────────
 //
-// Step 1 — Imagen generates a high-quality scene matching the style/prompt
-//           (includes a portrait-ready person as face-swap target)
+// Step 1 — Ideogram v3 Turbo generates a high-quality scene matching style/prompt
+//           (includes a portrait subject as face-swap target)
 // Step 2 — Face-swap injects the user's real face into that scene
 // Result — User's identity in a photorealistic AI-generated world
 
-async function runImagenFaceSwapPipeline(
+async function runIdeogramFaceSwapPipeline(
   userImageUrl: string,
   rawPrompt: string,
   stylePrompt: string,
   input: PipelineInput,
 ): Promise<string> {
-  const imagenPrompt = buildImagenPrompt(
+  const ideogramPrompt = buildIdeogramPrompt(
     rawPrompt,
     stylePrompt,
     input.renderStyle,
@@ -163,30 +163,30 @@ async function runImagenFaceSwapPipeline(
     input.preserveOutfit ?? false,
   );
 
-  const aspectRatio = IMAGEN_ASPECT_RATIOS[input.outputFormat ?? "auto"] ?? "3:4";
+  const aspectRatio = IDEOGRAM_ASPECT_RATIOS[input.outputFormat ?? "auto"] ?? "3:4";
   const q           = QUALITY_SETTINGS[input.qualityTier ?? "essentiel"];
 
-  console.log(`[Pipeline] Imagen 4 Ultra prompt: "${imagenPrompt.slice(0, 200)}"`);
-  console.log(`[Pipeline] Imagen aspect ratio: ${aspectRatio}`);
+  console.log(`[Pipeline] Ideogram v3 Turbo prompt: "${ideogramPrompt.slice(0, 200)}"`);
+  console.log(`[Pipeline] Ideogram aspect ratio: ${aspectRatio}`);
 
-  // Step 1: Generate scene
+  // Step 1: Generate scene with Ideogram
   let sceneUrl: string;
   try {
-    sceneUrl = await withRetry(() => runImagen4Ultra(imagenPrompt, aspectRatio));
-    console.log(`[Pipeline] Imagen scene: ${sceneUrl.slice(0, 80)}`);
+    sceneUrl = await withRetry(() => runIdeogramV3Turbo(ideogramPrompt, aspectRatio));
+    console.log(`[Pipeline] Ideogram scene: ${sceneUrl.slice(0, 80)}`);
   } catch (err) {
-    console.warn("[Pipeline] Imagen 4 Ultra failed — falling back to FLUX:", err instanceof Error ? err.message : err);
+    console.warn("[Pipeline] Ideogram v3 Turbo failed — falling back to FLUX:", err instanceof Error ? err.message : err);
     return runFluxEditPipeline(userImageUrl, rawPrompt, stylePrompt, input);
   }
 
   // Step 2: Swap user's face into the generated scene
-  console.log("[Pipeline] → Face-swapping user into Imagen scene…");
+  console.log("[Pipeline] → Face-swapping user into Ideogram scene…");
   let result: string;
   try {
     result = await withRetry(() => runFaceSwap(userImageUrl, sceneUrl));
   } catch (err) {
-    console.warn("[Pipeline] Face-swap failed — returning raw Imagen scene:", err instanceof Error ? err.message : err);
-    result = sceneUrl; // Still useful without face-swap
+    console.warn("[Pipeline] Face-swap failed — returning raw Ideogram scene:", err instanceof Error ? err.message : err);
+    result = sceneUrl;
   }
 
   if (q.upscale) {
@@ -320,13 +320,13 @@ function extractPersonName(prompt: string): string | null {
   return null;
 }
 
-// ─── IMAGEN PROMPT BUILDER ────────────────────────────────────────────────────
+// ─── IDEOGRAM PROMPT BUILDER ─────────────────────────────────────────────────
 //
-// Imagen is a text-to-image model — the prompt must be a generation description,
-// not an editing instruction. It must always include a portrait subject so that
-// face-swap has a face target to work with.
+// Ideogram v3 Turbo is text-to-image — the prompt must describe the desired scene.
+// It must always include a portrait subject so face-swap has a face target.
+// Ideogram excels at photorealistic portraits when given precise descriptions.
 
-function buildImagenPrompt(
+function buildIdeogramPrompt(
   customPrompt: string,
   stylePrompt: string,
   renderStyle?: string,
@@ -336,7 +336,7 @@ function buildImagenPrompt(
   const translated = translateToEnglish(customPrompt.trim());
   const style = stylePrompt.trim();
 
-  // Scene / style description — what the result should look like
+  // Scene / style description
   let sceneDesc = "";
   if (translated && style) {
     sceneDesc = `${style}, ${translated}`;
@@ -357,16 +357,17 @@ function buildImagenPrompt(
   };
   const mood = intensityDesc[intensity ?? "moderate"] ?? "";
 
-  // Always a portrait subject so face-swap has a target
+  // Always include a portrait subject for face-swap
   const outfitNote = preserveOutfit ? ", keeping current clothing style" : "";
-  const subject = `a person in a portrait composition${outfitNote}`;
+  const subject = `a person, close portrait shot, face clearly visible${outfitNote}`;
 
   const parts = [
-    `Ultra-realistic photograph of ${subject}`,
+    `Photorealistic portrait of ${subject}`,
     sceneDesc,
     mood,
     renderDesc,
     "ultra-detailed, perfect exposure, professional photography, 8K quality",
+    "NEGATIVE: blurry, distorted face, cartoon, illustration, low quality, deformed",
   ].filter(Boolean);
 
   return parts.join(", ").replace(/,\s*,+/g, ",").replace(/\s+/g, " ").trim();
@@ -639,23 +640,23 @@ async function loadImageAsBase64(urlOrData: string): Promise<string> {
 
 // ─── MODEL RUNNERS ────────────────────────────────────────────────────────────
 //
-// Imagen 4 Ultra — primary generation engine
+// Ideogram v3 Turbo — primary generation engine
 // Takes a text prompt, returns a photorealistic scene URL
-// (no input image; face is injected via face-swap afterward)
+// (no input image; user's face is injected via face-swap afterward)
 
 
-async function runImagen4Ultra(prompt: string, aspectRatio: string): Promise<string> {
-  console.log(`[Pipeline] Imagen 4 Ultra — aspect: ${aspectRatio}`);
-  const output = await replicate.run(MODELS.imagen4Ultra, {
+async function runIdeogramV3Turbo(prompt: string, aspectRatio: string): Promise<string> {
+  console.log(`[Pipeline] Ideogram v3 Turbo — aspect: ${aspectRatio}`);
+  const output = await replicate.run(MODELS.ideogramV3Turbo, {
     input: {
       prompt,
       aspect_ratio:        aspectRatio,
-      output_format:       "jpg",
-      safety_filter_level: "BLOCK_SOME",
+      style_type:          "REALISTIC",
+      magic_prompt_option: "OFF",
     },
   });
   const url = extractUrl(output);
-  console.log(`[Pipeline] Imagen output: ${url.slice(0, 80)}`);
+  console.log(`[Pipeline] Ideogram output: ${url.slice(0, 80)}`);
   return url;
 }
 
