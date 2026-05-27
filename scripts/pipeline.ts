@@ -292,7 +292,7 @@ function extractUrl(output: unknown): string {
 
 // ─── ASYNC JOB API ────────────────────────────────────────────────────────────
 //
-// Style pipeline:  Z-Image Turbo (text→image) → optional upscale (Ultra)
+// Style pipeline:   Z-Image Turbo (text→image) → face injection → optional upscale (Ultra)
 // Swapface pipeline: face-swap → optional upscale (Ultra)
 // POST /api/generate starts the job and returns immediately (<5s).
 // GET /api/generate/poll checks status and advances one step at a time (<5s each).
@@ -338,10 +338,10 @@ export function buildAsyncJobConfig(
 
   const dims = ZIMAGE_DIMS[input.outputFormat ?? "auto"] ?? { width: 832, height: 1152 };
 
-  // sourceB64 intentionally omitted — Z-Image Turbo is text-to-image, no face input
   return {
     mode:        "style",
     qualityTier: tier,
+    sourceB64,   // user's face — injected via face-swap after scene generation
     prompt,
     width:  dims.width,
     height: dims.height,
@@ -362,12 +362,13 @@ export async function startAsyncJob(
   }
 
   // Style: Z-Image Turbo generates the scene (text-to-image)
+  // guidance_scale ≥ 1 required — 0 means fully unconditional (prompt ignored)
   const p = await createPred(MODELS.zImageTurbo, {
     prompt:              config.prompt!,
     width:               config.width  ?? 832,
     height:              config.height ?? 1152,
-    num_inference_steps: 8,
-    guidance_scale:      0,
+    num_inference_steps: 20,
+    guidance_scale:      7,
   });
   return p.id;
 }
@@ -395,16 +396,26 @@ export async function advanceAsyncJob(
     return { done: true, outputUrl };
   }
 
-  // ── STYLE step 1: Z-Image Turbo done → optional upscale (Ultra) or done ──
+  // ── STYLE step 1: Z-Image Turbo scene done → inject user's face ─────────
   if (step === 1) {
+    const sceneB64 = await loadImageAsBase64(outputUrl);
+    const p = await createPred(MODELS.faceSwap, {
+      swap_image:  config.sourceB64!,
+      input_image: sceneB64,
+    });
+    return { done: false, predictionId: p.id, step: 2 };
+  }
+
+  // ── STYLE step 2: face injected → optional upscale (Ultra) or done ───────
+  if (step === 2) {
     if (q.upscale) {
       const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
-      return { done: false, predictionId: p.id, step: 2 };
+      return { done: false, predictionId: p.id, step: 3 };
     }
     return { done: true, outputUrl };
   }
 
-  // step 2+: upscale done
+  // step 3+: upscale done
   return { done: true, outputUrl };
 }
 
