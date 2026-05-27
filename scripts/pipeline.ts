@@ -25,10 +25,12 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    spec: "qwen/qwen-image-edit-plus",
+    spec: "black-forest-labs/flux-2-max",
     buildInput: (prompt, _neg, imageUrl, _strength) => ({
       prompt,
-      image: [imageUrl],
+      input_image:    imageUrl,
+      output_format:  "jpg",
+      output_quality: 90,
     }),
   },
   {
