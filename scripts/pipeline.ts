@@ -25,6 +25,18 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
+    spec: "stability-ai/stable-diffusion-3.5-large",
+    buildInput: (prompt, neg, imageUrl, strength) => ({
+      prompt,
+      negative_prompt: neg,
+      image:           imageUrl,
+      strength,
+      aspect_ratio:    "3:4",
+      output_format:   "jpeg",
+      output_quality:  90,
+    }),
+  },
+  {
     spec: "google/nano-banana-pro",
     buildInput: (prompt, _neg, imageUrl, strength) => ({
       prompt,
