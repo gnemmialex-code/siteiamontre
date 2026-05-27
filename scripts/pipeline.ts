@@ -461,18 +461,8 @@ export async function advanceAsyncJob(
     return { done: true, outputUrl };
   }
 
-  // Style step 1: img2img done → face injection (re-inject original face into generated scene)
+  // Style step 1: img2img done → optional upscale (Ultra) or done
   if (step === 1) {
-    if (config.inputImageUrl) {
-      console.log("[Pipeline] Step 2 — face injection: swapping original face into generated scene");
-      const originalFaceB64 = await loadImageAsBase64(config.inputImageUrl);
-      const p = await createPred(MODELS.faceSwap, {
-        swap_image:  originalFaceB64,
-        input_image: outputUrl,
-      });
-      return { done: false, predictionId: p.id, step: 2 };
-    }
-    // No source URL stored — skip face injection
     if (q.upscale) {
       const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
       return { done: false, predictionId: p.id, step: 2 };
@@ -480,17 +470,7 @@ export async function advanceAsyncJob(
     return { done: true, outputUrl };
   }
 
-  // Style step 2: face injection done → optional upscale (Ultra) or done
-  if (step === 2) {
-    if (q.upscale) {
-      console.log("[Pipeline] Step 3 — upscaling face-injected image");
-      const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
-      return { done: false, predictionId: p.id, step: 3 };
-    }
-    return { done: true, outputUrl };
-  }
-
-  // step 3+: upscale done
+  // step 2+: upscale done
   return { done: true, outputUrl };
 }
 
