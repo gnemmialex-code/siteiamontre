@@ -11,9 +11,13 @@ CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL UNIQUE,
   credits INTEGER NOT NULL DEFAULT 100,
+  plan_id TEXT NOT NULL DEFAULT 'plan_essentiel',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Migration: add plan_id to existing installations
+-- ALTER TABLE public.users ADD COLUMN IF NOT EXISTS plan_id TEXT NOT NULL DEFAULT 'plan_essentiel';
 
 -- ============================================================
 -- TABLE: generations

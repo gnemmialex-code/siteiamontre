@@ -57,6 +57,59 @@ const ACCESSORY_OPTIONS: OptionItem[] = [
   { id: "scarf",      label: "🧣 Écharpe",    prompt: "wearing an elegant silk scarf" },
 ];
 
+/* ─── Generation precision options ──────────────────────── */
+interface GenOption { id: string; label: string; }
+
+const RENDER_STYLE_OPTIONS: GenOption[] = [
+  { id: "photoreal", label: "📷 Photoréaliste" },
+  { id: "magazine",  label: "📰 Magazine"      },
+  { id: "cinematic", label: "🎬 Cinématique"   },
+  { id: "artistic",  label: "🎨 Artistique"    },
+];
+
+const INTENSITY_OPTIONS: GenOption[] = [
+  { id: "light",    label: "🌿 Légère"  },
+  { id: "moderate", label: "⚖️ Modérée" },
+  { id: "strong",   label: "🔥 Intense" },
+];
+
+const FORMAT_OPTIONS: GenOption[] = [
+  { id: "auto",      label: "◻ Auto"       },
+  { id: "portrait",  label: "▮ Portrait"   },
+  { id: "landscape", label: "▬ Paysage"    },
+  { id: "square",    label: "⬛ Carré"      },
+];
+
+function planQualityBadge(plan?: string): { label: string; color: string } {
+  if (plan?.includes("ultra")) return { label: "8K Ultra ✨", color: "text-amber-400 border-amber-400/40 bg-amber-400/10" };
+  if (plan?.includes("pro"))   return { label: "4K Pro ⚡",   color: "text-accent-violet border-accent-violet/40 bg-accent-violet/10" };
+  return { label: "HD",                                        color: "text-white/40 border-surface-border bg-surface-hover" };
+}
+
+function GenOptionChips({ title, options, selected, onSelect }: {
+  title: string; options: GenOption[]; selected: string | null;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-1.5">{title}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map(opt => (
+          <button key={opt.id}
+            onClick={() => onSelect(opt.id)}
+            className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
+              selected === opt.id
+                ? "bg-accent-violet/20 border-accent-violet text-white"
+                : "border-surface-border text-white/45 hover:border-accent-violet/40 hover:text-white"
+            }`}>
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function buildEnrichedPrompt(
   style: Style | null,
   clothing: string | null,
@@ -117,6 +170,7 @@ interface UserStats {
   credits: number;
   total_generations: number;
   member_since: string;
+  plan?: string;
 }
 
 /* ─── Constants ─────────────────────────────────────────── */
@@ -240,6 +294,12 @@ export default function DashboardPage() {
   const [accessory,     setAccessory]     = useState<string | null>(null);
   const [freePrompt,    setFreePrompt]    = useState("");
 
+  /* generation precision options */
+  const [renderStyle,   setRenderStyle]   = useState<string | null>(null);
+  const [intensity,     setIntensity]     = useState<string>("moderate");
+  const [genFormat,     setGenFormat]     = useState<string>("auto");
+  const [preserveOutfit,setPreserveOutfit]= useState(false);
+
   /* generation state – swapface */
   const [swapSrcFile,     setSwapSrcFile]     = useState<File | null>(null);
   const [swapSrcPreview,  setSwapSrcPreview]  = useState<string | null>(null);
@@ -352,8 +412,12 @@ export default function DashboardPage() {
         formData.append("style_id",    selectedStyle.id);
         formData.append("style_label", selectedStyle.label);
       }
-      if (enriched)             formData.append("style_prompt", enriched);
-      if (freePrompt.trim())    formData.append("custom_prompt", freePrompt.trim());
+      if (enriched)             formData.append("style_prompt",    enriched);
+      if (freePrompt.trim())    formData.append("custom_prompt",   freePrompt.trim());
+      if (renderStyle)          formData.append("render_style",    renderStyle);
+      formData.append("intensity",       intensity);
+      formData.append("output_format",   genFormat);
+      formData.append("preserve_outfit", preserveOutfit ? "1" : "0");
       formData.append("mode", "style");
     } else if (genType === "swapface") {
       if (!swapSrcFile) { setError("Veuillez uploader votre visage source."); return; }
@@ -652,12 +716,62 @@ export default function DashboardPage() {
                             value={freePrompt}
                             onChange={e => setFreePrompt(e.target.value)}
                             placeholder={selectedStyle
-                              ? "Ajoutez des détails : expression, lumière, couleur de cheveux…"
-                              : "Décrivez la transformation souhaitée : tenue, ambiance, fond, lumière…"
+                              ? "Ajoutez des détails : fond de plage, lumière dorée, tenue de soirée…"
+                              : "Décrivez la transformation : tenue, ambiance, fond, lumière, style…"
                             }
-                            rows={2}
+                            rows={3}
                             className="w-full bg-surface border border-surface-border rounded-xl px-3 py-2 text-white text-sm placeholder-white/20 focus:outline-none focus:border-accent-violet/60 resize-none"
                           />
+                          <p className="text-white/25 text-[10px] mt-1.5">💡 Écrivez en français ou en anglais — ex : &quot;fond de plage au coucher du soleil, tenue de soirée noire&quot;</p>
+                        </div>
+
+                        {/* Options de génération */}
+                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4 space-y-4">
+                          <h2 className="font-semibold text-sm flex items-center gap-2">
+                            <StepBadge n={selectedStyle ? 5 : 4} />
+                            Options de génération
+                            <span className="text-white/30 text-[10px] font-normal">(optionnel)</span>
+                          </h2>
+
+                          {/* Rendu visuel */}
+                          <GenOptionChips
+                            title="Rendu visuel"
+                            options={RENDER_STYLE_OPTIONS}
+                            selected={renderStyle}
+                            onSelect={(id) => setRenderStyle(renderStyle === id ? null : id)}
+                          />
+
+                          {/* Intensité */}
+                          <GenOptionChips
+                            title="Intensité de transformation"
+                            options={INTENSITY_OPTIONS}
+                            selected={intensity}
+                            onSelect={setIntensity}
+                          />
+
+                          {/* Format de sortie */}
+                          <GenOptionChips
+                            title="Format de sortie"
+                            options={FORMAT_OPTIONS}
+                            selected={genFormat}
+                            onSelect={setGenFormat}
+                          />
+
+                          {/* Conserver la tenue */}
+                          <label className="flex items-center gap-2.5 cursor-pointer group">
+                            <div className="relative flex-shrink-0">
+                              <input
+                                type="checkbox"
+                                checked={preserveOutfit}
+                                onChange={e => setPreserveOutfit(e.target.checked)}
+                                className="sr-only"
+                              />
+                              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${preserveOutfit ? "bg-accent-violet border-accent-violet" : "border-surface-border group-hover:border-accent-violet/50"}`}>
+                                {preserveOutfit && <span className="text-white text-[9px] font-bold">✓</span>}
+                              </div>
+                            </div>
+                            <span className="text-white/60 text-xs">Conserver la tenue actuelle (ne pas changer les vêtements)</span>
+                          </label>
                         </div>
 
                         <GenerateCard
@@ -667,7 +781,8 @@ export default function DashboardPage() {
                           onGenerate={handleGenerate}
                           canGenerate={!!(styleFile && (selectedStyle || freePrompt.trim()) && consent)}
                           credits={100}
-                          step={selectedStyle ? 5 : 4}
+                          step={selectedStyle ? 6 : 5}
+                          plan={stats?.plan}
                         />
                       </div>
                     </div>
@@ -707,7 +822,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       <div className="lg:col-span-1">
-                        <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} canGenerate={!!(swapSrcFile && swapTgtFile && consent)} credits={120} step={3} />
+                        <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} canGenerate={!!(swapSrcFile && swapTgtFile && consent)} credits={120} step={3} plan={stats?.plan} />
                       </div>
                     </div>
                   )}
@@ -986,7 +1101,7 @@ function StepBadge({ n }: { n: number }) {
 }
 
 function GenerateCard({
-  consent, setConsent, error, onGenerate, canGenerate, credits, step,
+  consent, setConsent, error, onGenerate, canGenerate, credits, step, plan,
 }: {
   consent: boolean;
   setConsent: (v: boolean) => void;
@@ -995,11 +1110,16 @@ function GenerateCard({
   canGenerate: boolean;
   credits: number;
   step: number;
+  plan?: string;
 }) {
+  const qBadge = planQualityBadge(plan);
   return (
     <div className="card">
       <h2 className="font-bold text-base mb-4 flex items-center gap-2">
         <StepBadge n={step} />Générer
+        <span className={`ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full border ${qBadge.color}`}>
+          {qBadge.label}
+        </span>
       </h2>
 
       <label className="flex items-start gap-3 cursor-pointer group mb-5">
@@ -1036,13 +1156,13 @@ function GenerateCard({
           />
         )}
         <Sparkles className="w-5 h-5 relative z-10" />
-        <span className="relative z-10">Générer Ultra HD — {credits} crédits</span>
+        <span className="relative z-10">Générer {qBadge.label} — {credits} crédits</span>
       </motion.button>
 
       <div className="mt-3 flex items-center justify-center gap-4 text-xs text-white/25 flex-wrap">
-        <span>🔒 Supprimé après traitement</span>
-        <span>⚡ ~30s</span>
-        <span>📐 4K</span>
+        <span>🔒 Photo supprimée après traitement</span>
+        <span>⚡ ~30–60s</span>
+        <span>📐 {qBadge.label}</span>
       </div>
     </div>
   );

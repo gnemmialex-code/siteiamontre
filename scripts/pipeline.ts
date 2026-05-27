@@ -5,22 +5,63 @@ const replicate = new Replicate({
 });
 
 const MODELS = {
-  // Official BFL — no version hash, never breaks
+  // Official BFL — image-to-image editing, best quality
   fluxKontextMax: "black-forest-labs/flux-kontext-max",
-  // Community — verified hash May 2026
+  // Face swap — verified hash May 2026
   faceSwap: "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
+  // 4× upscale for Ultra tier
+  realEsrgan: "nightmareai/real-esrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc3a73abf41610695738c1d7b",
 } as const;
+
+// ─── Quality settings per subscription tier ───────────────────────────────────
+const QUALITY_SETTINGS = {
+  free:      { quality: 80,  format: "jpg" as const, upscale: false },
+  essentiel: { quality: 85,  format: "jpg" as const, upscale: false },
+  pro:       { quality: 95,  format: "jpg" as const, upscale: false },
+  ultra:     { quality: 100, format: "png" as const, upscale: true  },
+} as const;
+
+// ─── Aspect ratio mapping ─────────────────────────────────────────────────────
+const ASPECT_RATIOS: Record<string, string> = {
+  square:    "1:1",
+  portrait:  "3:4",
+  landscape: "16:9",
+  auto:      "match_input_image",
+};
+
+// ─── Render style descriptors ─────────────────────────────────────────────────
+const RENDER_STYLE_PROMPTS: Record<string, string> = {
+  photoreal: "ultra-photorealistic, sharp natural details, true-to-life colors",
+  magazine:  "high-fashion editorial photography, perfect studio lighting, magazine quality retouching",
+  cinematic: "cinematic color grading, dramatic shadows and highlights, movie-quality aesthetic",
+  artistic:  "fine art portrait photography, creative lighting, artistic composition",
+};
+
+// ─── Intensity modifiers ──────────────────────────────────────────────────────
+const INTENSITY_PREFIX: Record<string, string> = {
+  light:    "Subtly and minimally",
+  moderate: "",
+  strong:   "Boldly and dramatically",
+};
 
 export interface PipelineInput {
   mode: "style" | "swapface";
+  // Style mode
   inputImageUrl?: string;
   styleId?: string;
   stylePrompt?: string;
   customPrompt?: string;
+  // SwapFace mode
   sourceImageUrl?: string;
   targetImageUrl?: string;
   faceIndex?: string;
   extraPrompt?: string;
+  // Generation options
+  qualityTier?: keyof typeof QUALITY_SETTINGS;
+  renderStyle?: string;
+  transformIntensity?: string;
+  outputFormat?: string;
+  preserveOutfit?: boolean;
 }
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
@@ -48,7 +89,8 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
 
 export async function runPipeline(input: PipelineInput): Promise<string> {
   const start = Date.now();
-  console.log(`[Pipeline] Mode: ${input.mode}`);
+  const tier = input.qualityTier ?? "essentiel";
+  console.log(`[Pipeline] Mode: ${input.mode} | Tier: ${tier}`);
   try {
     const result =
       input.mode === "swapface"
@@ -65,31 +107,46 @@ export async function runPipeline(input: PipelineInput): Promise<string> {
 // ─── STYLE PIPELINE ───────────────────────────────────────────────────────────
 
 async function runStylePipeline(input: PipelineInput): Promise<string> {
-  const imageUrl = input.inputImageUrl!;
-  const rawPrompt = input.customPrompt?.trim() || "";
+  const imageUrl   = input.inputImageUrl!;
+  const rawPrompt  = input.customPrompt?.trim() || "";
   const stylePrompt = input.stylePrompt?.trim() || "";
 
   if (isCompositionRequest(rawPrompt)) {
     console.log("[Pipeline] → Composition detected");
-    return runCompositionPipeline(imageUrl, rawPrompt);
+    return runCompositionPipeline(imageUrl, rawPrompt, input);
   }
 
   console.log("[Pipeline] → Style edit");
-  const instruction = buildEditInstruction(rawPrompt, stylePrompt);
-  console.log(`[Pipeline] Instruction: "${instruction.slice(0, 120)}…"`);
-  return withRetry(() => runFluxKontext(imageUrl, instruction, "match_input_image"));
+  const instruction = buildEditInstruction(
+    rawPrompt,
+    stylePrompt,
+    input.renderStyle,
+    input.transformIntensity,
+    input.preserveOutfit ?? false,
+  );
+  console.log(`[Pipeline] Instruction: "${instruction.slice(0, 150)}…"`);
+
+  const aspectRatio = ASPECT_RATIOS[input.outputFormat ?? "auto"] ?? "match_input_image";
+  const q = QUALITY_SETTINGS[input.qualityTier ?? "essentiel"];
+
+  let result = await withRetry(() =>
+    runFluxKontext(imageUrl, instruction, aspectRatio, q.quality, q.format)
+  );
+
+  if (q.upscale) {
+    console.log("[Pipeline] → Upscaling (Ultra tier)…");
+    result = await runUpscale(result);
+  }
+
+  return result;
 }
 
-// ─── COMPOSITION PIPELINE ─────────────────────────────────────────────────────
-//
-// The user wants their photo + a celebrity.
-// Approach: take the celebrity's real Wikipedia photo, swap the user's face in.
-// The user's face appears in the celebrity's world / scene.
-// This is reliable — no generative hallucination, both faces are real.
+// ─── COMPOSITION PIPELINE ────────────────────────────────────────────────────
 
 async function runCompositionPipeline(
   userImageUrl: string,
-  rawPrompt: string
+  rawPrompt: string,
+  input: PipelineInput,
 ): Promise<string> {
   const personName = extractPersonName(rawPrompt);
   console.log(`[Pipeline] Celebrity: "${personName ?? "none"}"`);
@@ -98,22 +155,33 @@ async function runCompositionPipeline(
     const refBase64 = await fetchWikipediaImageAsBase64(personName);
     if (refBase64) {
       console.log("[Pipeline] Wikipedia photo found — face-swapping user into it…");
-      // source = user's face, target = celebrity's real photo
       return withRetry(() => runFaceSwap(userImageUrl, refBase64));
     }
     console.log("[Pipeline] Wikipedia photo not found — falling back to style edit");
   }
 
-  // Fallback: no celebrity identified → style edit keeping the person
-  const instruction = buildEditInstruction(rawPrompt, "");
-  return withRetry(() => runFluxKontext(userImageUrl, instruction, "match_input_image"));
+  // Fallback: style edit keeping the person
+  const instruction = buildEditInstruction(rawPrompt, "", input.renderStyle, input.transformIntensity, false);
+  const aspectRatio = ASPECT_RATIOS[input.outputFormat ?? "auto"] ?? "match_input_image";
+  const q = QUALITY_SETTINGS[input.qualityTier ?? "essentiel"];
+  return withRetry(() => runFluxKontext(userImageUrl, instruction, aspectRatio, q.quality, q.format));
 }
 
 // ─── SWAPFACE PIPELINE ────────────────────────────────────────────────────────
 
 async function runSwapFacePipeline(input: PipelineInput): Promise<string> {
   console.log("[Pipeline] FaceSwap…");
-  return withRetry(() => runFaceSwap(input.sourceImageUrl!, input.targetImageUrl!));
+  const result = await withRetry(() =>
+    runFaceSwap(input.sourceImageUrl!, input.targetImageUrl!)
+  );
+
+  // Upscale swap result for Ultra tier too
+  const q = QUALITY_SETTINGS[input.qualityTier ?? "essentiel"];
+  if (q.upscale) {
+    console.log("[Pipeline] → Upscaling swap result (Ultra tier)…");
+    return runUpscale(result);
+  }
+  return result;
 }
 
 // ─── INTENT DETECTION ─────────────────────────────────────────────────────────
@@ -121,7 +189,6 @@ async function runSwapFacePipeline(input: PipelineInput): Promise<string> {
 function isCompositionRequest(prompt: string): boolean {
   const p = prompt.toLowerCase();
 
-  // Unambiguous: clearly means "put someone beside me"
   const clearTriggers = [
     "à côté de moi", "next to me", "beside me",
     "avec moi",      "with me",
@@ -131,14 +198,9 @@ function isCompositionRequest(prompt: string): boolean {
     "in front of me","behind me",
   ];
   if (clearTriggers.some((kw) => p.includes(kw))) return true;
-
-  // "met(s)/mets moi [CapitalLetter]" → "met moi Ronaldo"
   if (/\b(?:mets?|met)\s+moi\s+[A-Z]/u.test(prompt)) return true;
-
-  // "avec/with [CapitalLetter]" → "avec Beyoncé" but NOT "avec un fond"
   if (/\b(?:avec|with)\s+[A-Z]/u.test(prompt)) return true;
 
-  // Action verb + explicit person noun
   const actionVerbs = ["ajoute", "rajoute", "add", "mets ", "place", "met "];
   const personNouns = [
     "personne", "quelqu'un", "someone",
@@ -148,9 +210,6 @@ function isCompositionRequest(prompt: string): boolean {
   return actionVerbs.some((v) => p.includes(v)) && personNouns.some((n) => p.includes(n));
 }
 
-// Extract celebrity name from a composition prompt.
-// "Met moi Charlie D'Amelio à côté de moi"  → "Charlie D'Amelio"
-// "rajoute Ronaldo à côté de moi"            → "Ronaldo"
 function extractPersonName(prompt: string): string | null {
   const STOP =
     "(?:à côté|next to|beside|avec moi|with me|à ma|on my|" +
@@ -178,29 +237,65 @@ function extractPersonName(prompt: string): string | null {
 
 // ─── INSTRUCTION BUILDER ──────────────────────────────────────────────────────
 //
-// Converts the user's prompt (possibly French) into a clear English
-// FLUX Kontext instruction. The rule: the person is SACRED — only the
-// scene / style / background changes unless explicitly asked otherwise.
+// Produces a precise FLUX Kontext editing directive.
+// Structure: [intensity prefix] [what to change]. [render quality]. Preserve: [what to keep].
 
-function buildEditInstruction(customPrompt: string, stylePrompt: string): string {
+function buildEditInstruction(
+  customPrompt: string,
+  stylePrompt: string,
+  renderStyle?: string,
+  intensity?: string,
+  preserveOutfit = false,
+): string {
   const translated = translateToEnglish(customPrompt.trim());
   const style = stylePrompt.trim();
 
-  const change = translated && style
-    ? `${translated}. Overall style: ${style}`
-    : translated || style || "enhance the photo quality and lighting";
+  // What to change
+  let changeDesc: string;
+  if (translated && style) {
+    changeDesc = `Apply this visual style — ${style}. Additional adjustment: ${translated}`;
+  } else if (style) {
+    changeDesc = `Apply this visual style — ${style}`;
+  } else if (translated) {
+    changeDesc = translated;
+  } else {
+    changeDesc = "Enhance the photo quality, lighting, and professional aesthetic";
+  }
 
-  return (
-    `You are editing a photo. The PERSON in this photo is the subject — ` +
-    `keep their face, skin tone, hair, body shape, and identity EXACTLY as they are. ` +
-    `Do NOT add, duplicate, or replace any person. ` +
-    `Apply this transformation: ${change}. ` +
-    `Result must look photorealistic and professional.`
-  );
+  // Render quality modifier
+  const renderDesc = (renderStyle && RENDER_STYLE_PROMPTS[renderStyle])
+    ? `Render quality: ${RENDER_STYLE_PROMPTS[renderStyle]}.`
+    : "";
+
+  // Intensity prefix
+  const prefix = (intensity && INTENSITY_PREFIX[intensity])
+    ? `${INTENSITY_PREFIX[intensity]} transform: `
+    : "";
+
+  // What to preserve
+  const preserveList = [
+    "the person's face, eyes, nose, mouth, and all facial features",
+    "their exact skin tone and complexion",
+    "their hair color, texture, and style",
+    "their body shape and proportions",
+  ];
+  if (preserveOutfit) {
+    preserveList.push("their current clothing and outfit (do not change clothes)");
+  }
+
+  const preserveStr = preserveList.join("; ");
+
+  return [
+    `${prefix}${changeDesc}.`,
+    renderDesc,
+    `Preserve exactly: ${preserveStr}.`,
+    "Do NOT alter the person's identity, duplicate them, or add any new people.",
+    "The result must look photorealistic and professionally photographed.",
+  ].filter(Boolean).join(" ");
 }
 
-// French → English translation for common photo-editing terms.
-// Covers the most frequent requests for a celebrity AI photo app.
+// ─── FRENCH → ENGLISH TRANSLATOR ─────────────────────────────────────────────
+
 function translateToEnglish(text: string): string {
   if (!text) return text;
 
@@ -216,65 +311,74 @@ function translateToEnglish(text: string): string {
     [/fond\s+(?:de\s+)?forêt/gi, "forest background"],
     [/fond\s+(?:de\s+)?montagne/gi, "mountain landscape background"],
     [/fond\s+(?:de\s+)?coucher\s+de\s+soleil/gi, "sunset background"],
-    [/fond\s+blanc/gi, "clean white background"],
+    [/fond\s+blanc/gi, "clean white studio background"],
     [/fond\s+noir/gi, "pure black background"],
     [/fond\s+flou|fond\s+bokeh/gi, "blurred bokeh background"],
     [/fond\s+studio/gi, "professional studio background"],
     [/fond\s+(?:de\s+)?bureau/gi, "office background"],
     [/fond\s+(?:de\s+)?luxe|fond\s+(?:de\s+)?villa/gi, "luxury villa background"],
-    [/(?:change|remplace)\s+(?:le\s+)?fond/gi, "replace the background"],
+    [/(?:change|remplace)\s+(?:le\s+)?fond/gi, "replace the background with"],
     [/\bfond\b/gi, "background"],
 
     // ── Scene / location ──────────────────────────────────────────────────────
     [/à\s+la\s+plage/gi, "at the beach"],
     [/à\s+paris/gi, "in Paris"],
     [/à\s+new\s*york/gi, "in New York"],
+    [/à\s+dubai/gi, "in Dubai"],
+    [/à\s+los\s*angeles|à\s+la/gi, "in Los Angeles"],
     [/dans\s+une?\s+villa/gi, "in a luxury villa"],
     [/dans\s+une?\s+forêt/gi, "in a forest"],
     [/au\s+bureau/gi, "in an office setting"],
-    [/en\s+plein\s+air/gi, "outdoors"],
+    [/en\s+plein\s+air/gi, "outdoors in natural setting"],
 
     // ── Colour / tone ─────────────────────────────────────────────────────────
-    [/noir\s+et\s+blanc|n&b|nbw/gi, "black and white"],
+    [/noir\s+et\s+blanc|n&b|n&w|nbw/gi, "black and white"],
     [/sépia/gi, "sepia tone"],
     [/coloré/gi, "vibrant colors"],
-    [/couleurs\s+vives/gi, "vivid colors"],
-    [/ton\s+chaud|tons?\s+chauds?/gi, "warm color tones"],
-    [/ton\s+froid|tons?\s+froids?/gi, "cool color tones"],
+    [/couleurs\s+vives/gi, "vivid saturated colors"],
+    [/ton\s+chaud|tons?\s+chauds?/gi, "warm golden color tones"],
+    [/ton\s+froid|tons?\s+froids?/gi, "cool blue color tones"],
     [/contraste\s+(?:élevé|fort|haut)/gi, "high contrast"],
-    [/saturé/gi, "saturated colors"],
+    [/saturé/gi, "vibrant saturated colors"],
 
     // ── Style / aesthetic ─────────────────────────────────────────────────────
-    [/style\s+(?:artistique|art)/gi, "artistic style"],
-    [/style\s+vintage|effet\s+vintage/gi, "vintage retro style"],
-    [/style\s+cinématographique|look\s+cinéma/gi, "cinematic style"],
-    [/style\s+(?:magazine|fashion)/gi, "magazine fashion style"],
+    [/style\s+(?:artistique|art)/gi, "artistic fine art style"],
+    [/style\s+vintage|effet\s+vintage/gi, "vintage retro photography style"],
+    [/style\s+cinématographique|look\s+ciném/gi, "cinematic film style"],
+    [/style\s+(?:magazine|fashion)/gi, "high fashion magazine editorial style"],
     [/style\s+(?:luxe|luxueux)/gi, "luxury high-end style"],
-    [/dessin\s+animé|cartoon/gi, "cartoon style"],
-    [/peinture\s+(?:à\s+l'huile|huile)/gi, "oil painting style"],
+    [/dessin\s+animé|cartoon/gi, "cartoon illustration style"],
+    [/peinture\s+(?:à\s+l'huile|huile)/gi, "oil painting artistic style"],
     [/aquarelle/gi, "watercolor painting style"],
-    [/anime|manga/gi, "anime style"],
-    [/effet\s+3d/gi, "3D rendering style"],
+    [/anime|manga/gi, "anime manga style"],
+    [/effet\s+3d/gi, "3D CGI rendering style"],
     [/réaliste|réalisme/gi, "photorealistic"],
     [/professionnel/gi, "professional"],
+    [/futuriste|cyberpunk/gi, "futuristic cyberpunk aesthetic"],
+    [/luxueux|luxe/gi, "luxury high-end"],
 
     // ── Lighting ──────────────────────────────────────────────────────────────
-    [/lumière\s+(?:dorée|chaude)/gi, "golden warm light"],
-    [/lumière\s+naturelle/gi, "natural daylight"],
-    [/lumière\s+(?:de\s+)?studio/gi, "studio lighting"],
-    [/éclairage\s+(?:dramatique|fort)/gi, "dramatic lighting"],
-    [/coucher\s+de\s+soleil/gi, "sunset lighting"],
-    [/lever\s+de\s+soleil/gi, "sunrise lighting"],
+    [/lumière\s+(?:dorée|chaude)/gi, "warm golden hour lighting"],
+    [/lumière\s+naturelle/gi, "soft natural daylight"],
+    [/lumière\s+(?:de\s+)?studio/gi, "professional studio lighting"],
+    [/éclairage\s+(?:dramatique|fort)/gi, "dramatic cinematic lighting"],
+    [/coucher\s+de\s+soleil/gi, "golden sunset lighting"],
+    [/lever\s+de\s+soleil/gi, "soft sunrise lighting"],
+    [/néon/gi, "neon lights"],
+    [/lumière\s+bleue/gi, "blue light"],
+    [/lumière\s+rose/gi, "pink light"],
 
     // ── Clothing ──────────────────────────────────────────────────────────────
-    [/tenue\s+de\s+soirée|costume\s+de\s+soirée/gi, "formal evening attire"],
-    [/tenue\s+(?:décontractée|casual)/gi, "casual outfit"],
-    [/tenue\s+sportive|look\s+sportif/gi, "sporty athletic outfit"],
+    [/tenue\s+de\s+soirée|costume\s+de\s+soirée/gi, "elegant formal evening attire"],
+    [/tenue\s+(?:décontractée|casual)/gi, "casual stylish outfit"],
+    [/tenue\s+sportive|look\s+sportif/gi, "athletic sportswear outfit"],
     [/costume\s+(?:de\s+)?superhéros/gi, "superhero costume"],
     [/tenue\s+militaire/gi, "military uniform"],
-    [/tenue\s+royale|robe\s+royale/gi, "royal elegant outfit"],
-    [/smoking/gi, "tuxedo"],
-    [/en\s+costume/gi, "wearing a suit"],
+    [/tenue\s+royale|robe\s+royale/gi, "royal elegant gown"],
+    [/smoking/gi, "elegant black tuxedo"],
+    [/en\s+costume/gi, "wearing a tailored suit"],
+    [/robe\s+rouge/gi, "red dress"],
+    [/en\s+jean/gi, "wearing jeans"],
 
     // ── Hair / appearance ─────────────────────────────────────────────────────
     [/cheveux\s+blonds/gi, "blonde hair"],
@@ -283,16 +387,18 @@ function translateToEnglish(text: string): string {
     [/cheveux\s+rouges/gi, "red hair"],
     [/cheveux\s+bouclés/gi, "curly hair"],
     [/cheveux\s+raides/gi, "straight hair"],
+    [/cheveux\s+longs/gi, "long hair"],
+    [/cheveux\s+courts/gi, "short hair"],
     [/barbe/gi, "beard"],
     [/rasé/gi, "clean-shaven"],
-    [/maquillage\s+(?:fort|prononcé)/gi, "bold makeup"],
-    [/maquillage\s+naturel/gi, "natural makeup"],
-    [/sans\s+maquillage/gi, "no makeup"],
+    [/maquillage\s+(?:fort|prononcé)/gi, "bold dramatic makeup"],
+    [/maquillage\s+naturel/gi, "natural minimal makeup"],
+    [/sans\s+maquillage/gi, "no makeup natural look"],
 
     // ── Quality ───────────────────────────────────────────────────────────────
-    [/haute\s+qualité|hd|4k|8k/gi, "ultra high quality 4K"],
-    [/améliore?\s+(?:la\s+)?qualité/gi, "improve image quality"],
-    [/nettoie?\s+(?:la\s+)?photo/gi, "clean up the photo"],
+    [/haute\s+qualité|hd|4k|8k/gi, "ultra high definition quality"],
+    [/améliore?\s+(?:la\s+)?qualité/gi, "improve overall image quality"],
+    [/nettoie?\s+(?:la\s+)?photo/gi, "clean and enhance the photo"],
 
     // ── Misc French → English ────────────────────────────────────────────────
     [/\bavec\s+/gi, "with "],
@@ -305,6 +411,7 @@ function translateToEnglish(text: string): string {
     [/\bles\b/gi, "the"],
     [/\bdu\b/gi, "of the"],
     [/\bde\b/gi, "of"],
+    [/\bet\b/gi, "and"],
   ];
 
   let result = text;
@@ -312,7 +419,6 @@ function translateToEnglish(text: string): string {
     result = result.replace(pattern, replacement);
   }
 
-  // Clean up extra spaces
   return result.replace(/\s+/g, " ").trim();
 }
 
@@ -354,10 +460,10 @@ async function fetchWikipediaImageAsBase64(personName: string): Promise<string |
 
 function buildNameVariants(name: string): string[] {
   const variants = new Set<string>([name]);
-  variants.add(name.replace(/e\b/, ""));          // Charlie → Charli
-  variants.add(name.replace(/i\b/, "ie"));         // Charli → Charlie
-  variants.add(name.replace(/'/g, ""));            // D'Amelio → DAmelio
-  variants.add(name.replace(/'/g, " "));           // D'Amelio → D Amelio
+  variants.add(name.replace(/e\b/, ""));
+  variants.add(name.replace(/i\b/, "ie"));
+  variants.add(name.replace(/'/g, ""));
+  variants.add(name.replace(/'/g, " "));
   return [...variants].filter((v) => v.length > 1);
 }
 
@@ -382,15 +488,21 @@ async function downloadImageAsBase64(url: string): Promise<string | null> {
 
 // ─── MODEL RUNNERS ────────────────────────────────────────────────────────────
 
-async function runFluxKontext(image: string, prompt: string, aspectRatio: string): Promise<string> {
+async function runFluxKontext(
+  image: string,
+  prompt: string,
+  aspectRatio: string,
+  quality: number,
+  format: "jpg" | "png" | "webp",
+): Promise<string> {
   const output = await replicate.run(MODELS.fluxKontextMax, {
     input: {
       image,
       prompt,
-      aspect_ratio: aspectRatio,
-      output_format: "jpg",
-      output_quality: 100,
-      safety_tolerance: 6,
+      aspect_ratio:      aspectRatio,
+      output_format:     format,
+      output_quality:    quality,
+      safety_tolerance:  6,
       prompt_upsampling: false,
     },
   });
@@ -402,12 +514,34 @@ async function runFaceSwap(sourceImageUrl: string, targetImageUrl: string): Prom
     MODELS.faceSwap as `${string}/${string}:${string}`,
     {
       input: {
-        swap_image:  sourceImageUrl,  // face to use (user's photo)
-        input_image: targetImageUrl,  // scene to place it into (celebrity's photo)
+        swap_image:  sourceImageUrl,
+        input_image: targetImageUrl,
       },
     }
   );
   return extractUrl(output);
+}
+
+async function runUpscale(imageUrl: string): Promise<string> {
+  try {
+    const output = await replicate.run(
+      MODELS.realEsrgan as `${string}/${string}:${string}`,
+      {
+        input: {
+          image:        imageUrl,
+          scale:        4,
+          face_enhance: true,
+        },
+      }
+    );
+    const upscaled = extractUrl(output);
+    console.log("[Pipeline] Upscale done ✓");
+    return upscaled;
+  } catch (err) {
+    // Upscaling is bonus — never break the pipeline for it
+    console.warn("[Pipeline] Upscale failed (graceful fallback):", err instanceof Error ? err.message : err);
+    return imageUrl;
+  }
 }
 
 function extractUrl(output: unknown): string {

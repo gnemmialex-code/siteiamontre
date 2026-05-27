@@ -23,7 +23,8 @@
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
       "WebSearch",
-      "WebFetch(domain:replicate.com)"
+      "WebFetch(domain:replicate.com)",
+      "Bash(git commit *)"
     ]
   }
 }
