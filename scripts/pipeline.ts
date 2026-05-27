@@ -25,7 +25,7 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    spec: "sundai-club/pawse:6a15ed7ee6d09ce510934777933c9dd3f2a85f2385e7327e90bd92959b846712",
+    spec: "google/nano-banana-pro",
     buildInput: (prompt, _neg, imageUrl, strength) => ({
       prompt,
       image:    imageUrl,
