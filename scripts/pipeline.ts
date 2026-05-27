@@ -25,12 +25,11 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    spec: "ideogram-ai/ideogram-character",
-    buildInput: (prompt, neg, imageUrl, _strength) => ({
+    spec: "google/nano-banana-2",
+    buildInput: (prompt, _neg, imageUrl, strength) => ({
       prompt,
-      negative_prompt: neg,
-      image:           imageUrl,
-      aspect_ratio:    "2:3",
+      image:    imageUrl,
+      strength,
     }),
   },
 ];
