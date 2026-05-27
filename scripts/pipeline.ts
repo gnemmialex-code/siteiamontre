@@ -25,13 +25,11 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    spec: "asiryan/flux-schnell",
+    spec: "sundai-club/pawse",
     buildInput: (prompt, _neg, imageUrl, strength) => ({
       prompt,
-      image:           imageUrl,
-      image_strength:  1 - strength,
-      num_outputs:     1,
-      output_format:   "jpg",
+      image:    imageUrl,
+      strength,
     }),
   },
 ];
