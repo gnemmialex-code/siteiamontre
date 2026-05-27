@@ -364,9 +364,11 @@ export async function startAsyncJob(
 
   if (!config.inputImageUrl) throw new Error("Image source manquante pour la génération");
 
+  // Download image to base64 so Replicate can access it regardless of bucket permissions
+  const imageData = await loadImageAsBase64(config.inputImageUrl);
+
   console.log(`[Pipeline] img2img model [${modelIdx}]: ${model.spec}`);
   console.log(`[Pipeline] Prompt: "${(config.prompt ?? "").slice(0, 200)}"`);
-  console.log(`[Pipeline] Image: ${config.inputImageUrl.slice(0, 80)}`);
   console.log(`[Pipeline] Strength: ${config.strength ?? 0.62}`);
 
   const p = await createPred(
@@ -374,7 +376,7 @@ export async function startAsyncJob(
     model.buildInput(
       config.prompt    ?? "",
       config.negPrompt ?? NEG,
-      config.inputImageUrl,
+      imageData,
       config.strength  ?? 0.62,
     ),
   );
