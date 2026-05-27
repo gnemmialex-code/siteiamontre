@@ -25,10 +25,13 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    spec: "google/nano-banana-2",
-    buildInput: (prompt, _neg, _imageUrl, _strength) => ({
+    spec: "asiryan/flux-schnell",
+    buildInput: (prompt, _neg, imageUrl, strength) => ({
       prompt,
-      aspect_ratio: "3:4",
+      image:           imageUrl,
+      image_strength:  1 - strength,
+      num_outputs:     1,
+      output_format:   "jpg",
     }),
   },
 ];
