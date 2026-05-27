@@ -25,12 +25,12 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    spec: "bytedance/seedream-4",
-    buildInput: (prompt, neg, imageUrl, strength) => ({
+    spec: "black-forest-labs/flux-kontext-max",
+    buildInput: (prompt, _neg, imageUrl, _strength) => ({
       prompt,
-      negative_prompt: neg,
-      image:           imageUrl,
-      strength,
+      input_image:    imageUrl,
+      output_format:  "jpg",
+      output_quality: 90,
     }),
   },
   {
