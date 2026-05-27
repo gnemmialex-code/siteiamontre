@@ -25,15 +25,15 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    // flux-dev used as img2img: image param is the uploaded photo
-    spec: "black-forest-labs/flux-dev",
-    buildInput: (prompt, _neg, imageUrl, strength) => ({
-      image:               imageUrl,
+    // instruct-pix2pix: instruction-based img2img — takes photo + text instruction
+    // Uses version hash to bypass model-slug API 404 issues with community models
+    spec: "timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60dc6215a3a4f91c799e30a44",
+    buildInput: (prompt, _neg, imageUrl, _strength) => ({
+      image:            imageUrl,
       prompt,
-      prompt_strength:     strength,
-      num_inference_steps: 28,
-      guidance:            3.5,
-      output_format:       "jpg",
+      image_cfg_scale:  1.5,
+      text_cfg_scale:   7.5,
+      num_inference_steps: 100,
     }),
   },
 ];
