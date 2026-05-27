@@ -25,10 +25,11 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    spec: "bytedance/seedream-4.5",
-    buildInput: (prompt, _neg, _imageUrl, _strength) => ({
+    spec: "google/nano-banana-pro",
+    buildInput: (prompt, _neg, imageUrl, strength) => ({
       prompt,
-      aspect_ratio: "3:4",
+      image:    imageUrl,
+      strength,
     }),
   },
 ];
