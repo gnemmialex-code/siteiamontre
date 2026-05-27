@@ -25,11 +25,15 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    spec: "openai/gpt-image-1",
-    buildInput: (prompt, _neg, imageUrl, _strength) => ({
+    spec: "stability-ai/stable-diffusion-3.5-large",
+    buildInput: (prompt, neg, imageUrl, strength) => ({
       prompt,
-      image:          imageUrl,
-      openai_api_key: process.env.OPENAI_API_KEY!,
+      negative_prompt: neg,
+      image:           imageUrl,
+      strength,
+      aspect_ratio:    "2:3",
+      output_format:   "jpg",
+      output_quality:  90,
     }),
   },
 ];
