@@ -5,15 +5,21 @@ const replicate = new Replicate({
 });
 
 const MODELS = {
-  // Ideogram v3 Turbo — primary text-to-image model (generates scene, then face-swap)
-  ideogramV3Turbo: "ideogram-ai/ideogram-v3-turbo",
-  // FLUX Kontext Max — fallback image-to-image editing
-  fluxKontextMax: "black-forest-labs/flux-kontext-max",
-  // Face swap — injects user face into Ideogram-generated scene
+  // Z-Image Turbo — text-to-image (generates scene, then face-swap injects user's face)
+  zImageTurbo: "prunaai/z-image-turbo",
+  // Face swap — injects user face into the generated scene
   faceSwap: "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
   // 4× upscale for Ultra tier
   realEsrgan: "nightmareai/real-esrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc3a73abf41610695738c1d7b",
 } as const;
+
+// Width × Height for Z-Image Turbo based on output format choice
+const ZIMAGE_DIMS: Record<string, { width: number; height: number }> = {
+  square:    { width: 1024, height: 1024 },
+  portrait:  { width: 832,  height: 1152 },
+  landscape: { width: 1216, height: 832  },
+  auto:      { width: 832,  height: 1152 }, // portrait default for face shots
+};
 
 // ─── Quality settings per subscription tier ───────────────────────────────────
 const QUALITY_SETTINGS = {
@@ -736,21 +742,17 @@ function extractUrl(output: unknown): string {
 
 // ─── ASYNC JOB API ────────────────────────────────────────────────────────────
 //
-// Used by POST /api/generate (starts job, returns immediately) and
-// GET /api/generate/poll (checks + advances pipeline, each call <5s).
-// This avoids Vercel function timeouts for multi-step AI pipelines.
+// Pipeline: Z-Image Turbo (text→image) → face-swap (injects user's face) → optional upscale
+// POST /api/generate starts the job and returns immediately (<5s).
+// GET /api/generate/poll checks status and advances one step at a time (<5s each).
 
 export type AsyncJobConfig = {
-  pipeline:         "ideogram" | "flux";
-  mode:             "style" | "swapface";
-  qualityTier:      keyof typeof QUALITY_SETTINGS;
-  ideogramPrompt?:  string;
-  ideogramAspect?:  string;
-  fluxInstruction?: string;
-  fluxAspect?:      string;
-  fluxQuality?:     number;
-  fluxFormat?:      string;
-  sourceB64?:       string; // user's face, stored so the poll handler can use it for face-swap
+  mode:        "style" | "swapface";
+  qualityTier: keyof typeof QUALITY_SETTINGS;
+  prompt?:     string;    // scene description for Z-Image Turbo
+  width?:      number;
+  height?:     number;
+  sourceB64?:  string;   // user's face (needed for face-swap step)
 };
 
 // Wraps replicate.predictions.create for both versioned and unversioned model specs
@@ -769,76 +771,52 @@ export function buildAsyncJobConfig(
   input:     PipelineInput,
   sourceB64: string,
 ): AsyncJobConfig {
-  const tier   = input.qualityTier ?? "essentiel";
-  const q      = QUALITY_SETTINGS[tier];
-  const engine = input.engine ?? "ideogram";
+  const tier = input.qualityTier ?? "essentiel";
 
   if (input.mode === "swapface") {
-    return { pipeline: "ideogram", mode: "swapface", qualityTier: tier, sourceB64 };
+    return { mode: "swapface", qualityTier: tier, sourceB64 };
   }
 
-  if (engine === "ideogram") {
-    return {
-      pipeline:       "ideogram",
-      mode:           "style",
-      qualityTier:    tier,
-      sourceB64,
-      ideogramPrompt: buildIdeogramPrompt(
-        input.customPrompt   ?? "",
-        input.stylePrompt    ?? "",
-        input.renderStyle,
-        input.transformIntensity,
-        input.preserveOutfit ?? false,
-      ),
-      ideogramAspect: IDEOGRAM_ASPECT_RATIOS[input.outputFormat ?? "auto"] ?? "3:4",
-    };
-  }
+  const prompt = buildIdeogramPrompt(
+    input.customPrompt   ?? "",
+    input.stylePrompt    ?? "",
+    input.renderStyle,
+    input.transformIntensity,
+    input.preserveOutfit ?? false,
+  );
 
-  // FLUX edits the photo directly in step 1 — sourceB64 is passed live, not stored in DB
+  const dims = ZIMAGE_DIMS[input.outputFormat ?? "auto"] ?? { width: 832, height: 1152 };
+
   return {
-    pipeline:        "flux",
-    mode:            "style",
-    qualityTier:     tier,
-    fluxInstruction: buildEditInstruction(
-      input.customPrompt   ?? "",
-      input.stylePrompt    ?? "",
-      input.renderStyle,
-      input.transformIntensity,
-      input.preserveOutfit ?? false,
-    ),
-    fluxAspect:  ASPECT_RATIOS[input.outputFormat ?? "auto"] ?? "match_input_image",
-    fluxQuality: q.quality,
-    fluxFormat:  q.format,
+    mode:       "style",
+    qualityTier: tier,
+    sourceB64,
+    prompt,
+    width:  dims.width,
+    height: dims.height,
   };
 }
 
 // Start step 1 — returns Replicate prediction ID immediately (non-blocking)
 export async function startAsyncJob(
   config:    AsyncJobConfig,
-  targetB64?: string, // swapface mode: target image
+  targetB64?: string, // swapface mode only: the target photo
 ): Promise<string> {
-  const sourceB64 = config.sourceB64!;
-
   if (config.mode === "swapface") {
-    const p = await createPred(MODELS.faceSwap, { swap_image: sourceB64, input_image: targetB64! });
-    return p.id;
-  }
-  if (config.pipeline === "ideogram") {
-    const p = await createPred(MODELS.ideogramV3Turbo, {
-      prompt:       config.ideogramPrompt!,
-      aspect_ratio: config.ideogramAspect!,
+    const p = await createPred(MODELS.faceSwap, {
+      swap_image:  config.sourceB64!,
+      input_image: targetB64!,
     });
     return p.id;
   }
-  // FLUX
-  const p = await createPred(MODELS.fluxKontextMax, {
-    image:             sourceB64,
-    prompt:            config.fluxInstruction!,
-    aspect_ratio:      config.fluxAspect!,
-    output_format:     config.fluxFormat!,
-    output_quality:    config.fluxQuality!,
-    safety_tolerance:  6,
-    prompt_upsampling: false,
+
+  // Style: Z-Image Turbo generates the scene (text-to-image, no user photo needed here)
+  const p = await createPred(MODELS.zImageTurbo, {
+    prompt:              config.prompt!,
+    width:               config.width  ?? 832,
+    height:              config.height ?? 1152,
+    num_inference_steps: 8,
+    guidance_scale:      0,
   });
   return p.id;
 }
@@ -856,9 +834,8 @@ export async function advanceAsyncJob(
 ): Promise<AdvanceResult> {
   const q         = QUALITY_SETTINGS[config.qualityTier];
   const outputUrl = extractUrl(predOutput);
-  const sourceB64 = config.sourceB64;
 
-  // ── SWAPFACE (1 step + optional upscale) ─────────────────────────────────
+  // ── SWAPFACE: 1 step + optional upscale ──────────────────────────────────
   if (config.mode === "swapface") {
     if (step === 1 && q.upscale) {
       const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
@@ -867,15 +844,18 @@ export async function advanceAsyncJob(
     return { done: true, outputUrl };
   }
 
-  // ── IDEOGRAM step 1: scene generated → start face-swap ───────────────────
-  if (config.pipeline === "ideogram" && step === 1) {
+  // ── STYLE step 1: Z-Image Turbo scene done → face-swap ───────────────────
+  if (step === 1) {
     const sceneB64 = await loadImageAsBase64(outputUrl);
-    const p = await createPred(MODELS.faceSwap, { swap_image: sourceB64!, input_image: sceneB64 });
+    const p = await createPred(MODELS.faceSwap, {
+      swap_image:  config.sourceB64!,  // user's face
+      input_image: sceneB64,           // AI-generated scene
+    });
     return { done: false, predictionId: p.id, step: 2 };
   }
 
-  // ── IDEOGRAM step 2: face-swap done → optional upscale ───────────────────
-  if (config.pipeline === "ideogram" && step === 2) {
+  // ── STYLE step 2: face-swap done → optional upscale ──────────────────────
+  if (step === 2) {
     if (q.upscale) {
       const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
       return { done: false, predictionId: p.id, step: 3 };
@@ -883,16 +863,7 @@ export async function advanceAsyncJob(
     return { done: true, outputUrl };
   }
 
-  // ── FLUX step 1: edit done → optional upscale ────────────────────────────
-  if (config.pipeline === "flux" && step === 1) {
-    if (q.upscale) {
-      const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
-      return { done: false, predictionId: p.id, step: 2 };
-    }
-    return { done: true, outputUrl };
-  }
-
-  // Final step (upscale done, or any unmatched state)
+  // step 3+: upscale done
   return { done: true, outputUrl };
 }
 

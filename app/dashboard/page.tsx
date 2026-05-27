@@ -294,8 +294,6 @@ export default function DashboardPage() {
   const [accessory,     setAccessory]     = useState<string | null>(null);
   const [freePrompt,    setFreePrompt]    = useState("");
 
-  /* engine selector */
-  const [engine,        setEngine]        = useState<"ideogram" | "flux">("flux");
 
   /* generation precision options */
   const [renderStyle,   setRenderStyle]   = useState<string | null>(null);
@@ -451,7 +449,6 @@ export default function DashboardPage() {
       if (enriched)             formData.append("style_prompt",    enriched);
       if (freePrompt.trim())    formData.append("custom_prompt",   freePrompt.trim());
       if (renderStyle)          formData.append("render_style",    renderStyle);
-      formData.append("engine",          engine);
       formData.append("intensity",       intensity);
       formData.append("output_format",   genFormat);
       formData.append("preserve_outfit", preserveOutfit ? "1" : "0");
@@ -715,47 +712,6 @@ export default function DashboardPage() {
                       {/* Col droite — style + options + prompt + generate */}
                       <div className="lg:col-span-2 space-y-4">
 
-                        {/* Sélecteur moteur IA */}
-                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-3">
-                          <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-2">Moteur IA</p>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              onClick={() => setEngine("ideogram")}
-                              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all ${
-                                engine === "ideogram"
-                                  ? "border-blue-400/60 bg-blue-500/15 text-blue-300"
-                                  : "border-surface-border text-white/40 hover:border-blue-400/30 hover:text-white/70"
-                              }`}
-                            >
-                              <span className="text-base">🔵</span>
-                              <div className="text-left">
-                                <p className="leading-none">Ideogram v3 Turbo</p>
-                                <p className={`text-[10px] font-normal mt-0.5 ${engine === "ideogram" ? "text-blue-300/70" : "text-white/25"}`}>Génération + Face-swap</p>
-                              </div>
-                              {engine === "ideogram" && <span className="ml-auto text-blue-400 text-[10px] font-bold">✓</span>}
-                            </button>
-                            <button
-                              onClick={() => setEngine("flux")}
-                              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all ${
-                                engine === "flux"
-                                  ? "border-amber-400/60 bg-amber-500/15 text-amber-300"
-                                  : "border-surface-border text-white/40 hover:border-amber-400/30 hover:text-white/70"
-                              }`}
-                            >
-                              <span className="text-base">🟡</span>
-                              <div className="text-left">
-                                <p className="leading-none">FLUX Kontext Max</p>
-                                <p className={`text-[10px] font-normal mt-0.5 ${engine === "flux" ? "text-amber-300/70" : "text-white/25"}`}>Édition directe de photo</p>
-                              </div>
-                              {engine === "flux" && <span className="ml-auto text-amber-400 text-[10px] font-bold">✓</span>}
-                            </button>
-                          </div>
-                          <p className="text-white/20 text-[10px] mt-2">
-                            {engine === "ideogram"
-                              ? "🔵 Ideogram génère une scène réaliste, puis votre visage y est injecté automatiquement."
-                              : "🟡 FLUX modifie directement votre photo en préservant votre identité."}
-                          </p>
-                        </div>
 
                         {/* Style Celebrity — optionnel */}
                         <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
@@ -932,7 +888,7 @@ export default function DashboardPage() {
                                   className="bg-surface border border-surface-border rounded-2xl p-4 space-y-3 text-xs mt-2"
                                 >
                                   <div className="flex items-center justify-between">
-                                    <p className="font-bold text-white/80">Diagnostic — ce qui est envoyé à FLUX Kontext Max</p>
+                                    <p className="font-bold text-white/80">Diagnostic — prompt envoyé à Z-Image Turbo</p>
                                     <button onClick={() => setShowDebug(false)} className="text-white/30 hover:text-white">✕</button>
                                   </div>
 
@@ -948,9 +904,9 @@ export default function DashboardPage() {
                                   )}
 
                                   <div className="bg-surface-hover rounded-xl p-3">
-                                    <p className="text-white/35 text-[10px] uppercase tracking-wider mb-2">Instruction complète → FLUX Kontext</p>
+                                    <p className="text-white/35 text-[10px] uppercase tracking-wider mb-2">Prompt complet → Z-Image Turbo</p>
                                     <p className="text-white/70 leading-relaxed whitespace-pre-wrap">
-                                      {String((debugInfo as { instruction_sent_to_flux?: string }).instruction_sent_to_flux ?? "")}
+                                      {String((debugInfo as { instruction_sent_to_flux?: string; prompt?: string }).prompt ?? (debugInfo as { instruction_sent_to_flux?: string }).instruction_sent_to_flux ?? "")}
                                     </p>
                                   </div>
 

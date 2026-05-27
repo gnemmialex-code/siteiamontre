@@ -93,7 +93,6 @@ export async function POST(req: NextRequest) {
   const effectiveUserId = userId ?? "anon";
 
   // ── Options de génération ──────────────────────────────────────────────────
-  const engine             = ((formData.get("engine") as string | null) ?? "flux") as "ideogram" | "flux";
   const renderStyle        = (formData.get("render_style")    as string | null) ?? undefined;
   const transformIntensity = (formData.get("intensity")       as string | null) ?? "moderate";
   const outputFormat       = (formData.get("output_format")   as string | null) ?? "auto";
@@ -150,7 +149,6 @@ export async function POST(req: NextRequest) {
         styleId:           styleId ?? "custom",
         stylePrompt,
         customPrompt,
-        engine,
         qualityTier,
         renderStyle,
         transformIntensity,
@@ -169,9 +167,6 @@ export async function POST(req: NextRequest) {
     if (userId) {
       await supabase.rpc("decrement_credits", { user_id: userId, amount: CREDITS_PER_IMAGE });
 
-      // Strip sourceB64 from job_config before storing (too large for DB row)
-      const configForDb = { ...jobConfig, sourceB64: undefined };
-
       const { error: insertError } = await supabase.from("generations").insert({
         id:               generationId,
         user_id:          userId,
@@ -181,7 +176,7 @@ export async function POST(req: NextRequest) {
         status:           "pending",
         prediction_id:    predictionId,
         step:             1,
-        job_config:       configForDb,
+        job_config:       jobConfig,
       });
 
       if (insertError) {
