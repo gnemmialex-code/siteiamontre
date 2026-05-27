@@ -4,45 +4,44 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
 });
 
-// Face-swap and upscale — used only by SwapFace mode and Ultra upscale
+// Face-swap and upscale — SwapFace mode and Ultra upscale only
 const MODELS = {
-  faceSwap:  "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
+  faceSwap:   "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
   realEsrgan: "nightmareai/real-esrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc3a73abf41610695738c1d7b",
 } as const;
 
 // ─── Créer mode: multi-model fallback chain ───────────────────────────────────
 //
-// Models are tried in order. On failure (prediction failed/canceled), the poll
-// handler automatically restarts the job with the next model.
-// All text-to-image — no face-swap, no input image required.
+// Models are tried in order (fastest/best first).
+// If a prediction fails/cancels, the poll handler restarts with the next model.
+// No face-swap. Photo is used only for the image analysis step.
 
 type StyleModelSpec = {
-  spec:       string;
-  buildInput: (prompt: string, width: number, height: number) => Record<string, unknown>;
+  spec:           string;
+  supportsNeg?:   boolean;  // model accepts a separate negative_prompt field
+  buildInput:     (prompt: string, negPrompt: string, width: number, height: number) => Record<string, unknown>;
 };
 
 function toAspectRatio(width: number, height: number): string {
   if (width === height) return "1:1";
-  if (width < height) return "3:4";
+  if (width < height)  return "3:4";
   return "16:9";
 }
 
+const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly, deformed, nsfw";
+
 export const STYLE_MODELS: StyleModelSpec[] = [
   {
-    spec: "prunaai/z-image-turbo",
-    buildInput: (prompt, width, height) => ({
-      prompt, width, height, num_inference_steps: 20, guidance_scale: 7,
-    }),
-  },
-  {
     spec: "ideogram-ai/ideogram-v3-turbo",
-    buildInput: (prompt, width, height) => ({
-      prompt, aspect_ratio: toAspectRatio(width, height),
+    buildInput: (prompt, neg, width, height) => ({
+      prompt,
+      negative_prompt: neg,
+      aspect_ratio:    toAspectRatio(width, height),
     }),
   },
   {
     spec: "black-forest-labs/flux-dev",
-    buildInput: (prompt, width, height) => ({
+    buildInput: (prompt, _neg, width, height) => ({
       prompt,
       aspect_ratio:        toAspectRatio(width, height),
       num_inference_steps: 28,
@@ -51,91 +50,123 @@ export const STYLE_MODELS: StyleModelSpec[] = [
     }),
   },
   {
-    spec: "stability-ai/sdxl",
-    buildInput: (prompt, width, height) => ({
-      prompt, width, height, num_inference_steps: 30, guidance_scale: 7.5,
-    }),
-  },
-  {
     spec: "luma/photon-flash",
-    buildInput: (prompt, width, height) => ({
-      prompt, aspect_ratio: toAspectRatio(width, height),
-    }),
-  },
-  {
-    spec: "luma/photon",
-    buildInput: (prompt, width, height) => ({
-      prompt, aspect_ratio: toAspectRatio(width, height),
+    buildInput: (prompt, _neg, width, height) => ({
+      prompt,
+      aspect_ratio: toAspectRatio(width, height),
     }),
   },
   {
     spec: "ideogram-ai/ideogram-v3-balanced",
-    buildInput: (prompt, width, height) => ({
-      prompt, aspect_ratio: toAspectRatio(width, height),
+    buildInput: (prompt, neg, width, height) => ({
+      prompt,
+      negative_prompt: neg,
+      aspect_ratio:    toAspectRatio(width, height),
+    }),
+  },
+  {
+    spec: "stability-ai/sdxl",
+    supportsNeg: true,
+    buildInput: (prompt, neg, width, height) => ({
+      prompt,
+      negative_prompt:     neg,
+      width,
+      height,
+      num_inference_steps: 30,
+      guidance_scale:      7.5,
+    }),
+  },
+  {
+    spec: "luma/photon",
+    buildInput: (prompt, _neg, width, height) => ({
+      prompt,
+      aspect_ratio: toAspectRatio(width, height),
     }),
   },
   {
     spec: "stability-ai/stable-diffusion-3.5-large",
-    buildInput: (prompt, width, height) => ({
+    buildInput: (prompt, neg, width, height) => ({
       prompt,
-      aspect_ratio:   toAspectRatio(width, height),
-      output_format:  "jpeg",
-      output_quality: 80,
+      negative_prompt: neg,
+      aspect_ratio:    toAspectRatio(width, height),
+      output_format:   "jpeg",
+      output_quality:  80,
     }),
   },
   {
     spec: "recraft-ai/recraft-v3",
-    buildInput: (prompt, width, height) => ({
-      prompt, size: `${width}x${height}`, style: "realistic_image",
-    }),
-  },
-  {
-    spec: "ideogram-ai/ideogram-v3-quality",
-    buildInput: (prompt, width, height) => ({
-      prompt, aspect_ratio: toAspectRatio(width, height),
-    }),
-  },
-  {
-    spec: "nvidia/sana",
-    buildInput: (prompt, width, height) => ({
-      prompt, width, height, guidance_scale: 5, num_inference_steps: 20,
+    buildInput: (prompt, _neg, width, height) => ({
+      prompt,
+      size:  `${width}x${height}`,
+      style: "realistic_image",
     }),
   },
   {
     spec: "adirik/realvisxl-v3.0-turbo",
-    buildInput: (prompt, width, height) => ({
-      prompt, width, height, num_inference_steps: 20, guidance_scale: 7,
+    buildInput: (prompt, neg, width, height) => ({
+      prompt,
+      negative_prompt:     neg,
+      width,
+      height,
+      num_inference_steps: 20,
+      guidance_scale:      7,
+    }),
+  },
+  {
+    spec: "nvidia/sana",
+    buildInput: (prompt, _neg, width, height) => ({
+      prompt,
+      width,
+      height,
+      guidance_scale:      5,
+      num_inference_steps: 20,
+    }),
+  },
+  {
+    spec: "ideogram-ai/ideogram-v3-quality",
+    buildInput: (prompt, neg, width, height) => ({
+      prompt,
+      negative_prompt: neg,
+      aspect_ratio:    toAspectRatio(width, height),
     }),
   },
   {
     spec: "google/imagen-3-fast",
-    buildInput: (prompt, width, height) => ({
-      prompt, aspect_ratio: toAspectRatio(width, height), output_format: "jpg",
+    buildInput: (prompt, _neg, width, height) => ({
+      prompt,
+      aspect_ratio:  toAspectRatio(width, height),
+      output_format: "jpg",
     }),
   },
   {
     spec: "google/imagen-3",
-    buildInput: (prompt, width, height) => ({
-      prompt, aspect_ratio: toAspectRatio(width, height), output_format: "jpg",
+    buildInput: (prompt, _neg, width, height) => ({
+      prompt,
+      aspect_ratio:  toAspectRatio(width, height),
+      output_format: "jpg",
     }),
   },
   {
     spec: "google/imagen-4",
-    buildInput: (prompt, width, height) => ({
-      prompt, aspect_ratio: toAspectRatio(width, height), output_format: "jpg",
+    buildInput: (prompt, _neg, width, height) => ({
+      prompt,
+      aspect_ratio:  toAspectRatio(width, height),
+      output_format: "jpg",
     }),
   },
   {
     spec: "prunaai/wan-2.2-image",
-    buildInput: (prompt, width, height) => ({
-      prompt, width, height,
+    buildInput: (prompt, _neg, width, height) => ({
+      prompt,
+      width,
+      height,
     }),
   },
 ];
 
 export const STYLE_MODEL_COUNT = STYLE_MODELS.length;
 
-// ─── Dimension table (shared by style models that accept width/height) ────────
+// ─── Dimension table ──────────────────────────────────────────────────────────
 export const ZIMAGE_DIMS: Record<string, { width: number; height: number }> = {
   square:    { width: 1024, height: 1024 },
   portrait:  { width: 832,  height: 1152 },
@@ -143,7 +174,7 @@ export const ZIMAGE_DIMS: Record<string, { width: number; height: number }> = {
   auto:      { width: 832,  height: 1152 },
 };
 
-// ─── Quality settings per subscription tier ───────────────────────────────────
+// ─── Quality settings ─────────────────────────────────────────────────────────
 const QUALITY_SETTINGS = {
   free:      { quality: 80,  format: "jpg" as const, upscale: false },
   essentiel: { quality: 85,  format: "jpg" as const, upscale: false },
@@ -154,26 +185,27 @@ const QUALITY_SETTINGS = {
 // ─── Render style descriptors ─────────────────────────────────────────────────
 const RENDER_STYLE_PROMPTS: Record<string, string> = {
   photoreal: "ultra-photorealistic, sharp natural details, true-to-life colors",
-  magazine:  "high-fashion editorial photography, perfect studio lighting, magazine quality retouching",
-  cinematic: "cinematic color grading, dramatic shadows and highlights, movie-quality aesthetic",
+  magazine:  "high-fashion editorial photography, perfect studio lighting, magazine quality",
+  cinematic: "cinematic color grading, dramatic shadows and highlights, film quality",
   artistic:  "fine art portrait photography, creative lighting, artistic composition",
 };
 
 export interface PipelineInput {
-  mode: "style" | "swapface";
-  inputImageUrl?: string;
-  styleId?: string;
-  stylePrompt?: string;
-  customPrompt?: string;
-  sourceImageUrl?: string;
-  targetImageUrl?: string;
-  faceIndex?: string;
-  extraPrompt?: string;
-  qualityTier?: keyof typeof QUALITY_SETTINGS;
-  renderStyle?: string;
+  mode:               "style" | "swapface";
+  inputImageUrl?:     string;
+  styleId?:           string;
+  stylePrompt?:       string;
+  customPrompt?:      string;
+  personDescription?: string;  // auto-extracted from uploaded image
+  sourceImageUrl?:    string;
+  targetImageUrl?:    string;
+  faceIndex?:         string;
+  extraPrompt?:       string;
+  qualityTier?:       keyof typeof QUALITY_SETTINGS;
+  renderStyle?:       string;
   transformIntensity?: string;
-  outputFormat?: string;
-  preserveOutfit?: boolean;
+  outputFormat?:      string;
+  preserveOutfit?:    boolean;
 }
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
@@ -182,10 +214,7 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
       return await fn();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      const is429 =
-        msg.includes("429") ||
-        msg.includes("Too Many Requests") ||
-        msg.includes("throttled");
+      const is429 = msg.includes("429") || msg.includes("Too Many Requests") || msg.includes("throttled");
       if (is429 && attempt < retries) {
         const match = msg.match(/"retry_after"\s*:\s*(\d+)/);
         const waitMs = match ? (Number(match[1]) + 2) * 1000 : 15000;
@@ -199,56 +228,104 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
   throw new Error("Max retries exceeded");
 }
 
+// ─── IMAGE ANALYSIS ───────────────────────────────────────────────────────────
+//
+// Runs synchronously in the POST handler before generation starts.
+// Uses BLIP image captioning to describe the uploaded photo.
+// The description is embedded in the generation prompt so models produce
+// someone matching the uploaded person.
+
+export async function analyzePersonImage(imageB64: string): Promise<string> {
+  try {
+    const pred = await replicate.predictions.create({
+      model: "salesforce/blip",
+      input: {
+        image: imageB64,
+        task:  "image_captioning",
+      },
+    });
+
+    // Poll up to 5×2s = 10s — non-blocking if analysis takes longer
+    for (let i = 0; i < 5; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      const updated = await replicate.predictions.get(pred.id);
+      if (updated.status === "succeeded") {
+        const raw = Array.isArray(updated.output)
+          ? updated.output.join("")
+          : String(updated.output ?? "");
+        const text = raw.replace(/^Caption:\s*/i, "").trim();
+        console.log(`[Analysis] Image caption: "${text}"`);
+        return text.slice(0, 150);
+      }
+      if (updated.status === "failed" || updated.status === "canceled") break;
+    }
+    return "";
+  } catch (err) {
+    console.warn("[Analysis] Skipped:", err instanceof Error ? err.message : err);
+    return "";
+  }
+}
+
 // ─── PROMPT BUILDER ───────────────────────────────────────────────────────────
+//
+// Structure: [person from image analysis] + [user's scene/style description] + [quality]
+// Person description comes FIRST so the model anchors on the person's appearance.
 
 function buildStylePrompt(
-  customPrompt: string,
-  stylePrompt: string,
-  renderStyle?: string,
-  intensity?: string,
-  preserveOutfit = false,
-): string {
-  const translated = translateToEnglish(customPrompt.trim());
-  const style = stylePrompt.trim();
+  customPrompt:      string,
+  stylePrompt:       string,
+  personDescription: string,
+  renderStyle?:      string,
+  intensity?:        string,
+  preserveOutfit?:   boolean,
+): { positive: string; negative: string } {
+  const translated  = translateToEnglish(customPrompt.trim());
+  const style       = stylePrompt.trim();
 
+  // 1. What the scene/style should look like (user's intent)
   let sceneDesc = "";
   if (translated && style) {
-    sceneDesc = `${style}, ${translated}`;
+    sceneDesc = `${translated}, ${style}`;
   } else {
-    sceneDesc = translated || style || "professional portrait, perfect studio lighting";
+    sceneDesc = translated || style || "professional portrait with perfect lighting";
   }
 
+  // 2. Optional intensity modifier
+  const intensityMap: Record<string, string> = {
+    light:  "subtle and natural",
+    strong: "dramatic and bold",
+  };
+  const intensityNote = intensityMap[intensity ?? "moderate"] ?? "";
+
+  // 3. Outfit preservation
+  const outfitNote = preserveOutfit ? "keep original clothing" : "";
+
+  // 4. Render style
   const renderDesc = (renderStyle && RENDER_STYLE_PROMPTS[renderStyle])
     ? RENDER_STYLE_PROMPTS[renderStyle]
-    : "ultra-photorealistic, sharp natural details";
+    : "";
 
-  const intensityDesc: Record<string, string> = {
-    light:    "subtle, natural, minimal",
-    moderate: "",
-    strong:   "dramatic, bold, striking",
-  };
-  const mood = intensityDesc[intensity ?? "moderate"] ?? "";
+  // 5. Person anchor: image analysis comes first so the model knows who it's generating
+  const personAnchor = personDescription || "person";
 
-  const outfitNote = preserveOutfit ? ", keeping current clothing style" : "";
-  const subject = `a person, close portrait shot, face clearly visible${outfitNote}`;
-
-  const parts = [
-    `Photorealistic portrait of ${subject}`,
+  const positive = [
+    personAnchor,
     sceneDesc,
-    mood,
+    intensityNote,
+    outfitNote,
     renderDesc,
-    "ultra-detailed, perfect exposure, professional photography, 8K quality",
-    "NEGATIVE: blurry, distorted face, cartoon, illustration, low quality, deformed",
-  ].filter(Boolean);
+    "photorealistic, high resolution, professional photography, sharp focus",
+  ].filter(Boolean).join(", ").replace(/,\s*,+/g, ",").replace(/\s+/g, " ").trim();
 
-  return parts.join(", ").replace(/,\s*,+/g, ",").replace(/\s+/g, " ").trim();
+  const negative = NEG;
+
+  return { positive, negative };
 }
 
 // ─── FRENCH → ENGLISH TRANSLATOR ─────────────────────────────────────────────
 
 function translateToEnglish(text: string): string {
   if (!text) return text;
-
   type Rule = [RegExp, string];
   const rules: Rule[] = [
     [/\b(?:mets?(?:\s+moi)?|met(?:\s+moi)?|fais(?:\s+moi)?|donne(?:\s+moi)?|place(?:\s+moi)?|change(?:\s+moi)?|transforme(?:\s+moi)?|rends?(?:\s+moi)?)\b/gi, ""],
@@ -264,13 +341,12 @@ function translateToEnglish(text: string): string {
     [/fond\s+studio/gi, "professional studio background"],
     [/fond\s+(?:de\s+)?bureau/gi, "office background"],
     [/fond\s+(?:de\s+)?luxe|fond\s+(?:de\s+)?villa/gi, "luxury villa background"],
-    [/(?:change|remplace)\s+(?:le\s+)?fond/gi, "replace the background with"],
+    [/(?:change|remplace)\s+(?:le\s+)?fond/gi, "replace background with"],
     [/\bfond\b/gi, "background"],
     [/à\s+la\s+plage/gi, "at the beach"],
     [/à\s+paris/gi, "in Paris"],
     [/à\s+new\s*york/gi, "in New York"],
     [/à\s+dubai/gi, "in Dubai"],
-    [/à\s+los\s*angeles|à\s+la/gi, "in Los Angeles"],
     [/dans\s+une?\s+villa/gi, "in a luxury villa"],
     [/dans\s+une?\s+forêt/gi, "in a forest"],
     [/au\s+bureau/gi, "in an office setting"],
@@ -279,41 +355,37 @@ function translateToEnglish(text: string): string {
     [/sépia/gi, "sepia tone"],
     [/coloré/gi, "vibrant colors"],
     [/couleurs\s+vives/gi, "vivid saturated colors"],
-    [/ton\s+chaud|tons?\s+chauds?/gi, "warm golden color tones"],
-    [/ton\s+froid|tons?\s+froids?/gi, "cool blue color tones"],
+    [/ton\s+chaud|tons?\s+chauds?/gi, "warm golden tones"],
+    [/ton\s+froid|tons?\s+froids?/gi, "cool blue tones"],
     [/contraste\s+(?:élevé|fort|haut)/gi, "high contrast"],
-    [/saturé/gi, "vibrant saturated colors"],
+    [/saturé/gi, "vibrant saturated"],
     [/style\s+(?:artistique|art)/gi, "artistic fine art style"],
-    [/style\s+vintage|effet\s+vintage/gi, "vintage retro photography style"],
+    [/style\s+vintage|effet\s+vintage/gi, "vintage retro style"],
     [/style\s+cinématographique|look\s+ciném/gi, "cinematic film style"],
-    [/style\s+(?:magazine|fashion)/gi, "high fashion magazine editorial style"],
+    [/style\s+(?:magazine|fashion)/gi, "high fashion editorial style"],
     [/style\s+(?:luxe|luxueux)/gi, "luxury high-end style"],
-    [/dessin\s+animé|cartoon/gi, "cartoon illustration style"],
-    [/peinture\s+(?:à\s+l'huile|huile)/gi, "oil painting artistic style"],
-    [/aquarelle/gi, "watercolor painting style"],
-    [/anime|manga/gi, "anime manga style"],
-    [/effet\s+3d/gi, "3D CGI rendering style"],
+    [/peinture\s+(?:à\s+l'huile|huile)/gi, "oil painting style"],
+    [/aquarelle/gi, "watercolor style"],
+    [/anime|manga/gi, "anime style"],
+    [/effet\s+3d/gi, "3D CGI style"],
     [/réaliste|réalisme/gi, "photorealistic"],
     [/professionnel/gi, "professional"],
-    [/futuriste|cyberpunk/gi, "futuristic cyberpunk aesthetic"],
-    [/luxueux|luxe/gi, "luxury high-end"],
-    [/lumière\s+(?:dorée|chaude)/gi, "warm golden hour lighting"],
+    [/futuriste|cyberpunk/gi, "futuristic cyberpunk"],
+    [/luxueux|luxe/gi, "luxury"],
+    [/lumière\s+(?:dorée|chaude)/gi, "warm golden lighting"],
     [/lumière\s+naturelle/gi, "soft natural daylight"],
     [/lumière\s+(?:de\s+)?studio/gi, "professional studio lighting"],
     [/éclairage\s+(?:dramatique|fort)/gi, "dramatic cinematic lighting"],
-    [/coucher\s+de\s+soleil/gi, "golden sunset lighting"],
-    [/lever\s+de\s+soleil/gi, "soft sunrise lighting"],
+    [/coucher\s+de\s+soleil/gi, "golden sunset"],
+    [/lever\s+de\s+soleil/gi, "soft sunrise"],
     [/néon/gi, "neon lights"],
-    [/lumière\s+bleue/gi, "blue light"],
-    [/lumière\s+rose/gi, "pink light"],
     [/tenue\s+de\s+soirée|costume\s+de\s+soirée/gi, "elegant formal evening attire"],
     [/tenue\s+(?:décontractée|casual)/gi, "casual stylish outfit"],
-    [/tenue\s+sportive|look\s+sportif/gi, "athletic sportswear outfit"],
-    [/costume\s+(?:de\s+)?superhéros/gi, "superhero costume"],
+    [/tenue\s+sportive|look\s+sportif/gi, "athletic sportswear"],
     [/tenue\s+militaire/gi, "military uniform"],
     [/tenue\s+royale|robe\s+royale/gi, "royal elegant gown"],
-    [/smoking/gi, "elegant black tuxedo"],
-    [/en\s+costume/gi, "wearing a tailored suit"],
+    [/smoking/gi, "black tuxedo"],
+    [/en\s+costume/gi, "in a tailored suit"],
     [/robe\s+rouge/gi, "red dress"],
     [/en\s+jean/gi, "wearing jeans"],
     [/cheveux\s+blonds/gi, "blonde hair"],
@@ -328,10 +400,9 @@ function translateToEnglish(text: string): string {
     [/rasé/gi, "clean-shaven"],
     [/maquillage\s+(?:fort|prononcé)/gi, "bold dramatic makeup"],
     [/maquillage\s+naturel/gi, "natural minimal makeup"],
-    [/sans\s+maquillage/gi, "no makeup natural look"],
-    [/haute\s+qualité|hd|4k|8k/gi, "ultra high definition quality"],
-    [/améliore?\s+(?:la\s+)?qualité/gi, "improve overall image quality"],
-    [/nettoie?\s+(?:la\s+)?photo/gi, "clean and enhance the photo"],
+    [/sans\s+maquillage/gi, "no makeup"],
+    [/haute\s+qualité|hd|4k|8k/gi, "ultra high definition"],
+    [/améliore?\s+(?:la\s+)?qualité/gi, "improve image quality"],
     [/\bavec\s+/gi, "with "],
     [/\bsur\s+/gi, "on "],
     [/\bdans\s+/gi, "in "],
@@ -344,7 +415,6 @@ function translateToEnglish(text: string): string {
     [/\bde\b/gi, "of"],
     [/\bet\b/gi, "and"],
   ];
-
   let result = text;
   for (const [pattern, replacement] of rules) {
     result = result.replace(pattern, replacement);
@@ -359,7 +429,6 @@ async function downloadImageAsBase64(url: string): Promise<string | null> {
     const res = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Referer":    "https://en.wikipedia.org/",
         "Accept":     "image/webp,image/jpeg,image/png,image/*",
       },
     });
@@ -390,21 +459,20 @@ function extractUrl(output: unknown): string {
 
 // ─── ASYNC JOB API ────────────────────────────────────────────────────────────
 //
-// Créer pipeline:   text-to-image model (auto-fallback chain) → optional upscale (Ultra)
-//                   face-swap is NOT used in this mode
-// SwapFace pipeline: face-swap → optional upscale (Ultra)
+// Créer mode:    text-to-image model (auto-fallback chain) → optional upscale (Ultra)
+// SwapFace mode: face-swap → optional upscale (Ultra)
 
 export type AsyncJobConfig = {
   mode:        "style" | "swapface";
   qualityTier: keyof typeof QUALITY_SETTINGS;
   prompt?:     string;
+  negPrompt?:  string;
   width?:      number;
   height?:     number;
-  sourceB64?:  string;   // swapface only: user's face
-  modelIndex?: number;   // style only: current index in STYLE_MODELS (for fallback)
+  sourceB64?:  string;   // swapface only
+  modelIndex?: number;   // style only: current index in STYLE_MODELS
 };
 
-// Wraps replicate.predictions.create for versioned and unversioned model specs
 async function createPred(
   spec:  string,
   input: Record<string, unknown>,
@@ -426,9 +494,10 @@ export function buildAsyncJobConfig(
     return { mode: "swapface", qualityTier: tier, sourceB64 };
   }
 
-  const prompt = buildStylePrompt(
-    input.customPrompt   ?? "",
-    input.stylePrompt    ?? "",
+  const { positive, negative } = buildStylePrompt(
+    input.customPrompt      ?? "",
+    input.stylePrompt       ?? "",
+    input.personDescription ?? "",
     input.renderStyle,
     input.transformIntensity,
     input.preserveOutfit ?? false,
@@ -439,17 +508,17 @@ export function buildAsyncJobConfig(
   return {
     mode:        "style",
     qualityTier: tier,
-    prompt,
+    prompt:      positive,
+    negPrompt:   negative,
     width:       dims.width,
     height:      dims.height,
     modelIndex:  0,
   };
 }
 
-// Start step 1 — returns Replicate prediction ID immediately (non-blocking)
 export async function startAsyncJob(
   config:     AsyncJobConfig,
-  targetB64?: string, // swapface only: the target photo
+  targetB64?: string,
 ): Promise<string> {
   if (config.mode === "swapface") {
     const p = await createPred(MODELS.faceSwap, {
@@ -459,15 +528,21 @@ export async function startAsyncJob(
     return p.id;
   }
 
-  // Style: pick model from fallback chain
   const modelIdx = config.modelIndex ?? 0;
   const model    = STYLE_MODELS[modelIdx];
-  if (!model) throw new Error(`Tous les ${STYLE_MODEL_COUNT} modèles ont échoué — réessayez plus tard`);
+  if (!model) throw new Error(`Tous les ${STYLE_MODEL_COUNT} modèles ont échoué`);
 
-  console.log(`[Pipeline] Style model [${modelIdx}/${STYLE_MODEL_COUNT - 1}]: ${model.spec}`);
+  console.log(`[Pipeline] Model [${modelIdx}]: ${model.spec}`);
+  console.log(`[Pipeline] Prompt: "${(config.prompt ?? "").slice(0, 200)}"`);
+
   const p = await createPred(
     model.spec,
-    model.buildInput(config.prompt!, config.width ?? 832, config.height ?? 1152),
+    model.buildInput(
+      config.prompt    ?? "",
+      config.negPrompt ?? NEG,
+      config.width  ?? 832,
+      config.height ?? 1152,
+    ),
   );
   return p.id;
 }
@@ -476,7 +551,6 @@ export type AdvanceResult =
   | { done: true;  outputUrl: string }
   | { done: false; predictionId: string; step: number };
 
-// Called by the poll handler after a prediction succeeds.
 export async function advanceAsyncJob(
   config:     AsyncJobConfig,
   step:       number,
@@ -494,7 +568,7 @@ export async function advanceAsyncJob(
     return { done: true, outputUrl };
   }
 
-  // ── STYLE step 1: text-to-image done → optional upscale (Ultra) or done ──
+  // ── STYLE step 1: generation done → optional upscale (Ultra) or done ─────
   if (step === 1) {
     if (q.upscale) {
       const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
