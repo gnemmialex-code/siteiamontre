@@ -97,6 +97,63 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
   throw new Error("Max retries exceeded");
 }
 
+// ─── HIDDEN SYSTEM CONTEXT ───────────────────────────────────────────────────
+//
+// Injected silently into every generation prompt.
+// Never exposed in the UI. Guides the model for maximum precision on:
+//   • biometric identity preservation
+//   • public figure recognition & accuracy
+//   • scene-only transformation
+//   • photorealistic integration quality
+
+const HIDDEN_SYSTEM_CONTEXT =
+  "PRECISION PORTRAIT TRANSFORMATION DIRECTIVE — " +
+
+  "PHASE 1 · BIOMETRIC ANALYSIS: Perform a thorough analysis of the provided reference photograph before generating anything. " +
+  "Detect, identify, and permanently lock the following subject attributes that must remain absolutely unchanged in the output: " +
+  "complete facial geometry — jawbone width and angle, cheekbone height and prominence, forehead height and width, chin shape and projection, " +
+  "orbital socket depth and brow ridge; eye characteristics — iris color and pattern, pupil size, mono-lid or double-lid fold, " +
+  "inter-pupillary distance, eyebrow shape thickness and arch, under-eye area; " +
+  "nose bridge height and width, nasal tip shape and projection, nostril shape and flare; " +
+  "lip vermilion border shape, lip fullness upper and lower ratio, philtrum depth and shape; " +
+  "skin tone with precise classification — identify Fitzpatrick phototype (I through VI) and undertone (warm golden / cool rosy / neutral olive), " +
+  "visible skin texture, pores, any moles, birthmarks, freckles, scars, or distinguishing marks; " +
+  "hair natural base color, highlight pattern, hair texture (straight/wavy/curly/coily), density, hairline shape, parting. " +
+
+  "PHASE 2 · IDENTITY INTELLIGENCE: If the subject appears to be a recognizable public figure — " +
+  "celebrity, professional athlete, actor, musician, artist, content creator, politician, historical figure, model, influencer, or any notable personality — " +
+  "immediately cross-reference all available knowledge from training data to precisely verify and apply: " +
+  "their documented facial features and authentic appearance, known signature style elements, " +
+  "frequently photographed settings and environments associated with them, " +
+  "characteristic poses, expressions, and visual identity markers. " +
+  "If any person is referenced by name in the user prompt, use this same knowledge verification process " +
+  "to ensure they are represented with factual accuracy, correct physical appearance, and appropriate contextual realism. " +
+  "Resolve any ambiguity in favor of the most documented and visually verified version of that individual. " +
+
+  "PHASE 3 · SCENE TRANSFORMATION SCOPE: Apply the user's creative request EXCLUSIVELY to environmental and contextual elements. " +
+  "Permitted transformations: background environment, location, architectural setting, natural landscape; " +
+  "ambient atmosphere and weather conditions; directional and ambient lighting color and intensity; " +
+  "clothing, footwear, accessories, jewelry, hats, glasses; " +
+  "hairstyle only if explicitly requested; scene props and compositional framing; color grading and mood. " +
+  "Strictly prohibited alterations: facial geometry, facial proportions, skin tone, eye color, " +
+  "age appearance, ethnicity, sex, biometric identity markers, and any physical feature not explicitly requested for change. " +
+
+  "PHASE 4 · PHOTOGRAPHIC INTEGRATION STANDARDS: Achieve seamless, physically plausible integration of the subject into the new scene. " +
+  "Lighting on subject's face must precisely match the scene's dominant light source — direction, distance, color temperature (Kelvin), and falloff. " +
+  "Cast shadows must follow physically accurate geometry from all light sources. " +
+  "Maintain realistic depth-of-field consistent with the scene's focal length and subject-to-background distance. " +
+  "Skin rendering: preserve natural skin pore texture, subtle subsurface scattering, no plastic over-smoothing, no over-sharpening halos. " +
+  "Hair rendering: individual strand detail, flyaways, natural light interaction — no painted or clumped appearance. " +
+  "Color science: subject skin tones must integrate naturally with scene color temperature — no color spill anomalies. " +
+  "Unless image enhancement is explicitly requested in the user prompt, match or respect the original photograph's " +
+  "native resolution, grain level, sharpness, and technical quality characteristics — do not over-process or over-enhance. " +
+
+  "PHASE 5 · FINAL OUTPUT MANDATE: " +
+  "Produce a fully photorealistic result that is indistinguishable from an authentic photograph captured by a professional photographer. " +
+  "Subject identity 100% preserved. Scene perfectly realized. Lighting physically accurate. " +
+  "No uncanny valley artifacts. No AI generation tells. No face morphing or warping. " +
+  "Professional composition with subject as clear visual focus. Exceptional overall image quality.";
+
 // ─── PROMPT BUILDER ───────────────────────────────────────────────────────────
 //
 // For img2img: the person comes FROM the image — prompt describes the
@@ -127,13 +184,16 @@ function buildStylePrompt(
   const outfitNote    = preserveOutfit ? "preserve original clothing" : "";
   const renderDesc    = RENDER_STYLE_PROMPTS[renderStyle ?? ""] ?? "";
 
-  const positive = [
+  const sceneAndQuality = [
     sceneDesc,
     intensityNote,
     outfitNote,
     renderDesc,
     "photorealistic, high resolution, professional photography, sharp focus",
   ].filter(Boolean).join(", ").replace(/,\s*,+/g, ",").replace(/\s+/g, " ").trim();
+
+  // Prepend the hidden system context — never shown in UI, always sent to model
+  const positive = `${HIDDEN_SYSTEM_CONTEXT} — USER REQUEST: ${sceneAndQuality}`;
 
   return { positive, negative: NEG };
 }
