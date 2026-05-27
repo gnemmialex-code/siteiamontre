@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 import {
   Sparkles, Download, Trash2, Zap, Plus, LogOut,
   Shuffle, Film, Crown, Settings, History,
-  ChevronRight, Check, Star, Replace, PlusCircle, AlertCircle,
+  ChevronRight, Check, Star, Replace, PlusCircle, AlertCircle, StopCircle,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { resizeImageFile } from "@/lib/resize-image";
@@ -330,6 +330,9 @@ export default function DashboardPage() {
   const [resultStyle,   setResultStyle]   = useState<string>("");
   const [deletingId,    setDeletingId]    = useState<string | null>(null);
 
+  const cancelRef    = useRef(false);
+  const activePredRef = useRef<{ jobId?: string; predId?: string }>({});
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null));
     Promise.all([fetchGenerations(), fetchStats()]).finally(() => setLoading(false));
@@ -431,6 +434,18 @@ export default function DashboardPage() {
     return iv;
   };
 
+  const handleCancel = async () => {
+    cancelRef.current = true;
+    const { jobId, predId } = activePredRef.current;
+    try {
+      await fetch("/api/generate/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ job_id: jobId, prediction_id: predId }),
+      });
+    } catch { /* silent */ }
+  };
+
   const handleGenerate = async () => {
     setError(null);
     if (!consent) { setError("Veuillez accepter les conditions."); return; }
@@ -472,6 +487,8 @@ export default function DashboardPage() {
 
     setIsGenerating(true);
     setGenProgress(0);
+    cancelRef.current = false;
+    activePredRef.current = {};
     const iv = simulateProgress();
 
     try {
@@ -489,16 +506,20 @@ export default function DashboardPage() {
 
       const jobId        = startData.job_id        as string | undefined;
       const predictionId = startData.prediction_id as string | undefined;
+      activePredRef.current = { jobId, predId: predictionId };
 
       // ── POLL until done ────────────────────────────────────────────────────
       const STEP_LABELS: Record<number, string> = {
         1: "Génération IA en cours…",
-        2: "Finalisation Ultra 4K…",
+        2: "Injection du visage…",
+        3: "Finalisation Ultra 4K…",
       };
 
       let outputUrl: string | null = null;
       for (let attempt = 0; attempt < 180; attempt++) {
         await new Promise((r) => setTimeout(r, 3000));
+
+        if (cancelRef.current) throw new Error("__CANCELED__");
 
         const pollUrl = jobId
           ? `/api/generate/poll?job_id=${jobId}`
@@ -521,8 +542,9 @@ export default function DashboardPage() {
         // Update progress label based on current step
         const step = (poll.step as number) ?? 1;
         const label = STEP_LABELS[step] ?? "Génération en cours…";
-        setGenProgress(Math.min(95, 20 + step * 25));
+        setGenProgress(Math.min(92, 15 + step * 26));
         if (attempt === 0) toast.loading(label, { id: "gen-progress" });
+        else toast.loading(label, { id: "gen-progress" });
       }
 
       toast.dismiss("gen-progress");
@@ -540,10 +562,15 @@ export default function DashboardPage() {
       clearInterval(iv);
       toast.dismiss("gen-progress");
       const msg = err instanceof Error ? err.message : "Erreur inconnue";
-      setError(msg);
-      toast.error(msg);
+      if (msg === "__CANCELED__") {
+        toast("Génération annulée", { icon: "🛑" });
+      } else {
+        setError(msg);
+        toast.error(msg);
+      }
     } finally {
       setIsGenerating(false);
+      activePredRef.current = {};
     }
   };
 
@@ -861,6 +888,8 @@ export default function DashboardPage() {
                           setConsent={setConsent}
                           error={error}
                           onGenerate={handleGenerate}
+                          onCancel={handleCancel}
+                          isGenerating={isGenerating}
                           canGenerate={!!(styleFile && (selectedStyle || freePrompt.trim()) && consent)}
                           credits={100}
                           step={selectedStyle ? 6 : 5}
@@ -955,7 +984,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       <div className="lg:col-span-1">
-                        <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} canGenerate={!!(swapSrcFile && swapTgtFile && consent)} credits={120} step={3} plan={stats?.plan} />
+                        <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} onCancel={handleCancel} isGenerating={isGenerating} canGenerate={!!(swapSrcFile && swapTgtFile && consent)} credits={120} step={3} plan={stats?.plan} />
                       </div>
                     </div>
                   )}
@@ -1000,7 +1029,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       <div className="lg:col-span-1">
-                        <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} canGenerate={!!(videoFile && videoPrompt && consent)} credits={150} step={4} />
+                        <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} onCancel={handleCancel} isGenerating={isGenerating} canGenerate={!!(videoFile && videoPrompt && consent)} credits={150} step={4} />
                       </div>
                     </div>
                   )}
@@ -1056,6 +1085,15 @@ export default function DashboardPage() {
                                   />
                                 </div>
                                 <p className="text-accent-violet text-xs font-bold">{Math.round(genProgress)}%</p>
+                                <motion.button
+                                  onClick={handleCancel}
+                                  whileHover={{ scale: 1.04 }}
+                                  whileTap={{ scale: 0.96 }}
+                                  className="mt-1 flex items-center gap-1.5 px-4 py-1.5 rounded-xl border border-red-500/40 text-red-400 hover:bg-red-500/10 text-xs font-semibold transition-all"
+                                >
+                                  <StopCircle className="w-3.5 h-3.5" />
+                                  Arrêter
+                                </motion.button>
                               </>
                             ) : (
                               <>
@@ -1234,12 +1272,14 @@ function StepBadge({ n }: { n: number }) {
 }
 
 function GenerateCard({
-  consent, setConsent, error, onGenerate, canGenerate, credits, step, plan,
+  consent, setConsent, error, onGenerate, onCancel, isGenerating, canGenerate, credits, step, plan,
 }: {
   consent: boolean;
   setConsent: (v: boolean) => void;
   error: string | null;
   onGenerate: () => void;
+  onCancel?: () => void;
+  isGenerating?: boolean;
   canGenerate: boolean;
   credits: number;
   step: number;
@@ -1274,23 +1314,35 @@ function GenerateCard({
         </div>
       )}
 
-      <motion.button
-        onClick={onGenerate}
-        disabled={!canGenerate}
-        whileHover={canGenerate ? { scale: 1.02 } : {}}
-        whileTap={canGenerate ? { scale: 0.97 } : {}}
-        className="btn-primary w-full py-3.5 text-base flex items-center justify-center gap-2 relative overflow-hidden disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        {canGenerate && (
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent"
-            animate={{ x: ["-120%", "220%"] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
-          />
-        )}
-        <Sparkles className="w-5 h-5 relative z-10" />
-        <span className="relative z-10">Générer {qBadge.label} — {credits} crédits</span>
-      </motion.button>
+      {isGenerating ? (
+        <motion.button
+          onClick={onCancel}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          className="w-full py-3.5 text-base flex items-center justify-center gap-2 rounded-2xl border border-red-500/40 text-red-400 hover:bg-red-500/10 font-semibold transition-all"
+        >
+          <StopCircle className="w-5 h-5" />
+          Arrêter la génération
+        </motion.button>
+      ) : (
+        <motion.button
+          onClick={onGenerate}
+          disabled={!canGenerate}
+          whileHover={canGenerate ? { scale: 1.02 } : {}}
+          whileTap={canGenerate ? { scale: 0.97 } : {}}
+          className="btn-primary w-full py-3.5 text-base flex items-center justify-center gap-2 relative overflow-hidden disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {canGenerate && (
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent"
+              animate={{ x: ["-120%", "220%"] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
+            />
+          )}
+          <Sparkles className="w-5 h-5 relative z-10" />
+          <span className="relative z-10">Générer {qBadge.label} — {credits} crédits</span>
+        </motion.button>
+      )}
 
       <div className="mt-3 flex items-center justify-center gap-4 text-xs text-white/25 flex-wrap">
         <span>🔒 Photo supprimée après traitement</span>
