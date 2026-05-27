@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
-import { runPipeline } from "@/scripts/pipeline";
+import {
+  buildAsyncJobConfig,
+  startAsyncJob,
+  type AsyncJobConfig,
+  type PipelineInput,
+} from "@/scripts/pipeline";
 import { validateImageFile } from "@/lib/validation";
 import { uploadToStorage } from "@/lib/storage";
 
-export const maxDuration = 300;
+export const maxDuration = 60;
 
-const MAX_FILE_SIZE = 15 * 1024 * 1024;
+const MAX_FILE_SIZE    = 15 * 1024 * 1024;
 const CREDITS_PER_IMAGE = 100;
+const BUCKET           = "celebswap-images";
 
 function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -24,14 +30,16 @@ async function uploadFile(
   supabase: Awaited<ReturnType<typeof createSupabaseServer>>,
   file: File,
   userId: string,
-): Promise<string> {
+): Promise<{ url: string; b64: string }> {
   const validation = validateImageFile(file, MAX_FILE_SIZE);
   if (!validation.valid) throw new Error(validation.error);
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const ext    = file.name.split(".").pop() ?? "jpg";
   const path   = `inputs/${userId}/${generateId()}.${ext}`;
-  return uploadToStorage(supabase, buffer, path, file.type);
+  const url    = await uploadToStorage(supabase, buffer, path, file.type);
+  const b64    = `data:${file.type};base64,${buffer.toString("base64")}`;
+  return { url, b64 };
 }
 
 export async function POST(req: NextRequest) {
@@ -56,11 +64,10 @@ export async function POST(req: NextRequest) {
 
   const mode = (formData.get("mode") as string) ?? "style";
 
-  // ── Vérification des crédits + lecture du plan ───────────────────────────
+  // ── Vérification des crédits + lecture du plan ─────────────────────────────
   let qualityTier: "free" | "essentiel" | "pro" | "ultra" = "free";
 
   if (userId) {
-    // Read credits (always works)
     const { data: creditData } = await supabase
       .from("users")
       .select("credits")
@@ -71,7 +78,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Crédits insuffisants" }, { status: 402 });
     }
 
-    // Read plan_id (graceful — column may not exist yet)
     try {
       const { data: planData } = await supabase
         .from("users")
@@ -86,52 +92,44 @@ export async function POST(req: NextRequest) {
 
   const effectiveUserId = userId ?? "anon";
 
-  // ── Options de génération ────────────────────────────────────────────────
-  const engine            = ((formData.get("engine") as string | null) ?? "ideogram") as "ideogram" | "flux";
-  const renderStyle       = (formData.get("render_style")    as string | null) ?? undefined;
+  // ── Options de génération ──────────────────────────────────────────────────
+  const engine             = ((formData.get("engine") as string | null) ?? "ideogram") as "ideogram" | "flux";
+  const renderStyle        = (formData.get("render_style")    as string | null) ?? undefined;
   const transformIntensity = (formData.get("intensity")       as string | null) ?? "moderate";
-  const outputFormat      = (formData.get("output_format")   as string | null) ?? "auto";
-  const preserveOutfit    = (formData.get("preserve_outfit") as string | null) === "1";
+  const outputFormat       = (formData.get("output_format")   as string | null) ?? "auto";
+  const preserveOutfit     = (formData.get("preserve_outfit") as string | null) === "1";
 
   try {
-    let outputUrl: string;
+    const generationId = generateId();
     let styleLabel: string;
     let inputImageForRecord = "";
+    let predictionId: string;
+    let jobConfig: AsyncJobConfig;
 
     if (mode === "swapface") {
-      // ── MODE SWAPFACE ──────────────────────────────────────────────────────
+      // ── SWAPFACE ──────────────────────────────────────────────────────────
       const sourceFile = formData.get("source_image") as File | null;
       const targetFile = formData.get("target_image") as File | null;
-      const faceIndex  = (formData.get("face_index")  as string) ?? "auto";
-      const extraPrompt = (formData.get("extra_prompt") as string) ?? "";
-
       if (!sourceFile || !targetFile) {
         return NextResponse.json({ error: "Images source et cible requises" }, { status: 400 });
       }
-
-      const [sourceUrl, targetUrl] = await Promise.all([
+      const [src, tgt] = await Promise.all([
         uploadFile(supabase, sourceFile, effectiveUserId),
         uploadFile(supabase, targetFile, effectiveUserId),
       ]);
+      inputImageForRecord = src.url;
+      styleLabel          = "SwapFace";
 
-      inputImageForRecord = sourceUrl;
-      outputUrl = await runPipeline({
-        mode: "swapface",
-        sourceImageUrl: sourceUrl,
-        targetImageUrl: targetUrl,
-        faceIndex,
-        extraPrompt,
-        qualityTier,
-      });
-      styleLabel = "SwapFace";
+      jobConfig    = buildAsyncJobConfig({ mode: "swapface", qualityTier } as PipelineInput, src.b64);
+      predictionId = await startAsyncJob(jobConfig, tgt.b64);
 
     } else if (mode === "style") {
-      // ── MODE STYLE IA ──────────────────────────────────────────────────────
+      // ── STYLE IA ──────────────────────────────────────────────────────────
       const imageFile      = formData.get("image")        as File | null;
       const styleId        = formData.get("style_id")     as string | null;
       const rawStylePrompt = formData.get("style_prompt") as string | null;
       const customPrompt   = (formData.get("custom_prompt") as string) ?? "";
-      styleLabel = (formData.get("style_label") as string) ?? "Génération IA";
+      styleLabel           = (formData.get("style_label") as string) ?? "Génération IA";
 
       if (!imageFile) {
         return NextResponse.json({ error: "Photo requise" }, { status: 400 });
@@ -143,11 +141,11 @@ export async function POST(req: NextRequest) {
       const stylePrompt = rawStylePrompt
         || "photorealistic portrait, ultra HD, professional photography, perfect lighting";
 
-      const inputImageUrl = await uploadFile(supabase, imageFile, effectiveUserId);
+      const { url: inputImageUrl, b64: sourceB64 } = await uploadFile(supabase, imageFile, effectiveUserId);
       inputImageForRecord = inputImageUrl;
 
-      outputUrl = await runPipeline({
-        mode: "style",
+      const pipelineInput: PipelineInput = {
+        mode:              "style",
         inputImageUrl,
         styleId:           styleId ?? "custom",
         stylePrompt,
@@ -158,31 +156,32 @@ export async function POST(req: NextRequest) {
         transformIntensity,
         outputFormat,
         preserveOutfit,
-      });
+      };
+
+      jobConfig    = buildAsyncJobConfig(pipelineInput, sourceB64);
+      predictionId = await startAsyncJob(jobConfig);
 
     } else {
       return NextResponse.json({ error: "Ce mode n'est pas encore disponible" }, { status: 400 });
     }
 
-    // ── Sauvegarder + déduire les crédits ────────────────────────────────────
-    const generationId = generateId();
-
+    // ── Déduire les crédits + sauvegarder le job ────────────────────────────
     if (userId) {
       await supabase.rpc("decrement_credits", { user_id: userId, amount: CREDITS_PER_IMAGE });
       await supabase.from("generations").insert({
-        id: generationId,
-        user_id: userId,
+        id:              generationId,
+        user_id:         userId,
         input_image_url: inputImageForRecord,
-        output_image_url: outputUrl,
-        style: styleLabel,
+        output_image_url: "",
+        style:           styleLabel,
+        status:          "pending",
+        prediction_id:   predictionId,
+        step:            1,
+        job_config:      jobConfig,
       });
     }
 
-    const response = NextResponse.json({
-      generation_id: generationId,
-      output_image_url: outputUrl,
-      style: styleLabel,
-    });
+    const response = NextResponse.json({ job_id: generationId, prediction_id: predictionId });
 
     if (!userId) {
       response.cookies.set("free_gen_used", "1", {

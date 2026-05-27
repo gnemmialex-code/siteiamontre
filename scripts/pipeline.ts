@@ -733,3 +733,167 @@ function extractUrl(output: unknown): string {
     return String((output as { url: string }).url);
   throw new Error("Aucune URL retournée par le modèle IA");
 }
+
+// ─── ASYNC JOB API ────────────────────────────────────────────────────────────
+//
+// Used by POST /api/generate (starts job, returns immediately) and
+// GET /api/generate/poll (checks + advances pipeline, each call <5s).
+// This avoids Vercel function timeouts for multi-step AI pipelines.
+
+export type AsyncJobConfig = {
+  pipeline:         "ideogram" | "flux";
+  mode:             "style" | "swapface";
+  qualityTier:      keyof typeof QUALITY_SETTINGS;
+  ideogramPrompt?:  string;
+  ideogramAspect?:  string;
+  fluxInstruction?: string;
+  fluxAspect?:      string;
+  fluxQuality?:     number;
+  fluxFormat?:      string;
+  sourceB64?:       string; // user's face, stored so the poll handler can use it for face-swap
+};
+
+// Wraps replicate.predictions.create for both versioned and unversioned model specs
+async function createPred(
+  spec:  string,
+  input: Record<string, unknown>,
+): Promise<{ id: string }> {
+  const colonIdx = spec.lastIndexOf(":");
+  if (colonIdx > 5 && spec.length - colonIdx > 20) {
+    return replicate.predictions.create({ version: spec.substring(colonIdx + 1), input });
+  }
+  return replicate.predictions.create({ model: spec, input });
+}
+
+export function buildAsyncJobConfig(
+  input:     PipelineInput,
+  sourceB64: string,
+): AsyncJobConfig {
+  const tier   = input.qualityTier ?? "essentiel";
+  const q      = QUALITY_SETTINGS[tier];
+  const engine = input.engine ?? "ideogram";
+
+  if (input.mode === "swapface") {
+    return { pipeline: "ideogram", mode: "swapface", qualityTier: tier, sourceB64 };
+  }
+
+  if (engine === "ideogram") {
+    return {
+      pipeline:       "ideogram",
+      mode:           "style",
+      qualityTier:    tier,
+      sourceB64,
+      ideogramPrompt: buildIdeogramPrompt(
+        input.customPrompt   ?? "",
+        input.stylePrompt    ?? "",
+        input.renderStyle,
+        input.transformIntensity,
+        input.preserveOutfit ?? false,
+      ),
+      ideogramAspect: IDEOGRAM_ASPECT_RATIOS[input.outputFormat ?? "auto"] ?? "3:4",
+    };
+  }
+
+  return {
+    pipeline:        "flux",
+    mode:            "style",
+    qualityTier:     tier,
+    sourceB64,
+    fluxInstruction: buildEditInstruction(
+      input.customPrompt   ?? "",
+      input.stylePrompt    ?? "",
+      input.renderStyle,
+      input.transformIntensity,
+      input.preserveOutfit ?? false,
+    ),
+    fluxAspect:  ASPECT_RATIOS[input.outputFormat ?? "auto"] ?? "match_input_image",
+    fluxQuality: q.quality,
+    fluxFormat:  q.format,
+  };
+}
+
+// Start step 1 — returns Replicate prediction ID immediately (non-blocking)
+export async function startAsyncJob(
+  config:    AsyncJobConfig,
+  targetB64?: string, // swapface mode: target image
+): Promise<string> {
+  const sourceB64 = config.sourceB64!;
+
+  if (config.mode === "swapface") {
+    const p = await createPred(MODELS.faceSwap, { swap_image: sourceB64, input_image: targetB64! });
+    return p.id;
+  }
+  if (config.pipeline === "ideogram") {
+    const p = await createPred(MODELS.ideogramV3Turbo, {
+      prompt:       config.ideogramPrompt!,
+      aspect_ratio: config.ideogramAspect!,
+    });
+    return p.id;
+  }
+  // FLUX
+  const p = await createPred(MODELS.fluxKontextMax, {
+    image:             sourceB64,
+    prompt:            config.fluxInstruction!,
+    aspect_ratio:      config.fluxAspect!,
+    output_format:     config.fluxFormat!,
+    output_quality:    config.fluxQuality!,
+    safety_tolerance:  6,
+    prompt_upsampling: false,
+  });
+  return p.id;
+}
+
+export type AdvanceResult =
+  | { done: true;  outputUrl: string }
+  | { done: false; predictionId: string; step: number };
+
+// Called by the poll handler after a prediction completes.
+// Starts the next step or returns the final output URL.
+export async function advanceAsyncJob(
+  config:     AsyncJobConfig,
+  step:       number,
+  predOutput: unknown,
+): Promise<AdvanceResult> {
+  const q         = QUALITY_SETTINGS[config.qualityTier];
+  const outputUrl = extractUrl(predOutput);
+  const sourceB64 = config.sourceB64;
+
+  // ── SWAPFACE (1 step + optional upscale) ─────────────────────────────────
+  if (config.mode === "swapface") {
+    if (step === 1 && q.upscale) {
+      const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
+      return { done: false, predictionId: p.id, step: 2 };
+    }
+    return { done: true, outputUrl };
+  }
+
+  // ── IDEOGRAM step 1: scene generated → start face-swap ───────────────────
+  if (config.pipeline === "ideogram" && step === 1) {
+    const sceneB64 = await loadImageAsBase64(outputUrl);
+    const p = await createPred(MODELS.faceSwap, { swap_image: sourceB64!, input_image: sceneB64 });
+    return { done: false, predictionId: p.id, step: 2 };
+  }
+
+  // ── IDEOGRAM step 2: face-swap done → optional upscale ───────────────────
+  if (config.pipeline === "ideogram" && step === 2) {
+    if (q.upscale) {
+      const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
+      return { done: false, predictionId: p.id, step: 3 };
+    }
+    return { done: true, outputUrl };
+  }
+
+  // ── FLUX step 1: edit done → optional upscale ────────────────────────────
+  if (config.pipeline === "flux" && step === 1) {
+    if (q.upscale) {
+      const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
+      return { done: false, predictionId: p.id, step: 2 };
+    }
+    return { done: true, outputUrl };
+  }
+
+  // Final step (upscale done, or any unmatched state)
+  return { done: true, outputUrl };
+}
+
+export { replicate };

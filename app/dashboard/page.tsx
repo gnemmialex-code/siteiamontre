@@ -478,31 +478,71 @@ export default function DashboardPage() {
     const iv = simulateProgress();
 
     try {
+      // ── POST: start job (returns immediately) ──────────────────────────────
       const res = await fetch("/api/generate", { method: "POST", body: formData });
       clearInterval(iv);
-      setGenProgress(100);
 
       if (res.status === 402) { setIsGenerating(false); setShowPaywall(true); return; }
 
       const rawText = await res.text();
-      let data: Record<string, unknown>;
-      try {
-        data = JSON.parse(rawText);
-      } catch {
-        throw new Error(rawText || `Erreur serveur (${res.status})`);
+      let startData: Record<string, unknown>;
+      try { startData = JSON.parse(rawText); }
+      catch { throw new Error(rawText || `Erreur serveur (${res.status})`); }
+      if (!res.ok) throw new Error((startData.error as string) || `Erreur serveur (${res.status})`);
+
+      const jobId        = startData.job_id        as string | undefined;
+      const predictionId = startData.prediction_id as string | undefined;
+
+      // ── POLL until done ────────────────────────────────────────────────────
+      const STEP_LABELS: Record<number, string> = {
+        1: "Génération de la scène IA…",
+        2: "Application du visage…",
+        3: "Upscaling 4K…",
+      };
+
+      let outputUrl: string | null = null;
+      for (let attempt = 0; attempt < 120; attempt++) {
+        await new Promise((r) => setTimeout(r, 3000));
+
+        const pollUrl = jobId
+          ? `/api/generate/poll?job_id=${jobId}`
+          : `/api/generate/poll?prediction_id=${predictionId}`;
+
+        const pollRes  = await fetch(pollUrl);
+        const pollText = await pollRes.text();
+        let poll: Record<string, unknown>;
+        try { poll = JSON.parse(pollText); }
+        catch { throw new Error(pollText || "Erreur de poll"); }
+
+        if (poll.status === "done" && poll.output_image_url) {
+          outputUrl = poll.output_image_url as string;
+          break;
+        }
+        if (poll.status === "error") {
+          throw new Error((poll.error as string) || "Erreur lors de la génération");
+        }
+
+        // Update progress label based on current step
+        const step = (poll.step as number) ?? 1;
+        const label = STEP_LABELS[step] ?? "Génération en cours…";
+        setGenProgress(Math.min(95, 20 + step * 25));
+        if (attempt === 0) toast.loading(label, { id: "gen-progress" });
       }
-      if (!res.ok) {
-        throw new Error((data.error as string) || `Erreur serveur (${res.status})`);
-      }
-      if (data.output_image_url) {
-        setResultUrl(data.output_image_url as string);
-        setResultStyle((data.style as string) ?? "");
-        toast.success("Génération terminée !");
-        await fetchGenerations();
-        await fetchStats();
-      }
+
+      toast.dismiss("gen-progress");
+
+      if (!outputUrl) throw new Error("Délai dépassé — réessayez");
+
+      setGenProgress(100);
+      setResultUrl(outputUrl);
+      setResultStyle("");
+      toast.success("Génération terminée !");
+      await fetchGenerations();
+      await fetchStats();
+
     } catch (err: unknown) {
       clearInterval(iv);
+      toast.dismiss("gen-progress");
       const msg = err instanceof Error ? err.message : "Erreur inconnue";
       setError(msg);
       toast.error(msg);
