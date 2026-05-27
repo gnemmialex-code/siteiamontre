@@ -32,16 +32,6 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: StyleModelSpec[] = [
   {
-    spec: "black-forest-labs/flux-dev",
-    buildInput: (prompt, _neg, width, height) => ({
-      prompt,
-      aspect_ratio:        toAspectRatio(width, height),
-      num_inference_steps: 28,
-      guidance:            3.5,
-      output_format:       "jpg",
-    }),
-  },
-  {
     spec: "luma/photon-flash",
     buildInput: (prompt, _neg, width, height) => ({
       prompt,
