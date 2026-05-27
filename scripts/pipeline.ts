@@ -169,15 +169,9 @@ async function runIdeogramFaceSwapPipeline(
   console.log(`[Pipeline] Ideogram v3 Turbo prompt: "${ideogramPrompt.slice(0, 200)}"`);
   console.log(`[Pipeline] Ideogram aspect ratio: ${aspectRatio}`);
 
-  // Step 1: Generate scene with Ideogram
-  let sceneUrl: string;
-  try {
-    sceneUrl = await withRetry(() => runIdeogramV3Turbo(ideogramPrompt, aspectRatio));
-    console.log(`[Pipeline] Ideogram scene: ${sceneUrl.slice(0, 80)}`);
-  } catch (err) {
-    console.warn("[Pipeline] Ideogram v3 Turbo failed — falling back to FLUX:", err instanceof Error ? err.message : err);
-    return runFluxEditPipeline(userImageUrl, rawPrompt, stylePrompt, input);
-  }
+  // Step 1: Generate scene with Ideogram — no silent fallback, errors must be visible
+  const sceneUrl = await withRetry(() => runIdeogramV3Turbo(ideogramPrompt, aspectRatio));
+  console.log(`[Pipeline] Ideogram scene: ${sceneUrl.slice(0, 80)}`);
 
   // Step 2: Swap user's face into the generated scene
   console.log("[Pipeline] → Face-swapping user into Ideogram scene…");
@@ -647,12 +641,11 @@ async function loadImageAsBase64(urlOrData: string): Promise<string> {
 
 async function runIdeogramV3Turbo(prompt: string, aspectRatio: string): Promise<string> {
   console.log(`[Pipeline] Ideogram v3 Turbo — aspect: ${aspectRatio}`);
+  console.log(`[Pipeline] Model: ${MODELS.ideogramV3Turbo}`);
   const output = await replicate.run(MODELS.ideogramV3Turbo, {
     input: {
       prompt,
-      aspect_ratio:        aspectRatio,
-      style_type:          "REALISTIC",
-      magic_prompt_option: "OFF",
+      aspect_ratio: aspectRatio,
     },
   });
   const url = extractUrl(output);
