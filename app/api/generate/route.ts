@@ -183,6 +183,19 @@ export async function POST(req: NextRequest) {
         console.error("[Generate] DB insert error:", insertError.message);
         throw new Error(`Erreur DB : ${insertError.message}`);
       }
+
+      // Auto-delete oldest done generations beyond 20 per user
+      const { data: doneGens } = await supabase
+        .from("generations")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("status", "done")
+        .order("created_at", { ascending: false });
+
+      if (doneGens && doneGens.length > 20) {
+        const toDelete = doneGens.slice(20).map((g: { id: string }) => g.id);
+        await supabase.from("generations").delete().in("id", toDelete).eq("user_id", userId);
+      }
     }
 
     const response = NextResponse.json({ job_id: generationId, prediction_id: predictionId });

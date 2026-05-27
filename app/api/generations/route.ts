@@ -16,8 +16,10 @@ export async function GET() {
     .from("generations")
     .select("id, output_image_url, input_image_url, style, created_at")
     .eq("user_id", user.id)
+    .eq("status", "done")
+    .neq("output_image_url", "")
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(20);
 
   if (error) {
     return NextResponse.json({ error: "Erreur de récupération" }, { status: 500 });
