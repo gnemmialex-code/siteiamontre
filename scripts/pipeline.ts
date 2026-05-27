@@ -25,18 +25,6 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    // Primary img2img — reliable, well-documented
-    spec: "stability-ai/sdxl",
-    buildInput: (prompt, neg, imageUrl, strength) => ({
-      image:               imageUrl,
-      prompt,
-      negative_prompt:     neg,
-      prompt_strength:     strength,
-      num_inference_steps: 50,
-    }),
-  },
-  {
-    // Fallback — Realistic Vision v5.1 img2img
     spec: "lucataco/realistic-vision-v5.1",
     buildInput: (prompt, neg, imageUrl, strength) => ({
       init_image:          imageUrl,
