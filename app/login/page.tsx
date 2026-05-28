@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -30,6 +30,16 @@ export default function LoginPage() {
   const [oauthLoading, setOauthLoading] = useState<"google" | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Listen for SIGNED_IN event — fires after session cookie is fully set
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") {
+        window.location.href = "/dashboard";
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);;
+
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!email) errs.email = "Email requis";
@@ -52,7 +62,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       toast.success("Connexion réussie !");
-      router.push("/dashboard");
+      // redirect handled by onAuthStateChange above
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erreur de connexion";
       toast.error(msg === "Invalid login credentials" ? "Email ou mot de passe incorrect" : msg);
