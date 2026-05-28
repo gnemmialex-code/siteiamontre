@@ -1,26 +1,48 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
-
-const PROTECTED_ROUTES = ["/dashboard", "/admin"];
-const AUTH_ROUTES = ["/login", "/register"];
 
 export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  const sessionCookie =
-    req.cookies.get("sb-access-token")?.value ||
-    req.cookies.get(`sb-${process.env.NEXT_PUBLIC_SUPABASE_URL?.split("//")[1]?.split(".")[0]}-auth-token`)?.value;
+  let supabaseResponse = NextResponse.next({ request: req });
 
-  const isAuthenticated = !!sessionCookie;
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
+          supabaseResponse = NextResponse.next({ request: req });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
 
-  if (isAuthenticated && AUTH_ROUTES.some((r) => pathname.startsWith(r))) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+  // Refresh session on every request — required by @supabase/ssr
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Protect /dashboard and /admin
+  if (!user && (pathname.startsWith("/dashboard") || pathname.startsWith("/admin"))) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
   }
 
-  if (!isAuthenticated && PROTECTED_ROUTES.some((r) => pathname.startsWith(r))) {
-    return NextResponse.redirect(new URL("/login", req.url));
+  // Already logged in → skip /login and /register
+  if (user && (pathname === "/login" || pathname === "/register")) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
   }
 
-  return NextResponse.next({ request: req });
+  return supabaseResponse;
 }
 
 export const config = {
