@@ -4,26 +4,42 @@ import { createSupabaseAdmin } from "@/lib/supabase";
 
 export async function GET() {
   const supabase = await createSupabaseServer();
-
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.json({ credits: 0, authenticated: false });
   }
 
-  // Use admin client to bypass RLS and always get plan_id reliably
   const admin = createSupabaseAdmin();
+
+  // Single query with plan_id — admin bypasses RLS
   const { data: userData, error } = await admin
     .from("users")
     .select("credits, created_at, plan_id")
     .eq("id", user.id)
     .single();
 
-  if (error || !userData) {
-    return NextResponse.json({ credits: 0, authenticated: true });
-  }
+  // Fallback if plan_id column doesn't exist yet
+  let credits = 0;
+  let createdAt = "";
+  let planId = "plan_essentiel";
 
-  const planId: string = userData.plan_id ?? "plan_essentiel";
+  if (!error && userData) {
+    credits   = userData.credits ?? 0;
+    createdAt = userData.created_at ?? "";
+    planId    = (userData as Record<string, unknown>).plan_id as string ?? "plan_essentiel";
+  } else {
+    // plan_id column might not exist — retry without it
+    const { data: basic } = await admin
+      .from("users")
+      .select("credits, created_at")
+      .eq("id", user.id)
+      .single();
+    if (basic) {
+      credits   = basic.credits ?? 0;
+      createdAt = basic.created_at ?? "";
+    }
+  }
 
   const [
     { count: totalCount },
@@ -40,13 +56,13 @@ export async function GET() {
   const video = videoCount ?? 0;
 
   return NextResponse.json({
-    credits:              userData.credits,
+    credits,
     plan:                 planId,
     authenticated:        true,
     total_generations:    total,
     image_generations:    total - swap - video,
     swapface_generations: swap,
     video_generations:    video,
-    member_since:         userData.created_at,
+    member_since:         createdAt,
   });
 }

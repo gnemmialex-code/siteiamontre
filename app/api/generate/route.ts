@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
+import { createSupabaseAdmin } from "@/lib/supabase";
 import {
   buildAsyncJobConfig,
   startAsyncJob,
@@ -21,9 +22,21 @@ function generateId(): string {
 
 function planToTier(planId?: string | null): "free" | "essentiel" | "pro" | "ultra" {
   if (!planId) return "essentiel";
-  if (planId.includes("ultra")) return "ultra";
-  if (planId.includes("pro"))   return "pro";
+  const p = planId.toLowerCase();
+  if (p.includes("ultra") || p.includes("elite")) return "ultra";
+  if (p.includes("pro")) return "pro";
   return "essentiel";
+}
+
+async function getUserPlanId(userId: string): Promise<string> {
+  const admin = createSupabaseAdmin();
+  const { data, error } = await admin
+    .from("users")
+    .select("plan_id")
+    .eq("id", userId)
+    .single();
+  if (error || !data?.plan_id) return "plan_essentiel";
+  return data.plan_id;
 }
 
 async function uploadFile(
@@ -78,16 +91,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Crédits insuffisants" }, { status: 402 });
     }
 
-    try {
-      const { data: planData } = await supabase
-        .from("users")
-        .select("plan_id")
-        .eq("id", userId)
-        .single();
-      qualityTier = planToTier(planData?.plan_id as string | null | undefined);
-    } catch {
-      qualityTier = "essentiel";
-    }
+    const planId = await getUserPlanId(userId);
+    qualityTier = planToTier(planId);
   }
 
   // ── Restrictions par plan ──────────────────────────────────────────────────

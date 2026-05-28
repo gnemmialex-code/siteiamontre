@@ -89,8 +89,9 @@ function planQualityBadge(plan?: string): { label: string; color: string } {
 
 function userPlanTier(plan?: string): "essentiel" | "pro" | "elite" {
   if (!plan) return "essentiel";
-  if (plan.includes("ultra") || plan.includes("elite")) return "elite";
-  if (plan.includes("pro")) return "pro";
+  const p = plan.toLowerCase();
+  if (p.includes("ultra") || p.includes("elite")) return "elite";
+  if (p.includes("pro")) return "pro";
   return "essentiel";
 }
 
