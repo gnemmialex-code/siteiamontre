@@ -10,7 +10,7 @@ export default function Footer() {
           <div className="md:col-span-2">
             <Link href="/" className="inline-flex mb-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="AstraCrea" className="h-8 w-auto" />
+              <img src="/logo.png" alt="AstraCrea" className="h-11 w-auto rounded-xl" />
             </Link>
             <p className="text-white/50 text-sm leading-relaxed max-w-xs">
               La plateforme de transformation photo par IA Ultra HD la plus avancée.

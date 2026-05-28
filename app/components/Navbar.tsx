@@ -47,7 +47,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center group">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="AstraCrea" className="h-8 w-auto" />
+            <img src="/logo.png" alt="AstraCrea" className="h-11 w-auto rounded-xl" />
           </Link>
 
           {/* Desktop nav */}
