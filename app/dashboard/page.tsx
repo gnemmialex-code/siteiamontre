@@ -669,7 +669,7 @@ export default function DashboardPage() {
             <Sparkles className="w-4 h-4 text-white" />
           </div>
           <span className="font-black text-lg tracking-tight">
-            Celeb<span className="gradient-text">Swap</span>
+            Astra<span className="gradient-text">Crea</span>
           </span>
         </Link>
 

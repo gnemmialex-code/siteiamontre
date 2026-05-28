@@ -111,7 +111,7 @@ export default function LoginPage() {
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <span className="font-black text-xl">
-              Celeb<span className="gradient-text">Swap</span>
+              Astra<span className="gradient-text">Crea</span>
             </span>
           </Link>
           <h1 className="text-3xl font-bold mb-2">Connexion</h1>
