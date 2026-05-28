@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles, Twitter, Github, Instagram } from "lucide-react";
+import { Sparkles, Instagram } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -21,14 +21,8 @@ export default function Footer() {
               Résultats 4K en quelques secondes.
             </p>
             <div className="flex items-center gap-3 mt-6">
-              <a href="#" className="w-9 h-9 bg-surface border border-surface-border rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:border-accent-violet/50 transition-colors">
-                <Twitter className="w-4 h-4" />
-              </a>
-              <a href="#" className="w-9 h-9 bg-surface border border-surface-border rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:border-accent-violet/50 transition-colors">
+              <a href="https://instagram.com/aleksisgn" target="_blank" rel="noopener noreferrer" className="w-9 h-9 bg-surface border border-surface-border rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:border-accent-violet/50 transition-colors">
                 <Instagram className="w-4 h-4" />
-              </a>
-              <a href="#" className="w-9 h-9 bg-surface border border-surface-border rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:border-accent-violet/50 transition-colors">
-                <Github className="w-4 h-4" />
               </a>
             </div>
           </div>
