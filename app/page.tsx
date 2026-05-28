@@ -100,12 +100,14 @@ const FEATURES = [
 // ── Ligne 2 : img21.jpg → img40.jpg  (défile vers la droite)
 // Mets tes 40 images dans /public/hero-gallery/ avec ce nommage.
 // Formats acceptés : jpg, jpeg, png, webp — remplace l'extension si besoin.
-const ROW1 = Array.from({ length: 14 }, (_, i) =>
-  `/hero-gallery/img${String(i + 1).padStart(2, "0")}.png`
-);
-const ROW2 = Array.from({ length: 14 }, (_, i) =>
-  `/hero-gallery/img${String(i + 21).padStart(2, "0")}.png`
-);
+const ROW1 = [
+  ...Array.from({ length: 4 }, (_, i) => `/hero-gallery/img${String(i + 11).padStart(2, "0")}.png`),
+  ...Array.from({ length: 10 }, (_, i) => `/hero-gallery/img${String(i + 1).padStart(2, "0")}.png`),
+];
+const ROW2 = [
+  ...Array.from({ length: 4 }, (_, i) => `/hero-gallery/img${String(i + 31).padStart(2, "0")}.png`),
+  ...Array.from({ length: 10 }, (_, i) => `/hero-gallery/img${String(i + 21).padStart(2, "0")}.png`),
+];
 
 function ImageRow({
   images,
