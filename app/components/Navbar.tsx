@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Zap } from "lucide-react";
@@ -47,7 +46,8 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center group">
-            <Image src="/logo.png" alt="AstraCrea" width={2000} height={2000} className="h-9 w-auto" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="AstraCrea" className="h-8 w-auto" />
           </Link>
 
           {/* Desktop nav */}

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Instagram } from "lucide-react";
 
 export default function Footer() {
@@ -10,7 +9,8 @@ export default function Footer() {
           {/* Brand */}
           <div className="md:col-span-2">
             <Link href="/" className="inline-flex mb-4">
-              <Image src="/logo.png" alt="AstraCrea" width={2000} height={2000} className="h-9 w-auto" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="AstraCrea" className="h-8 w-auto" />
             </Link>
             <p className="text-white/50 text-sm leading-relaxed max-w-xs">
               La plateforme de transformation photo par IA Ultra HD la plus avancée.

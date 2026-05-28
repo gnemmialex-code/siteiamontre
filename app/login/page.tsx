@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
@@ -108,7 +107,8 @@ export default function LoginPage() {
       >
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex mb-6">
-            <Image src="/logo.png" alt="AstraCrea" width={2000} height={2000} className="h-11 w-auto" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="AstraCrea" className="h-10 w-auto" />
           </Link>
           <h1 className="text-3xl font-bold mb-2">Connexion</h1>
           <p className="text-white/50">
