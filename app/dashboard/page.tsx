@@ -666,7 +666,7 @@ export default function DashboardPage() {
         {/* Logo */}
         <Link href="/" className="px-5 py-4 border-b border-surface-border flex items-center hover:bg-surface-hover transition-colors">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="AstraCrea" className="h-11 w-auto rounded-xl" />
+          <img src="/logo2.png" alt="AstraCrea" className="h-11 w-auto rounded-xl" />
         </Link>
 
         {/* User info */}
