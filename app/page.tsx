@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import BeforeAfterSlider from "./components/BeforeAfterSlider";
 import { supabase } from "@/lib/supabase";
 import {
   Sparkles, Zap, Shield, Star, ArrowRight, Play,
@@ -273,13 +274,7 @@ function ExamplesGallery() {
                 className="group relative rounded-2xl overflow-hidden border border-surface-border hover:border-accent-violet/50 transition-all duration-300" style={{ aspectRatio: "9/16" }}
               >
                 {ex.before && ex.after ? (
-                  /* Vraie image : hover révèle le après */
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={ex.before} alt="Avant" className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 group-hover:opacity-0" />
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={ex.after}  alt="Après" className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-                  </>
+                  <BeforeAfterSlider before={ex.before} after={ex.after} alt={ex.style} />
                 ) : (
                   /* Placeholder jusqu'à avoir de vraies images */
                   <div className="w-full h-full bg-surface-hover flex flex-col items-center justify-center gap-3">
@@ -293,23 +288,8 @@ function ExamplesGallery() {
                   </div>
                 )}
 
-                {/* Overlay badges */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300" />
-                <div className="absolute top-2 left-2 flex gap-1.5">
-                  <span className="bg-black/60 backdrop-blur-sm text-white/70 text-xs px-2 py-1 rounded-lg border border-white/10">
-                    Avant
-                  </span>
-                </div>
-                <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <span className="bg-accent-violet/80 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-lg">
-                    Après
-                  </span>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
+                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent pointer-events-none">
                   <p className="text-white text-sm font-medium">{ex.style}</p>
-                  <p className="text-white/50 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                    Survolez pour voir le résultat →
-                  </p>
                 </div>
               </motion.div>
             ))}
