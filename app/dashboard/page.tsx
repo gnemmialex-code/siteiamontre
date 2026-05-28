@@ -58,26 +58,27 @@ const ACCESSORY_OPTIONS: OptionItem[] = [
 ];
 
 /* ─── Generation precision options ──────────────────────── */
-interface GenOption { id: string; label: string; }
+interface GenOption { id: string; label: string; tier?: "pro" | "elite"; }
 
 const RENDER_STYLE_OPTIONS: GenOption[] = [
   { id: "photoreal", label: "📷 Photoréaliste" },
-  { id: "magazine",  label: "📰 Magazine"      },
-  { id: "cinematic", label: "🎬 Cinématique"   },
-  { id: "artistic",  label: "🎨 Artistique"    },
+  { id: "magazine",  label: "📰 Magazine",   tier: "pro"   },
+  { id: "cinematic", label: "🎬 Cinématique", tier: "pro"   },
+  { id: "artistic",  label: "🎨 Artistique",  tier: "pro"   },
 ];
 
 const INTENSITY_OPTIONS: GenOption[] = [
-  { id: "light",    label: "🌿 Légère"  },
-  { id: "moderate", label: "⚖️ Modérée" },
-  { id: "strong",   label: "🔥 Intense" },
+  { id: "light",    label: "🌿 Légère"              },
+  { id: "moderate", label: "⚖️ Modérée"             },
+  { id: "strong",   label: "🔥 Intense",  tier: "pro"   },
+  { id: "ultra",    label: "⚡ Ultra",    tier: "elite" },
 ];
 
 const FORMAT_OPTIONS: GenOption[] = [
-  { id: "auto",      label: "◻ Auto"       },
-  { id: "portrait",  label: "▮ Portrait"   },
-  { id: "landscape", label: "▬ Paysage"    },
-  { id: "square",    label: "⬛ Carré"      },
+  { id: "auto",      label: "◻ Auto"                      },
+  { id: "portrait",  label: "▮ Portrait",  tier: "pro"    },
+  { id: "landscape", label: "▬ Paysage",   tier: "pro"    },
+  { id: "square",    label: "⬛ Carré",     tier: "pro"    },
 ];
 
 function planQualityBadge(plan?: string): { label: string; color: string } {
@@ -98,25 +99,48 @@ const PLAN_CREDITS_MAX: Record<string, number> = {
   elite:     10250,
 };
 
-function GenOptionChips({ title, options, selected, onSelect }: {
+function GenOptionChips({ title, options, selected, onSelect, planTier, onLocked }: {
   title: string; options: GenOption[]; selected: string | null;
   onSelect: (id: string) => void;
+  planTier?: "essentiel" | "pro" | "elite";
+  onLocked?: (requiredPlan: "pro" | "elite", feature: string) => void;
 }) {
+  const isLocked = (opt: GenOption) => {
+    if (!opt.tier) return false;
+    if (opt.tier === "elite" && planTier !== "elite") return true;
+    if (opt.tier === "pro"   && planTier === "essentiel") return true;
+    return false;
+  };
   return (
     <div>
       <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-1.5">{title}</p>
       <div className="flex flex-wrap gap-1.5">
-        {options.map(opt => (
-          <button key={opt.id}
-            onClick={() => onSelect(opt.id)}
-            className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
-              selected === opt.id
-                ? "bg-accent-violet/20 border-accent-violet text-white"
-                : "border-surface-border text-white/45 hover:border-accent-violet/40 hover:text-white"
-            }`}>
-            {opt.label}
-          </button>
-        ))}
+        {options.map(opt => {
+          const locked = isLocked(opt);
+          return (
+            <button key={opt.id}
+              onClick={() => locked
+                ? onLocked?.(opt.tier as "pro" | "elite", `${title} — ${opt.label}`)
+                : onSelect(opt.id)
+              }
+              title={locked ? `Disponible avec le plan ${opt.tier === "elite" ? "Elite" : "Pro"}` : undefined}
+              className={`relative px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
+                locked
+                  ? "border-surface-border text-white/20 cursor-pointer line-through"
+                  : selected === opt.id
+                  ? "bg-accent-violet/20 border-accent-violet text-white"
+                  : "border-surface-border text-white/45 hover:border-accent-violet/40 hover:text-white"
+              }`}>
+              {locked && <Lock className="inline w-2.5 h-2.5 mr-0.5 mb-px" />}
+              {opt.label}
+              {locked && opt.tier && (
+                <span className={`ml-1 text-[8px] font-bold ${opt.tier === "elite" ? "text-amber-400/60" : "text-accent-violet/60"}`}>
+                  {opt.tier === "elite" ? "Elite" : "Pro"}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -142,26 +166,44 @@ function buildEnrichedPrompt(
   return parts.join(", ");
 }
 
-function DashOptionChips({ title, options, selected, onSelect }: {
+function DashOptionChips({ title, options, selected, onSelect, lockedPlan, onLocked }: {
   title: string; options: OptionItem[]; selected: string | null;
   onSelect: (id: string | null) => void;
+  lockedPlan?: "pro" | "elite" | null;
+  onLocked?: (requiredPlan: "pro" | "elite", feature: string) => void;
 }) {
   return (
-    <div>
+    <div className="relative">
       <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-1.5">{title}</p>
       <div className="flex flex-wrap gap-1.5">
         {options.map(opt => (
           <button key={opt.id}
-            onClick={() => onSelect(selected === opt.id ? null : opt.id)}
+            onClick={() => lockedPlan
+              ? onLocked?.(lockedPlan, title)
+              : onSelect(selected === opt.id ? null : opt.id)
+            }
             className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
-              selected === opt.id
+              lockedPlan
+                ? "border-surface-border text-white/20 cursor-pointer line-through"
+                : selected === opt.id
                 ? "bg-accent-violet/20 border-accent-violet text-white"
                 : "border-surface-border text-white/45 hover:border-accent-violet/40 hover:text-white"
             }`}>
+            {lockedPlan && <Lock className="inline w-2.5 h-2.5 mr-0.5 mb-px" />}
             {opt.label}
           </button>
         ))}
       </div>
+      {lockedPlan && (
+        <div
+          className="absolute inset-0 cursor-pointer flex items-center justify-end pr-1"
+          onClick={() => onLocked?.(lockedPlan, title)}
+        >
+          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${lockedPlan === "elite" ? "bg-amber-400/20 text-amber-400" : "bg-accent-violet/20 text-accent-violet"}`}>
+            {lockedPlan === "elite" ? "Elite" : "Pro"}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -349,6 +391,7 @@ export default function DashboardPage() {
   const [deletingId,       setDeletingId]       = useState<string | null>(null);
   const [deletingAll,      setDeletingAll]      = useState(false);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const [upgradeTarget, setUpgradeTarget] = useState<{ plan: "pro" | "elite"; feature: string } | null>(null);
 
   const cancelRef    = useRef(false);
   const activePredRef = useRef<{ jobId?: string; predId?: string }>({});
@@ -902,10 +945,17 @@ export default function DashboardPage() {
                                 Personnaliser
                                 <span className="text-white/30 text-[10px] font-normal">(optionnel)</span>
                               </h2>
-                              <DashOptionChips title="Vêtements"    options={CLOTHING_OPTIONS}   selected={clothing}  onSelect={setClothing} />
-                              <DashOptionChips title="Ambiance"     options={MOOD_OPTIONS}        selected={mood}      onSelect={setMood} />
-                              <DashOptionChips title="Décor / Fond" options={BACKGROUND_OPTIONS}  selected={styleBg}   onSelect={setStyleBg} />
-                              <DashOptionChips title="Accessoires"  options={ACCESSORY_OPTIONS}   selected={accessory} onSelect={setAccessory} />
+                              {(() => {
+                                const tier = userPlanTier(stats?.plan);
+                                const lp: "pro" | null = tier === "essentiel" ? "pro" : null;
+                                const onL = (rp: "pro"|"elite", f: string) => setUpgradeTarget({ plan: rp, feature: f });
+                                return (<>
+                                  <DashOptionChips title="Vêtements"    options={CLOTHING_OPTIONS}   selected={clothing}  onSelect={setClothing}  lockedPlan={lp} onLocked={onL} />
+                                  <DashOptionChips title="Ambiance"     options={MOOD_OPTIONS}        selected={mood}      onSelect={setMood}      lockedPlan={lp} onLocked={onL} />
+                                  <DashOptionChips title="Décor / Fond" options={BACKGROUND_OPTIONS}  selected={styleBg}   onSelect={setStyleBg}   lockedPlan={lp} onLocked={onL} />
+                                  <DashOptionChips title="Accessoires"  options={ACCESSORY_OPTIONS}   selected={accessory} onSelect={setAccessory} lockedPlan={lp} onLocked={onL} />
+                                </>);
+                              })()}
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -947,6 +997,8 @@ export default function DashboardPage() {
                             options={RENDER_STYLE_OPTIONS}
                             selected={renderStyle}
                             onSelect={(id) => setRenderStyle(renderStyle === id ? null : id)}
+                            planTier={userPlanTier(stats?.plan)}
+                            onLocked={(rp, f) => setUpgradeTarget({ plan: rp, feature: f })}
                           />
 
                           {/* Intensité */}
@@ -955,6 +1007,8 @@ export default function DashboardPage() {
                             options={INTENSITY_OPTIONS}
                             selected={intensity}
                             onSelect={setIntensity}
+                            planTier={userPlanTier(stats?.plan)}
+                            onLocked={(rp, f) => setUpgradeTarget({ plan: rp, feature: f })}
                           />
 
                           {/* Format de sortie */}
@@ -963,23 +1017,38 @@ export default function DashboardPage() {
                             options={FORMAT_OPTIONS}
                             selected={genFormat}
                             onSelect={setGenFormat}
+                            planTier={userPlanTier(stats?.plan)}
+                            onLocked={(rp, f) => setUpgradeTarget({ plan: rp, feature: f })}
                           />
 
                           {/* Conserver la tenue */}
-                          <label className="flex items-center gap-2.5 cursor-pointer group">
-                            <div className="relative flex-shrink-0">
-                              <input
-                                type="checkbox"
-                                checked={preserveOutfit}
-                                onChange={e => setPreserveOutfit(e.target.checked)}
-                                className="sr-only"
-                              />
-                              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${preserveOutfit ? "bg-accent-violet border-accent-violet" : "border-surface-border group-hover:border-accent-violet/50"}`}>
-                                {preserveOutfit && <span className="text-white text-[9px] font-bold">✓</span>}
-                              </div>
-                            </div>
-                            <span className="text-white/60 text-xs">Conserver la tenue actuelle (ne pas changer les vêtements)</span>
-                          </label>
+                          {(() => {
+                            const outfitLocked = userPlanTier(stats?.plan) === "essentiel";
+                            return (
+                              <label
+                                className={`flex items-center gap-2.5 cursor-pointer group ${outfitLocked ? "opacity-50" : ""}`}
+                                onClick={outfitLocked ? (e) => { e.preventDefault(); setUpgradeTarget({ plan: "pro", feature: "Conserver la tenue" }); } : undefined}
+                              >
+                                <div className="relative flex-shrink-0">
+                                  <input
+                                    type="checkbox"
+                                    checked={preserveOutfit && !outfitLocked}
+                                    onChange={e => !outfitLocked && setPreserveOutfit(e.target.checked)}
+                                    className="sr-only"
+                                    readOnly={outfitLocked}
+                                  />
+                                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${preserveOutfit && !outfitLocked ? "bg-accent-violet border-accent-violet" : "border-surface-border group-hover:border-accent-violet/50"}`}>
+                                    {preserveOutfit && !outfitLocked && <span className="text-white text-[9px] font-bold">✓</span>}
+                                  </div>
+                                </div>
+                                <span className={`text-white/60 text-xs flex items-center gap-1 ${outfitLocked ? "line-through" : ""}`}>
+                                  {outfitLocked && <Lock className="w-2.5 h-2.5 flex-shrink-0" />}
+                                  Conserver la tenue actuelle (ne pas changer les vêtements)
+                                  {outfitLocked && <span className="text-[8px] font-bold text-accent-violet/70 ml-1 no-underline not-italic" style={{textDecoration:"none"}}>Pro</span>}
+                                </span>
+                              </label>
+                            );
+                          })()}
                         </div>
 
                         <GenerateCard
@@ -1441,6 +1510,74 @@ export default function DashboardPage() {
 
       <PaywallModal isOpen={showPaywall} onClose={()=>setShowPaywall(false)} reason="Crédits épuisés — Rechargez pour continuer" />
       <LiveNotification />
+      {upgradeTarget && (
+        <PlanUpgradeModal target={upgradeTarget} onClose={() => setUpgradeTarget(null)} />
+      )}
+    </div>
+  );
+}
+
+/* ─── Plan upgrade modal ─────────────────────────────────── */
+function PlanUpgradeModal({
+  target,
+  onClose,
+}: {
+  target: { plan: "pro" | "elite"; feature: string };
+  onClose: () => void;
+}) {
+  const isPro = target.plan === "pro";
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <motion.div
+        className="relative bg-surface border border-surface-border rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+        initial={{ scale: 0.92, opacity: 0, y: 16 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.92, opacity: 0, y: 16 }}
+        transition={{ duration: 0.18 }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isPro ? "bg-accent-violet/20" : "bg-amber-400/20"}`}>
+            {isPro
+              ? <Star className="w-5 h-5 text-accent-violet" />
+              : <Crown className="w-5 h-5 text-amber-400" />
+            }
+          </div>
+          <button onClick={onClose} className="text-white/30 hover:text-white text-xl leading-none transition-colors">✕</button>
+        </div>
+
+        {/* Content */}
+        <h3 className="font-black text-lg mb-1">
+          Option {isPro ? "Pro" : "Elite"} uniquement
+        </h3>
+        <p className={`text-sm font-semibold mb-2 ${isPro ? "text-accent-violet" : "text-amber-400"}`}>
+          {target.feature}
+        </p>
+        <p className="text-white/45 text-xs mb-5 leading-relaxed">
+          Cette option est réservée au plan {isPro ? "Pro (19,90€/mois)" : "Elite (39,90€/mois)"}. Passez à un plan supérieur pour en profiter.
+        </p>
+
+        {/* CTA */}
+        <Link
+          href="/pricing"
+          className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all mb-2 ${
+            isPro
+              ? "btn-primary"
+              : "bg-gradient-to-r from-amber-400 to-accent-neon text-black hover:opacity-90"
+          }`}
+          onClick={onClose}
+        >
+          Voir les formules →
+        </Link>
+        <button
+          onClick={onClose}
+          className="w-full py-2.5 rounded-xl text-white/35 hover:text-white text-sm transition-colors"
+        >
+          Continuer avec mon plan actuel
+        </button>
+      </motion.div>
     </div>
   );
 }
