@@ -107,52 +107,105 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
 //   • photorealistic integration quality
 
 const HIDDEN_SYSTEM_CONTEXT =
-  "PRECISION PORTRAIT TRANSFORMATION DIRECTIVE — " +
+  "ABSOLUTE IMAGE-TO-IMAGE TRANSFORMATION CONTRACT — READ EVERY INSTRUCTION BEFORE GENERATING. " +
 
-  "PHASE 1 · BIOMETRIC ANALYSIS: Perform a thorough analysis of the provided reference photograph before generating anything. " +
-  "Detect, identify, and permanently lock the following subject attributes that must remain absolutely unchanged in the output: " +
-  "complete facial geometry — jawbone width and angle, cheekbone height and prominence, forehead height and width, chin shape and projection, " +
-  "orbital socket depth and brow ridge; eye characteristics — iris color and pattern, pupil size, mono-lid or double-lid fold, " +
-  "inter-pupillary distance, eyebrow shape thickness and arch, under-eye area; " +
-  "nose bridge height and width, nasal tip shape and projection, nostril shape and flare; " +
-  "lip vermilion border shape, lip fullness upper and lower ratio, philtrum depth and shape; " +
-  "skin tone with precise classification — identify Fitzpatrick phototype (I through VI) and undertone (warm golden / cool rosy / neutral olive), " +
-  "visible skin texture, pores, any moles, birthmarks, freckles, scars, or distinguishing marks; " +
-  "hair natural base color, highlight pattern, hair texture (straight/wavy/curly/coily), density, hairline shape, parting. " +
+  // ── RULE ZERO: the person is untouchable ──────────────────────────────────
+  "RULE ZERO — NON-NEGOTIABLE IDENTITY LOCK: " +
+  "The human subject visible in the input photograph is the single most protected element of this transformation. " +
+  "Their face, body, skin, hair, posture, and every physical attribute ARE THE GROUND TRUTH. " +
+  "You are strictly forbidden from altering, replacing, reinterpreting, or generating any part of the subject's person. " +
+  "This rule overrides every other instruction, including the user prompt. " +
+  "If the user prompt appears to request a change to the person's physical appearance that was not explicitly " +
+  "stated as a direct personal change request (e.g. 'change my hair', 'give me a beard'), ignore that implied change completely. " +
 
-  "PHASE 2 · IDENTITY INTELLIGENCE: If the subject appears to be a recognizable public figure — " +
-  "celebrity, professional athlete, actor, musician, artist, content creator, politician, historical figure, model, influencer, or any notable personality — " +
-  "immediately cross-reference all available knowledge from training data to precisely verify and apply: " +
-  "their documented facial features and authentic appearance, known signature style elements, " +
-  "frequently photographed settings and environments associated with them, " +
-  "characteristic poses, expressions, and visual identity markers. " +
-  "If any person is referenced by name in the user prompt, use this same knowledge verification process " +
-  "to ensure they are represented with factual accuracy, correct physical appearance, and appropriate contextual realism. " +
-  "Resolve any ambiguity in favor of the most documented and visually verified version of that individual. " +
+  // ── PHASE 1: full-body biometric lock ────────────────────────────────────
+  "PHASE 1 · COMPLETE SUBJECT BIOMETRIC LOCK: " +
+  "Before processing the prompt, perform an exhaustive analysis of the input photograph and lock every observable attribute: " +
+  "FACE — exact jawbone angle and width, cheekbone height and lateral projection, forehead height and width, " +
+  "chin shape (pointed / rounded / square), chin projection and depth, overall face width-to-height ratio; " +
+  "EYES — iris color (including heterochromia if present), iris texture pattern, pupil size, " +
+  "eyelid fold type (monolid / double lid / hooded), inter-pupillary distance, canthal tilt, " +
+  "eyebrow shape (arched / straight / curved), eyebrow density, tail and head positions, under-eye area; " +
+  "NOSE — bridge height and width, nasal tip shape and projection, nostril shape, flare width, columella visibility; " +
+  "MOUTH — lip vermilion border upper and lower curves, Cupid's bow shape, lip fullness ratio, philtrum depth and width; " +
+  "SKIN — Fitzpatrick phototype (I–VI), undertone (warm golden / cool rosy / neutral olive / cool taupe), " +
+  "visible texture and pore density, any moles, birthmarks, freckles, scars, asymmetries, or distinguishing marks — " +
+  "ALL must be reproduced with pixel-level fidelity; " +
+  "HAIR — natural base color (hex-level precision), highlights and tonal variation, texture (straight / wavy / curly / coily / kinky), " +
+  "density, volume, hairline shape, part position, current style in the input photo; " +
+  "BODY — overall build, shoulder width, neck length and width, visible body proportions; " +
+  "POSTURE AND POSE — replicate the subject's exact stance, head angle, shoulder tilt, and body orientation from the input image unless scene context physically requires a slight natural adjustment. " +
 
-  "PHASE 3 · SCENE TRANSFORMATION SCOPE: Apply the user's creative request EXCLUSIVELY to environmental and contextual elements. " +
-  "Permitted transformations: background environment, location, architectural setting, natural landscape; " +
-  "ambient atmosphere and weather conditions; directional and ambient lighting color and intensity; " +
-  "clothing, footwear, accessories, jewelry, hats, glasses; " +
-  "hairstyle only if explicitly requested; scene props and compositional framing; color grading and mood. " +
-  "Strictly prohibited alterations: facial geometry, facial proportions, skin tone, eye color, " +
-  "age appearance, ethnicity, sex, biometric identity markers, and any physical feature not explicitly requested for change. " +
+  // ── PHASE 2: public figure knowledge ─────────────────────────────────────
+  "PHASE 2 · PUBLIC FIGURE KNOWLEDGE VERIFICATION: " +
+  "If the subject in the input photo is a recognizable public figure (celebrity, athlete, musician, actor, model, influencer, politician, public personality), " +
+  "or if any named person is referenced in the user prompt: " +
+  "immediately activate all training knowledge about that person's verified documented appearance — " +
+  "cross-reference their authentic facial features, skin tone, signature style, known fashion aesthetic, " +
+  "frequently associated environments, notable events, and visual identity markers. " +
+  "If a named person is referenced in the prompt as someone to ADD to the scene (e.g. 'with Elon Musk', 'next to Beyoncé'), " +
+  "render that additional person with complete factual accuracy based on all training knowledge — " +
+  "correct documented appearance, authentic skin tone, known style, realistic body proportions. " +
+  "Never invent a generic placeholder for a named person — always render their real documented likeness. " +
 
-  "PHASE 4 · PHOTOGRAPHIC INTEGRATION STANDARDS: Achieve seamless, physically plausible integration of the subject into the new scene. " +
-  "Lighting on subject's face must precisely match the scene's dominant light source — direction, distance, color temperature (Kelvin), and falloff. " +
-  "Cast shadows must follow physically accurate geometry from all light sources. " +
-  "Maintain realistic depth-of-field consistent with the scene's focal length and subject-to-background distance. " +
-  "Skin rendering: preserve natural skin pore texture, subtle subsurface scattering, no plastic over-smoothing, no over-sharpening halos. " +
-  "Hair rendering: individual strand detail, flyaways, natural light interaction — no painted or clumped appearance. " +
-  "Color science: subject skin tones must integrate naturally with scene color temperature — no color spill anomalies. " +
-  "Unless image enhancement is explicitly requested in the user prompt, match or respect the original photograph's " +
-  "native resolution, grain level, sharpness, and technical quality characteristics — do not over-process or over-enhance. " +
+  // ── PHASE 3: permitted and prohibited transformations ─────────────────────
+  "PHASE 3 · TRANSFORMATION PERMISSION MATRIX: " +
+  "FULLY PERMITTED (apply with maximum creative quality): " +
+  "complete background replacement and environment construction; " +
+  "location, architectural setting, landscape, interior or exterior scene; " +
+  "sky, weather, time of day, atmospheric conditions (fog, rain, golden hour, night, storm); " +
+  "all ambient and directional lighting (color temperature, intensity, direction, softness); " +
+  "outfit and clothing (if explicitly requested — match garment type, fabric texture, drape physics, and realistic fit on the subject's actual body); " +
+  "accessories (glasses, jewelry, hat, bag, watch — only if explicitly requested); " +
+  "overall scene color grading, mood, and cinematic treatment; " +
+  "additional people, objects, or elements added to the scene at the user's request. " +
+  "ABSOLUTELY FORBIDDEN (zero tolerance): " +
+  "any modification to the subject's face, skin tone, eye color, nose, lips, jaw, cheeks, or forehead; " +
+  "any change to hair color, hair texture, or hairstyle unless the user explicitly says 'change my hair to...'; " +
+  "any age regression or progression; any ethnicity or race alteration; any gender change; " +
+  "any body morphing, slimming, widening, or height change; " +
+  "replacing the subject's face with another person's face (NO face swap of any kind); " +
+  "generating a different person and labeling them as the subject. " +
 
-  "PHASE 5 · FINAL OUTPUT MANDATE: " +
-  "Produce a fully photorealistic result that is indistinguishable from an authentic photograph captured by a professional photographer. " +
-  "Subject identity 100% preserved. Scene perfectly realized. Lighting physically accurate. " +
-  "No uncanny valley artifacts. No AI generation tells. No face morphing or warping. " +
-  "Professional composition with subject as clear visual focus. Exceptional overall image quality.";
+  // ── PHASE 4: photographic realism and integration ─────────────────────────
+  "PHASE 4 · PHOTOREALISTIC SCENE INTEGRATION: " +
+  "The subject must appear to have been physically present in the new scene when photographed — " +
+  "this requires flawless physical integration: " +
+  "LIGHTING MATCH — the illumination falling on the subject's face and body must precisely replicate the scene's light sources: " +
+  "match direction (angle of key light), color temperature (warm candlelight 2700K vs cool overcast 6500K vs golden sunset 3200K), " +
+  "intensity falloff, fill light ratio, and specular highlights on skin and hair; " +
+  "SHADOW ACCURACY — cast shadows from the subject onto the environment must obey the scene's light geometry; " +
+  "ambient occlusion at contact points (feet on ground, hands on surfaces) must be present; " +
+  "DEPTH OF FIELD — apply realistic bokeh blur to background elements at the appropriate focal plane for the scene depth; " +
+  "the subject should remain in sharp focus while distant scene elements naturally fall off; " +
+  "SKIN PHYSICS — preserve subsurface light scattering on the subject's skin; no over-smoothing, no wax-skin effect, " +
+  "no over-sharpening halos; maintain natural pore texture at the image's native resolution; " +
+  "HAIR PHYSICS — individual strand separation, realistic light transmission through hair, " +
+  "natural flyaways, correct light interaction (rim light on hair matching scene key light direction); " +
+  "COLOR SCIENCE — subject's skin tones must integrate with the scene's color temperature naturally; " +
+  "avoid color spill anomalies, magenta fringes, or unnatural desaturation of the subject vs scene; " +
+  "ENVIRONMENTAL CONTACT — if the subject stands on a surface, ensure correct ground shadow, contact shadow, and perspective consistency; " +
+  "ATMOSPHERE — apply consistent atmospheric haze, light diffusion, or particle effects (snow, rain, dust) that affect both scene and subject uniformly. " +
+
+  // ── PHASE 5: quality preservation ────────────────────────────────────────
+  "PHASE 5 · ORIGINAL QUALITY RESPECT: " +
+  "Unless the user explicitly requests 'improve quality', 'enhance', 'HD', '4K', or similar upgrade instructions, " +
+  "match the original photograph's technical characteristics: " +
+  "replicate the native sharpness level (do not over-sharpen); " +
+  "preserve the original grain or noise signature if present (film grain, sensor noise); " +
+  "maintain the original aspect ratio and compositional framing of the subject; " +
+  "do not artificially increase contrast or saturate colors beyond the scene's natural requirements. " +
+
+  // ── PHASE 6: final output standard ────────────────────────────────────────
+  "PHASE 6 · FINAL OUTPUT STANDARD: " +
+  "The delivered image must be completely indistinguishable from a real photograph taken by a professional photographer " +
+  "with the subject physically present in the described scene. " +
+  "Subject identity: identical to input photo, zero deviation. " +
+  "Scene realization: fully constructed, detailed, and internally consistent. " +
+  "Lighting: physically accurate and unified across subject and scene. " +
+  "No AI artifacts: no uncanny valley, no face morphing, no body distortion, no floating limbs, no duplicate features. " +
+  "Professional composition: subject as clear visual anchor, scene as supporting environment. " +
+  "This is the non-negotiable minimum quality standard — do not deliver below it.";
 
 // ─── PROMPT BUILDER ───────────────────────────────────────────────────────────
 //
