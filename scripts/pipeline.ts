@@ -25,11 +25,15 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    spec: "google/nano-banana-pro",
-    buildInput: (prompt, _neg, imageUrl, strength) => ({
+    // Flux Kontext Max: purpose-built image editing model.
+    // Takes input_image + a text instruction, edits only what is asked,
+    // preserves the rest of the image including the person's identity.
+    spec: "black-forest-labs/flux-kontext-max",
+    buildInput: (prompt, _neg, imageUrl, _strength) => ({
       prompt,
-      image:    imageUrl,
-      strength,
+      input_image:      imageUrl,
+      output_format:    "jpg",
+      safety_tolerance: 2,
     }),
   },
 ];
@@ -278,16 +282,24 @@ function buildStylePrompt(
   const outfitNote    = preserveOutfit ? "preserve original clothing" : "";
   const renderDesc    = RENDER_STYLE_PROMPTS[renderStyle ?? ""] ?? "";
 
-  const sceneAndQuality = [
-    sceneDesc,
-    intensityNote,
-    outfitNote,
-    renderDesc,
-    "photorealistic, high resolution, professional photography, sharp focus",
-  ].filter(Boolean).join(", ").replace(/,\s*,+/g, ",").replace(/\s+/g, " ").trim();
+  // Flux Kontext uses direct editing instructions, not diffusion-style tag prompts.
+  // Format: what to do → what to strictly preserve.
+  const intensityPrefix: Record<string, string> = {
+    light:  "Subtly and minimally:",
+    strong: "Boldly and dramatically:",
+  };
+  const prefix   = intensityPrefix[intensity ?? ""] ?? "";
+  const outfitRule = preserveOutfit
+    ? " Keep the person's current clothing and outfit completely unchanged."
+    : "";
+  const renderRule = renderDesc ? ` Render style: ${renderDesc}.` : "";
 
-  // Prepend the hidden system context — never shown in UI, always sent to model
-  const positive = `${HIDDEN_SYSTEM_CONTEXT} — USER REQUEST: ${sceneAndQuality}`;
+  const editInstruction = [prefix, sceneDesc].filter(Boolean).join(" ").trim()
+    || "Enhance the photo quality and lighting.";
+
+  const positive =
+    `${editInstruction}.${renderRule}${outfitRule} ` +
+    HIDDEN_SYSTEM_CONTEXT;
 
   return { positive, negative: NEG };
 }
