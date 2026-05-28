@@ -37,12 +37,13 @@ const REVIEWS = [
 // Pour les exemples : mets tes vraies images dans /public/examples/
 // Format : { style, before: "/examples/before1.jpg", after: "/examples/after1.jpg" }
 const EXAMPLES_IMAGES = [
-  { style: "Hollywood Glamour", before: "/examples/hollywood-avant.png", after: "/examples/hollywood-apres.png" },
-  { style: "Vogue Editorial",   before: "/examples/vogue-avant.png" , after: "/examples/vogue-apres.png" },
-  { style: "Red Carpet",        before: "/examples/red-avant.png" , after: "/examples/red-apres.png" },
-  { style: "Met Gala",          before: "/examples/met-avant.png", after: "/examples/met-apres.png" },
-  { style: "Music Video",       before: "/examples/music-avant.png", after: "/examples/musique-apres.png" },
-  { style: "Luxury Brand",      before: "/examples/luxury-avant.png", after: "/examples/luxury-apres.png" },
+  { style: "Scarlett Johansson", before: "/examples/scarlett_johansson_avant.png", after: "/examples/scarlett_johansson_apres.png" },
+  { style: "Mia Khalifa",   before: "/examples/mia_avant.png" , after: "/examples/mia_apres.png" },
+  { style: "Margot Robbit",        before: "/examples/margot_robbit_avant.png" , after: "/examples/margot_robbit_apres.png" },
+  { style: "Leonardo DiCaprio",          before: "/examples/leonardo_dicaprio_avant.png", after: "/examples/leonardo_dicaprio_apres.png" },
+  { style: "Denzel Washington",       before: "/examples/denzel_avant.png", after: "/examples/denzel_apres.png" },
+  { style: "Johnny Sins",      before: "/examples/johnny_avant.png", after: "/examples/johnny_apres.png" },
+  { style: "Kylian Mbappé",      before: "/examples/kylian_avant.png", after: "/examples/kylian_apres.png" },
 ];
 
 // Vidéos : remplis youtubeId OU localSrc (pas les deux)
