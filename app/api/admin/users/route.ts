@@ -53,9 +53,17 @@ export async function POST(req: NextRequest) {
       pro:       "plan_pro",
       ultra:     "plan_ultra",
     };
+    const planCreditsMap: Record<string, number> = {
+      free:      100,
+      essentiel: 2500,
+      pro:       10250,
+      ultra:     999999,
+    };
+    const planKey = String(value);
     await supabase.from("users").update({
-      plan:            String(value),
-      plan_id:         planIdMap[String(value)] ?? "plan_essentiel",
+      plan:            planKey,
+      plan_id:         planIdMap[planKey] ?? "plan_essentiel",
+      credits:         planCreditsMap[planKey] ?? 100,
       plan_started_at: new Date().toISOString(),
     }).eq("id", userId);
   } else if (action === "set_notes") {
