@@ -573,8 +573,13 @@ export async function advanceAsyncJob(
 
   if (config.mode === "swapface") {
     if (step === 1 && q.upscale) {
-      const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
-      return { done: false, predictionId: p.id, step: 2 };
+      try {
+        const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 2, face_enhance: true });
+        return { done: false, predictionId: p.id, step: 2 };
+      } catch {
+        console.warn("[Pipeline] Upscale failed — returning base result");
+        return { done: true, outputUrl };
+      }
     }
     return { done: true, outputUrl };
   }
@@ -582,8 +587,13 @@ export async function advanceAsyncJob(
   // Style step 1: img2img done → optional upscale (Ultra) or done
   if (step === 1) {
     if (q.upscale) {
-      const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 4, face_enhance: true });
-      return { done: false, predictionId: p.id, step: 2 };
+      try {
+        const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 2, face_enhance: true });
+        return { done: false, predictionId: p.id, step: 2 };
+      } catch {
+        console.warn("[Pipeline] Upscale failed — returning base result");
+        return { done: true, outputUrl };
+      }
     }
     return { done: true, outputUrl };
   }
