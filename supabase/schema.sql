@@ -155,6 +155,29 @@ CREATE TRIGGER update_users_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 -- ============================================================
+-- TABLE: contact_messages
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.contact_messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email TEXT NOT NULL,
+  first_name TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL,
+  image_url TEXT,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS contact_messages_created_at_idx ON public.contact_messages(created_at DESC);
+
+-- Admins read-all via service role; no RLS needed for anonymous inserts
+ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can insert contact messages"
+  ON public.contact_messages FOR INSERT
+  WITH CHECK (true);
+
+-- ============================================================
 -- STORAGE BUCKET
 -- ============================================================
 
