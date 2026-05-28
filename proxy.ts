@@ -25,18 +25,19 @@ export default async function proxy(req: NextRequest) {
     }
   );
 
-  // Refresh session on every request — required by @supabase/ssr
-  const { data: { user } } = await supabase.auth.getUser();
+  // Read session from cookie — no network call, reliable in Edge Runtime
+  const { data: { session } } = await supabase.auth.getSession();
+  const isAuthenticated = !!session?.user;
 
   // Protect /dashboard and /admin
-  if (!user && (pathname.startsWith("/dashboard") || pathname.startsWith("/admin"))) {
+  if (!isAuthenticated && (pathname.startsWith("/dashboard") || pathname.startsWith("/admin"))) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
   // Already logged in → skip /login and /register
-  if (user && (pathname === "/login" || pathname === "/register")) {
+  if (isAuthenticated && (pathname === "/login" || pathname === "/register")) {
     const url = req.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
