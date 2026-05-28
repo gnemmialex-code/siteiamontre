@@ -108,7 +108,7 @@ export default function LoginPage() {
       >
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex mb-6">
-            <Image src="/logo.png" alt="AstraCrea" width={0} height={0} sizes="100vw" style={{ width: "auto", height: "44px" }} />
+            <Image src="/logo.png" alt="AstraCrea" width={2000} height={2000} className="h-11 w-auto" />
           </Link>
           <h1 className="text-3xl font-bold mb-2">Connexion</h1>
           <p className="text-white/50">

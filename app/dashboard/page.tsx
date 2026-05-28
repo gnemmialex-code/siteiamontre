@@ -665,7 +665,7 @@ export default function DashboardPage() {
 
         {/* Logo */}
         <Link href="/" className="px-5 py-4 border-b border-surface-border flex items-center hover:bg-surface-hover transition-colors">
-          <Image src="/logo.png" alt="AstraCrea" width={0} height={0} sizes="100vw" style={{ width: "auto", height: "36px" }} />
+          <Image src="/logo.png" alt="AstraCrea" width={2000} height={2000} className="h-9 w-auto" />
         </Link>
 
         {/* User info */}

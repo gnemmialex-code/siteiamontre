@@ -47,7 +47,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center group">
-            <Image src="/logo.png" alt="AstraCrea" width={0} height={0} sizes="100vw" style={{ width: "auto", height: "36px" }} />
+            <Image src="/logo.png" alt="AstraCrea" width={2000} height={2000} className="h-9 w-auto" />
           </Link>
 
           {/* Desktop nav */}
