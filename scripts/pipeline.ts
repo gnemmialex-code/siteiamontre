@@ -18,7 +18,7 @@ const MODELS = {
 
 type Img2ImgModelSpec = {
   spec:       string;
-  buildInput: (prompt: string, negPrompt: string, imageUrl: string, strength: number) => Record<string, unknown>;
+  buildInput: (prompt: string, negPrompt: string, imageUrl: string, strength: number, resolution?: string) => Record<string, unknown>;
 };
 
 const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly, deformed, nsfw, different person, extra limbs";
@@ -28,11 +28,11 @@ export const STYLE_MODELS: Img2ImgModelSpec[] = [
     spec: "google/nano-banana-pro",
     // Correct API schema: image_input is an array of URIs, no strength param.
     // Passing image + strength was silently ignored — photo was never used.
-    buildInput: (prompt, _neg, imageUrl, _strength) => ({
+    buildInput: (prompt, _neg, imageUrl, _strength, resolution = "2K") => ({
       prompt,
       image_input:          [imageUrl],
       aspect_ratio:         "match_input_image",
-      resolution:           "2K",
+      resolution,
       output_format:        "jpg",
       safety_filter_level:  "block_only_high",
       allow_fallback_model: true,
@@ -471,7 +471,14 @@ export type AsyncJobConfig = {
   strength?:      number;  // img2img strength (0–1)
   sourceB64?:     string;  // swapface only
   modelIndex?:    number;  // style only: current index in STYLE_MODELS
+  resolution?:    string;  // 1K / 2K / 4K based on plan
 };
+
+function tierToResolution(tier: keyof typeof QUALITY_SETTINGS): string {
+  if (tier === "ultra") return "4K";
+  if (tier === "pro")   return "2K";
+  return "1K";
+}
 
 async function createPred(
   spec:  string,
@@ -503,13 +510,14 @@ export function buildAsyncJobConfig(
   );
 
   return {
-    mode:         "style",
-    qualityTier:  tier,
-    prompt:       positive,
-    negPrompt:    negative,
+    mode:          "style",
+    qualityTier:   tier,
+    prompt:        positive,
+    negPrompt:     negative,
     inputImageUrl: input.inputImageUrl,
-    strength:     intensityToStrength(input.transformIntensity),
-    modelIndex:   0,
+    strength:      intensityToStrength(input.transformIntensity),
+    modelIndex:    0,
+    resolution:    tierToResolution(tier),
   };
 }
 
@@ -545,6 +553,7 @@ export async function startAsyncJob(
       config.negPrompt ?? NEG,
       imageData,
       config.strength  ?? 0.62,
+      config.resolution,
     ),
   );
   return p.id;

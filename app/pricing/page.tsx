@@ -17,16 +17,22 @@ const PLANS = [
     priceMonthly: 9.90,
     color: "border-surface-border",
     badge: null,
+    tagline: "Pour découvrir l'IA",
+    highlights: [
+      { label: "Qualité", value: "HD 1080p" },
+      { label: "Vitesse", value: "~45-60 sec" },
+      { label: "File d'attente", value: "Partagée" },
+    ],
     features: [
-      "Accès génération photo",
-      "Qualité HD",
-      "Watermark supprimé",
-      "Accès à l'historique",
-      "Support standard",
-      "Vitesse standard",
-      "20+ styles disponibles",
-      "Téléchargement haute résolution",
-      "Accès aux mises à jour",
+      "Génération photo uniquement",
+      "Qualité HD 1080p",
+      "10 styles disponibles",
+      "Vitesse standard (~45-60 secondes)",
+      "File d'attente partagée",
+      "Historique limité (30 images)",
+      "Sans watermark",
+      "Support standard (réponse 48-72h)",
+      "Téléchargement en 1080p",
     ],
   },
   {
@@ -38,40 +44,52 @@ const PLANS = [
     priceMonthly: 19.90,
     color: "border-accent-violet",
     badge: "Populaire",
+    tagline: "Pour créer plus & mieux",
+    highlights: [
+      { label: "Qualité", value: "Ultra 4K" },
+      { label: "Vitesse", value: "~20-30 sec" },
+      { label: "File d'attente", value: "Accélérée" },
+    ],
     features: [
-      "Tout du plan Essentiel",
-      "Réalisme des détails plus poussé",
-      "Qualité 4K ultra-détaillée",
-      "Support prioritaire",
-      "Génération vidéo incluse",
+      "Photo + Vidéo jusqu'à 5 secondes",
+      "Qualité Ultra 4K (upscale x4)",
+      "20+ styles + 5 styles exclusifs Pro",
+      "Vitesse prioritaire (~20-30 secondes)",
       "File d'attente accélérée",
-      "Styles exclusifs Pro",
-      "Accès API basique",
-      "Statistiques d'usage avancées",
+      "Historique illimité",
+      "Support prioritaire (réponse sous 24h)",
       "Partage direct réseaux sociaux",
+      "API basique (100 req/jour)",
+      "Statistiques d'usage détaillées",
     ],
   },
   {
     id: "plan_ultra",
-    name: "Ultra",
+    name: "Elite",
     icon: <Crown className="w-5 h-5" />,
     credits: "Illimité",
     creditsRaw: null,
     priceMonthly: 39.90,
     color: "border-accent-neon/50",
     badge: "Meilleure valeur",
+    tagline: "L'expérience sans compromis",
+    highlights: [
+      { label: "Qualité", value: "8K Photoréaliste" },
+      { label: "Vitesse", value: "~10-15 sec" },
+      { label: "File d'attente", value: "Priorité absolue" },
+    ],
     features: [
-      "Tout du plan Pro",
-      "Crédits illimités",
-      "Réalisme ultra poussé",
-      "Photoréalisme maximum",
-      "Qualité ultra 8K",
-      "Vitesse ultra — génération prioritaire",
-      "File d'attente prioritaire absolue",
+      "Photo + Vidéo 4K jusqu'à 30 secondes",
+      "Qualité Ultra 8K — Photoréalisme maximum",
+      "Tous les styles + styles exclusifs Elite",
+      "Vitesse ultra (~10-15 secondes)",
+      "Priorité absolue — jamais d'attente",
+      "Licence commerciale incluse",
+      "API illimitée (sans restriction)",
       "Accès bêta en avant-première",
       "Manager de compte dédié",
-      "Styles exclusifs Ultra",
-      "API illimitée",
+      "Styles personnalisés sur demande",
+      "Support VIP dédié (réponse < 4h)",
     ],
   },
 ];
@@ -208,12 +226,17 @@ export default function PricingPage() {
                 )}
 
                 {/* Nom & icône */}
-                <div className="flex items-center gap-2 mb-5">
-                  <div className="w-9 h-9 bg-accent-violet/15 rounded-xl flex items-center justify-center text-accent-violet">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                    plan.name === "Elite"
+                      ? "bg-accent-neon/15 text-accent-neon"
+                      : "bg-accent-violet/15 text-accent-violet"
+                  }`}>
                     {plan.icon}
                   </div>
                   <h3 className="text-xl font-bold">{plan.name}</h3>
                 </div>
+                <p className="text-white/40 text-xs mb-5">{plan.tagline}</p>
 
                 {/* Prix */}
                 <div className="mb-2">
@@ -229,7 +252,7 @@ export default function PricingPage() {
                 </div>
 
                 {/* Crédits */}
-                <div className="text-center mb-5 py-4 bg-surface-hover rounded-xl">
+                <div className="text-center mb-4 py-4 bg-surface-hover rounded-xl">
                   {plan.creditsRaw === null ? (
                     <div className="flex items-center justify-center gap-2">
                       <Infinity className="w-8 h-8 text-accent-violet" />
@@ -241,11 +264,25 @@ export default function PricingPage() {
                   <p className="text-white/50 text-sm mt-1">crédits / mois</p>
                 </div>
 
+                {/* Highlights — qualité / vitesse / file */}
+                <div className="grid grid-cols-3 gap-2 mb-5">
+                  {plan.highlights.map((h) => (
+                    <div key={h.label} className="bg-surface-hover rounded-lg px-2 py-2 text-center">
+                      <p className="text-white/35 text-[10px] uppercase tracking-wide mb-0.5">{h.label}</p>
+                      <p className={`text-xs font-bold leading-tight ${
+                        plan.name === "Elite" ? "text-accent-neon" : "text-accent-violet"
+                      }`}>{h.value}</p>
+                    </div>
+                  ))}
+                </div>
+
                 {/* Features */}
                 <ul className="space-y-2 mb-8 flex-1">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2 text-sm text-white/70">
-                      <Check className="w-4 h-4 text-accent-violet flex-shrink-0 mt-0.5" />
+                      <Check className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
+                        plan.name === "Elite" ? "text-accent-neon" : "text-accent-violet"
+                      }`} />
                       {feature}
                     </li>
                   ))}
@@ -255,15 +292,19 @@ export default function PricingPage() {
                   onClick={() => handleSubscribe(plan)}
                   disabled={!!loadingPlan}
                   className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
-                    plan.badge === "Populaire" ? "btn-primary" : "btn-secondary"
+                    plan.name === "Elite"
+                      ? "bg-gradient-to-r from-accent-neon/80 to-accent-violet text-white hover:opacity-90"
+                      : plan.badge === "Populaire"
+                      ? "btn-primary"
+                      : "btn-secondary"
                   }`}
                 >
                   {loadingPlan === plan.id ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
-                      <Zap className="w-4 h-4" />
-                      Commencer
+                      {plan.name === "Elite" ? <Crown className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
+                      {plan.name === "Elite" ? "Accès Elite" : "Commencer"}
                     </>
                   )}
                 </button>

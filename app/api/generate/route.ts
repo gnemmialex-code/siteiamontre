@@ -90,6 +90,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ── Restrictions par plan ──────────────────────────────────────────────────
+  if (mode === "video" && (qualityTier === "free" || qualityTier === "essentiel")) {
+    return NextResponse.json(
+      { error: "La génération vidéo est réservée aux plans Pro et Elite. Passez à Pro pour y accéder.", upgrade: true },
+      { status: 403 }
+    );
+  }
+
   const effectiveUserId = userId ?? "anon";
 
   // ── Options de génération ──────────────────────────────────────────────────
@@ -184,7 +192,15 @@ export async function POST(req: NextRequest) {
         throw new Error(`Erreur DB : ${insertError.message}`);
       }
 
-      // Auto-delete oldest done generations beyond 20 per user
+      // Auto-delete oldest done generations based on plan limit
+      const HISTORY_LIMITS: Record<string, number> = {
+        free:      10,
+        essentiel: 20,
+        pro:       100,
+        ultra:     999,
+      };
+      const historyLimit = HISTORY_LIMITS[qualityTier] ?? 20;
+
       const { data: doneGens } = await supabase
         .from("generations")
         .select("id")
@@ -192,8 +208,8 @@ export async function POST(req: NextRequest) {
         .eq("status", "done")
         .order("created_at", { ascending: false });
 
-      if (doneGens && doneGens.length > 20) {
-        const toDelete = doneGens.slice(20).map((g: { id: string }) => g.id);
+      if (doneGens && doneGens.length > historyLimit) {
+        const toDelete = doneGens.slice(historyLimit).map((g: { id: string }) => g.id);
         await supabase.from("generations").delete().in("id", toDelete).eq("user_id", userId);
       }
     }

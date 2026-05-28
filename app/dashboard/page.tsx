@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 import {
   Sparkles, Download, Trash2, Zap, Plus, LogOut,
   Shuffle, Film, Crown, Settings, History,
-  ChevronRight, Check, Star, Replace, PlusCircle, AlertCircle, StopCircle,
+  ChevronRight, Check, Star, Replace, PlusCircle, AlertCircle, StopCircle, Lock,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { resizeImageFile } from "@/lib/resize-image";
@@ -81,10 +81,22 @@ const FORMAT_OPTIONS: GenOption[] = [
 ];
 
 function planQualityBadge(plan?: string): { label: string; color: string } {
-  if (plan?.includes("ultra")) return { label: "8K Ultra ✨", color: "text-amber-400 border-amber-400/40 bg-amber-400/10" };
+  if (plan?.includes("ultra")) return { label: "8K Elite ✨", color: "text-amber-400 border-amber-400/40 bg-amber-400/10" };
   if (plan?.includes("pro"))   return { label: "4K Pro ⚡",   color: "text-accent-violet border-accent-violet/40 bg-accent-violet/10" };
-  return { label: "HD",                                        color: "text-white/40 border-surface-border bg-surface-hover" };
+  return { label: "HD 1080p",                                  color: "text-white/40 border-surface-border bg-surface-hover" };
 }
+
+function userPlanTier(plan?: string): "essentiel" | "pro" | "elite" {
+  if (plan?.includes("ultra")) return "elite";
+  if (plan?.includes("pro"))   return "pro";
+  return "essentiel";
+}
+
+const PLAN_CREDITS_MAX: Record<string, number> = {
+  essentiel: 2500,
+  pro:       10250,
+  elite:     10250,
+};
 
 function GenOptionChips({ title, options, selected, onSelect }: {
   title: string; options: GenOption[]; selected: string | null;
@@ -191,19 +203,22 @@ const PLANS_DATA = [
   {
     id: "essentiel", name: "Essentiel", icon: Zap,   price: "9,90€",  credits: "2 500",
     color: "border-surface-border", badgeBg: "bg-white/10", badgeText: "text-white/60",
-    features: ["Génération photo", "Qualité HD", "Sans watermark", "Historique", "20+ styles"],
+    highlights: [{ k: "Qualité", v: "HD 1080p" }, { k: "Vitesse", v: "~45-60s" }, { k: "Vidéo", v: "Non" }],
+    features: ["Photo uniquement (pas de vidéo)", "Qualité HD 1080p", "8 styles disponibles", "Historique 20 images", "Support standard 48-72h"],
   },
   {
-    id: "pro",        name: "Pro",        icon: Star,  price: "24,90€", credits: "8 000",
+    id: "pro",        name: "Pro",        icon: Star,  price: "19,90€", credits: "10 250",
     color: "border-accent-violet", badgeBg: "bg-accent-violet/20", badgeText: "text-accent-violet",
     badge: "Populaire",
-    features: ["Tout Essentiel", "Vidéo IA", "Image IA", "Vitesse prioritaire", "50+ styles"],
+    highlights: [{ k: "Qualité", v: "Ultra 4K" }, { k: "Vitesse", v: "~20-30s" }, { k: "Vidéo", v: "5s" }],
+    features: ["Photo + Vidéo jusqu'à 5s", "Qualité Ultra 4K", "13 styles dont 5 exclusifs Pro", "Historique 100 images", "Support prioritaire 24h"],
   },
   {
-    id: "elite",      name: "Elite",      icon: Crown, price: "59,90€", credits: "Illimité",
+    id: "elite",      name: "Elite",      icon: Crown, price: "39,90€", credits: "Illimité",
     color: "border-amber-400/50", badgeBg: "bg-amber-400/20", badgeText: "text-amber-400",
     badge: "Elite",
-    features: ["Tout Pro", "Crédits illimités", "API accès", "Support prioritaire", "Early access"],
+    highlights: [{ k: "Qualité", v: "8K Photo" }, { k: "Vitesse", v: "~10-15s" }, { k: "Vidéo", v: "30s 4K" }],
+    features: ["Photo + Vidéo 4K 30s", "Qualité 8K Photoréaliste", "Tous les styles + 3 exclusifs Elite", "Historique illimité", "Manager dédié + API illimitée"],
   },
 ];
 
@@ -598,7 +613,7 @@ export default function DashboardPage() {
             <div className="w-10 h-10 rounded-xl bg-gradient-violet-neon flex items-center justify-center text-white font-black text-base flex-shrink-0">
               {userInitial}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="font-semibold text-sm truncate">{userEmail?.split("@")[0] ?? "—"}</p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <Zap className="w-3 h-3 text-accent-violet" />
@@ -606,6 +621,16 @@ export default function DashboardPage() {
                 <span className="text-white/30 text-xs">crédits</span>
               </div>
             </div>
+            {/* Plan badge */}
+            {stats?.plan && (
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border flex-shrink-0 ${
+                userPlanTier(stats.plan) === "elite" ? "text-amber-400 border-amber-400/40 bg-amber-400/10" :
+                userPlanTier(stats.plan) === "pro"   ? "text-accent-violet border-accent-violet/40 bg-accent-violet/10" :
+                "text-white/40 border-surface-border bg-surface"
+              }`}>
+                {userPlanTier(stats.plan) === "elite" ? "ELITE" : userPlanTier(stats.plan) === "pro" ? "PRO" : "ESSEN."}
+              </span>
+            )}
           </div>
         </div>
 
@@ -625,20 +650,31 @@ export default function DashboardPage() {
         {/* Bottom */}
         <div className="p-4 border-t border-surface-border space-y-3">
           {/* Credits bar */}
-          <div className="px-1">
-            <div className="flex justify-between text-xs mb-1.5">
-              <span className="text-white/40">Crédits restants</span>
-              <span className="text-accent-violet font-bold">{stats?.credits ?? 0} / 2500</span>
-            </div>
-            <div className="h-1.5 bg-surface-hover rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(((stats?.credits ?? 0) / 2500) * 100, 100)}%` }}
-                transition={{ duration: 1.2, ease: "easeOut" }}
-                className="h-full bg-gradient-violet-neon rounded-full"
-              />
-            </div>
-          </div>
+          {(() => {
+            const tier      = userPlanTier(stats?.plan);
+            const maxCr     = PLAN_CREDITS_MAX[tier] ?? 2500;
+            const isElite   = tier === "elite";
+            const pct       = isElite ? 100 : Math.min(((stats?.credits ?? 0) / maxCr) * 100, 100);
+            const maxLabel  = isElite ? "∞" : maxCr.toLocaleString("fr-FR");
+            return (
+              <div className="px-1">
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-white/40">Crédits restants</span>
+                  <span className={`font-bold ${isElite ? "text-amber-400" : "text-accent-violet"}`}>
+                    {isElite ? "∞" : (stats?.credits ?? 0)} / {maxLabel}
+                  </span>
+                </div>
+                <div className="h-1.5 bg-surface-hover rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ duration: 1.2, ease: "easeOut" }}
+                    className={`h-full rounded-full ${isElite ? "bg-gradient-to-r from-amber-400 to-accent-neon" : "bg-gradient-violet-neon"}`}
+                  />
+                </div>
+              </div>
+            );
+          })()}
 
           {userEmail === "gnemmialex@gmail.com" && (
             <Link
@@ -682,27 +718,45 @@ export default function DashboardPage() {
                   <div className="pt-10 pb-6 flex justify-center">
                     <div className="flex gap-2 p-1 bg-surface/60 backdrop-blur-xl border border-surface-border rounded-2xl">
                       {GEN_TABS.map(tab => {
-                        const Icon = tab.icon;
-                        const active = genType === tab.id;
+                        const Icon    = tab.icon;
+                        const active  = genType === tab.id;
+                        const isVideoLocked = tab.id === "video" && userPlanTier(stats?.plan) === "essentiel";
                         return (
                           <motion.button
                             key={tab.id}
-                            onClick={() => { setGenType(tab.id); setError(null); }}
+                            onClick={() => {
+                              if (isVideoLocked) {
+                                toast("La vidéo est disponible à partir du plan Pro ⚡", { icon: "🔒" });
+                                return;
+                              }
+                              setGenType(tab.id); setError(null);
+                            }}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all overflow-hidden ${
-                              active ? "bg-accent-violet text-white shadow-violet" : "text-white/45 hover:text-white"
+                              isVideoLocked
+                                ? "text-white/25 cursor-not-allowed"
+                                : active
+                                ? "bg-accent-violet text-white shadow-violet"
+                                : "text-white/45 hover:text-white"
                             }`}
                           >
-                            {active && (
+                            {active && !isVideoLocked && (
                               <motion.div
                                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
                                 animate={{ x: ["-120%", "220%"] }}
                                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear", repeatDelay: 0.5 }}
                               />
                             )}
-                            <Icon className="w-3.5 h-3.5 relative z-10 flex-shrink-0" />
+                            {isVideoLocked ? (
+                              <Lock className="w-3.5 h-3.5 relative z-10 flex-shrink-0" />
+                            ) : (
+                              <Icon className="w-3.5 h-3.5 relative z-10 flex-shrink-0" />
+                            )}
                             <span className="relative z-10 hidden sm:inline">{tab.label}</span>
+                            {isVideoLocked && (
+                              <span className="relative z-10 hidden sm:inline text-[9px] font-bold text-accent-violet/70 bg-accent-violet/10 border border-accent-violet/20 px-1 rounded ml-0.5">Pro+</span>
+                            )}
                           </motion.button>
                         );
                       })}
@@ -754,13 +808,26 @@ export default function DashboardPage() {
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             {STYLES.map(style => {
-                              const isSelected = selectedStyle?.id === style.id;
+                              const planTier   = userPlanTier(stats?.plan);
+                              const isLocked   =
+                                (style.tier === "pro"   && planTier === "essentiel") ||
+                                (style.tier === "elite" && planTier !== "elite");
+                              const isSelected = !isLocked && selectedStyle?.id === style.id;
+                              const tierLabel  = style.tier === "elite" ? "Elite" : style.tier === "pro" ? "Pro" : null;
                               return (
                                 <button
                                   key={style.id}
-                                  onClick={() => handleStyleSelect(style)}
+                                  onClick={() => {
+                                    if (isLocked) {
+                                      toast(`Style ${tierLabel} — Passez à ${tierLabel} pour l'utiliser`, { icon: "🔒" });
+                                      return;
+                                    }
+                                    handleStyleSelect(style);
+                                  }}
                                   className={`relative rounded-xl border text-left transition-all overflow-hidden ${
-                                    isSelected ? "border-accent-violet" : "border-surface-border bg-surface hover:border-accent-violet/40"
+                                    isLocked   ? "border-surface-border bg-surface opacity-50 cursor-not-allowed" :
+                                    isSelected ? "border-accent-violet" :
+                                                 "border-surface-border bg-surface hover:border-accent-violet/40"
                                   }`}
                                 >
                                   {style.previewImg && (
@@ -769,12 +836,22 @@ export default function DashboardPage() {
                                       <img src={style.previewImg} alt={style.label} className="w-full h-full object-cover"
                                         onError={e=>{(e.currentTarget.parentElement as HTMLElement).style.display="none";}} />
                                       {isSelected && <div className="absolute inset-0 bg-accent-violet/20" />}
+                                      {isLocked && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><Lock className="w-4 h-4 text-white/60" /></div>}
                                     </div>
                                   )}
                                   <div className={`px-2 py-1.5 ${isSelected ? "bg-accent-violet/10" : ""}`}>
                                     {isSelected && (
                                       <div className="absolute top-1 right-1 w-3.5 h-3.5 bg-accent-violet rounded-full flex items-center justify-center z-10">
                                         <span className="text-white text-[8px]">✓</span>
+                                      </div>
+                                    )}
+                                    {tierLabel && (
+                                      <div className={`absolute top-1 right-1 text-[8px] font-black px-1 py-0.5 rounded z-10 ${
+                                        style.tier === "elite"
+                                          ? "bg-amber-400/90 text-black"
+                                          : "bg-accent-violet/90 text-white"
+                                      }`}>
+                                        {tierLabel}
                                       </div>
                                     )}
                                     <span className="text-sm block">{style.emoji}</span>
@@ -1120,6 +1197,24 @@ export default function DashboardPage() {
                   <div className="mb-7 pt-8">
                     <h1 className="text-3xl font-black mb-1">Historique</h1>
                     <p className="text-white/40">{generations.length} création{generations.length!==1?"s":""}</p>
+                    {userPlanTier(stats?.plan) === "essentiel" && (
+                      <div className="mt-3 flex items-center gap-3 bg-accent-violet/8 border border-accent-violet/20 rounded-xl px-4 py-2.5">
+                        <Lock className="w-3.5 h-3.5 text-accent-violet flex-shrink-0" />
+                        <p className="text-white/50 text-xs">
+                          Plan Essentiel — historique limité à <strong className="text-white/70">20 images</strong>.{" "}
+                          <Link href="/pricing" className="text-accent-violet hover:underline">Passez à Pro</Link> pour 100 images ou à Elite pour l&apos;historique illimité.
+                        </p>
+                      </div>
+                    )}
+                    {userPlanTier(stats?.plan) === "pro" && (
+                      <div className="mt-3 flex items-center gap-3 bg-accent-violet/8 border border-accent-violet/20 rounded-xl px-4 py-2.5">
+                        <Sparkles className="w-3.5 h-3.5 text-accent-violet flex-shrink-0" />
+                        <p className="text-white/50 text-xs">
+                          Plan Pro — historique jusqu&apos;à <strong className="text-white/70">100 images</strong>.{" "}
+                          <Link href="/pricing" className="text-accent-violet hover:underline">Passez à Elite</Link> pour un historique illimité.
+                        </p>
+                      </div>
+                    )}
                   </div>
                   {generations.length === 0 ? (
                     <div className="text-center py-24 card">
@@ -1169,29 +1264,46 @@ export default function DashboardPage() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
                     {PLANS_DATA.map((plan,i)=>{
-                      const Icon = plan.icon;
+                      const Icon       = plan.icon;
+                      const isCurrent  = userPlanTier(stats?.plan) === plan.id;
                       return (
                         <motion.div key={plan.id} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:i*0.1}}
-                          className={`card border ${plan.color} relative flex flex-col`}>
-                          {plan.badge && (
+                          className={`card border ${plan.color} relative flex flex-col ${isCurrent ? "ring-2 ring-offset-2 ring-offset-background " + plan.color.replace("border-","ring-") : ""}`}>
+                          {isCurrent && (
+                            <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/40 whitespace-nowrap">✓ Votre plan actuel</span>
+                          )}
+                          {!isCurrent && plan.badge && (
                             <span className={`absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-1 rounded-full ${plan.badgeBg} ${plan.badgeText} border border-current`}>{plan.badge}</span>
                           )}
-                          <div className="flex items-center gap-3 mb-4">
+                          <div className="flex items-center gap-3 mb-3">
                             <div className={`w-10 h-10 rounded-xl ${plan.badgeBg} flex items-center justify-center ${plan.badgeText}`}><Icon className="w-5 h-5" /></div>
                             <div>
                               <p className="font-bold">{plan.name}</p>
                               <p className={`text-xs ${plan.badgeText}`}>{plan.credits} crédits/mois</p>
                             </div>
                           </div>
-                          <p className="text-3xl font-black mb-5">{plan.price}<span className="text-sm font-normal text-white/40">/mois</span></p>
-                          <ul className="space-y-2 mb-6 flex-1">
+                          <p className="text-3xl font-black mb-3">{plan.price}<span className="text-sm font-normal text-white/40">/mois</span></p>
+                          {/* Highlights */}
+                          <div className="grid grid-cols-3 gap-1 mb-4">
+                            {plan.highlights.map(h=>(
+                              <div key={h.k} className="bg-surface-hover rounded-lg p-1.5 text-center">
+                                <p className="text-white/30 text-[9px] uppercase tracking-wide">{h.k}</p>
+                                <p className={`text-[10px] font-bold leading-tight ${plan.badgeText}`}>{h.v}</p>
+                              </div>
+                            ))}
+                          </div>
+                          <ul className="space-y-2 mb-5 flex-1">
                             {plan.features.map(f=>(
-                              <li key={f} className="flex items-center gap-2 text-sm text-white/60">
-                                <Check className="w-4 h-4 text-accent-violet flex-shrink-0" />{f}
+                              <li key={f} className="flex items-start gap-2 text-xs text-white/60">
+                                <Check className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${plan.badgeText}`} />{f}
                               </li>
                             ))}
                           </ul>
-                          <Link href="/pricing" className="btn-primary text-center w-full">Choisir {plan.name}</Link>
+                          {isCurrent ? (
+                            <div className="w-full py-2.5 rounded-xl text-center text-sm font-semibold bg-green-500/10 text-green-400 border border-green-500/20">Plan actif</div>
+                          ) : (
+                            <Link href="/pricing" className="btn-primary text-center w-full text-sm py-2.5">Passer à {plan.name}</Link>
+                          )}
                         </motion.div>
                       );
                     })}

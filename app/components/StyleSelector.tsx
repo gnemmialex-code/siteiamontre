@@ -11,9 +11,11 @@ export interface Style {
   prompt: string;
   tags: string[];
   previewImg?: string;
+  tier?: "pro" | "elite";
 }
 
 export const STYLES: Style[] = [
+  // ── Essentiel (accès tous plans) ─────────────────────────
   {
     id: "hollywood_glamour",
     label: "Hollywood Glamour",
@@ -85,6 +87,90 @@ export const STYLES: Style[] = [
     prompt: "professional athlete portrait, sports photography, dynamic lighting, champion aesthetic, studio quality",
     tags: ["Sport", "Dynamique"],
     previewImg: "/styles/sports_star.png",
+  },
+
+  // ── Pro exclusifs ─────────────────────────────────────────
+  {
+    id: "cyberpunk_future",
+    label: "Cyberpunk Future",
+    description: "Néons futuristes, ambiance cyber",
+    emoji: "🤖",
+    prompt: "cyberpunk portrait photography, neon lights, futuristic city background, sci-fi aesthetic, dramatic neon lighting, ultra detailed",
+    tags: ["Futur", "Neon"],
+    previewImg: "/styles/cyberpunk_future.png",
+    tier: "pro",
+  },
+  {
+    id: "dubai_luxury",
+    label: "Dubai Luxury",
+    description: "Skyline luxe, lifestyle haut de gamme",
+    emoji: "🏙️",
+    prompt: "luxury lifestyle photography in Dubai, premium hotel rooftop, city skyline background, golden sunset, high-end fashion",
+    tags: ["Luxe", "Ville"],
+    previewImg: "/styles/dubai_luxury.png",
+    tier: "pro",
+  },
+  {
+    id: "street_style",
+    label: "Street Style",
+    description: "Look urbain, fashion week off-duty",
+    emoji: "🕶️",
+    prompt: "street style fashion photography, urban outdoor setting, candid editorial look, natural light, fashion week aesthetic",
+    tags: ["Street", "Mode"],
+    previewImg: "/styles/street_style.png",
+    tier: "pro",
+  },
+  {
+    id: "brand_ambassador",
+    label: "Brand Ambassador",
+    description: "Campagne premium, égérie de marque",
+    emoji: "✨",
+    prompt: "premium brand ambassador campaign photography, clean professional backdrop, confident powerful pose, luxury product launch aesthetic",
+    tags: ["Brand", "Pro"],
+    previewImg: "/styles/brand_ambassador.png",
+    tier: "pro",
+  },
+  {
+    id: "yacht_club",
+    label: "Yacht Club",
+    description: "Vie sur mer, élégance nautique",
+    emoji: "⛵",
+    prompt: "luxury yacht lifestyle photography, Mediterranean sea background, nautical elegance, golden hour sunlight, premium fashion editorial",
+    tags: ["Luxe", "Mer"],
+    previewImg: "/styles/yacht_club.png",
+    tier: "pro",
+  },
+
+  // ── Elite exclusifs ───────────────────────────────────────
+  {
+    id: "blockbuster_hero",
+    label: "Blockbuster Hero",
+    description: "Affiche de film blockbuster",
+    emoji: "🦸",
+    prompt: "Hollywood blockbuster movie poster photography, epic cinematic lighting, dramatic hero pose, VFX-quality compositing, IMAX cinematic resolution",
+    tags: ["Cinéma", "Épique"],
+    previewImg: "/styles/blockbuster_hero.png",
+    tier: "elite",
+  },
+  {
+    id: "royal_portrait",
+    label: "Royal Portrait",
+    description: "Portrait royal, prestance absolue",
+    emoji: "👸",
+    prompt: "royal formal portrait photography, regal aristocratic setting, opulent interior background, crown jewels aesthetic, old masters painting quality",
+    tags: ["Royal", "Art"],
+    previewImg: "/styles/royal_portrait.png",
+    tier: "elite",
+  },
+  {
+    id: "album_cover",
+    label: "Album Cover",
+    description: "Pochette d'album iconique",
+    emoji: "🎶",
+    prompt: "iconic album cover art photography, record label quality, bold artistic direction, Grammy-level production, flawless skin, studio perfection",
+    tags: ["Musique", "Art"],
+    previewImg: "/styles/album_cover.png",
+    tier: "elite",
   },
 ];
 
