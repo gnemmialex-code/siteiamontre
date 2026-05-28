@@ -52,7 +52,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       toast.success("Connexion réussie !", { duration: 1500 });
-      setTimeout(() => router.push("/dashboard"), 1200);
+      setTimeout(() => { window.location.href = "/dashboard"; }, 1200);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erreur de connexion";
       toast.error(msg === "Invalid login credentials" ? "Email ou mot de passe incorrect" : msg);
