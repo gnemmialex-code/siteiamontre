@@ -181,6 +181,9 @@ interface Generation {
 interface UserStats {
   credits: number;
   total_generations: number;
+  image_generations: number;
+  swapface_generations: number;
+  video_generations: number;
   member_since: string;
   plan?: string;
 }
@@ -1399,6 +1402,24 @@ export default function DashboardPage() {
                       <div className="flex justify-between py-2 border-b border-surface-border">
                         <span className="text-white/50 text-sm">Générations totales</span>
                         <span className="font-bold">{stats?.total_generations ?? generations.length}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b border-surface-border">
+                        <span className="text-white/50 text-sm flex items-center gap-1.5">
+                          <span>📸</span> Images IA générées
+                        </span>
+                        <span className="font-bold">{stats?.image_generations ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b border-surface-border">
+                        <span className="text-white/50 text-sm flex items-center gap-1.5">
+                          <span>🔄</span> SwapFace réalisés
+                        </span>
+                        <span className="font-bold">{stats?.swapface_generations ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b border-surface-border">
+                        <span className="text-white/50 text-sm flex items-center gap-1.5">
+                          <span>🎬</span> Vidéos générées
+                        </span>
+                        <span className="font-bold">{stats?.video_generations ?? 0}</span>
                       </div>
                       <div className="flex justify-between py-2">
                         <span className="text-white/50 text-sm">Crédits restants</span>

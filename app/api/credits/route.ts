@@ -34,16 +34,28 @@ export async function GET() {
     // plan_id column not yet in DB — use default
   }
 
-  const { count } = await supabase
-    .from("generations")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id);
+  const [
+    { count: totalCount },
+    { count: swapCount },
+    { count: videoCount },
+  ] = await Promise.all([
+    supabase.from("generations").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+    supabase.from("generations").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("style", "SwapFace"),
+    supabase.from("generations").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("style", "Vidéo IA"),
+  ]);
+
+  const total = totalCount ?? 0;
+  const swap  = swapCount  ?? 0;
+  const video = videoCount ?? 0;
 
   return NextResponse.json({
-    credits:           userData.credits,
-    plan:              planId,
-    authenticated:     true,
-    total_generations: count ?? 0,
-    member_since:      userData.created_at,
+    credits:            userData.credits,
+    plan:               planId,
+    authenticated:      true,
+    total_generations:  total,
+    image_generations:  total - swap - video,
+    swapface_generations: swap,
+    video_generations:  video,
+    member_since:       userData.created_at,
   });
 }
