@@ -1295,7 +1295,7 @@ export default function DashboardPage() {
                       {generations.length > 0 && !confirmDeleteAll && (
                         <button
                           onClick={() => setConfirmDeleteAll(true)}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-500/30 text-red-400/70 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/50 text-xs font-medium transition-all mt-1"
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/15 border border-red-500 text-red-400 hover:bg-red-500/30 hover:text-white text-xs font-semibold transition-all mt-1"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                           Tout supprimer
@@ -1363,7 +1363,7 @@ export default function DashboardPage() {
                             <button onClick={()=>handleDownload(gen.output_image_url,gen.id)} className="w-8 h-8 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-white/20">
                               <Download className="w-3.5 h-3.5" />
                             </button>
-                            <button onClick={()=>handleDelete(gen.id)} disabled={deletingId===gen.id} className="w-8 h-8 bg-red-500/20 backdrop-blur-sm rounded-full flex items-center justify-center text-red-400 border border-red-500/20">
+                            <button onClick={()=>handleDelete(gen.id)} disabled={deletingId===gen.id} className="w-8 h-8 bg-red-500/70 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-red-500 hover:bg-red-500 transition-colors disabled:opacity-50">
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
