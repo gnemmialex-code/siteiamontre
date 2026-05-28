@@ -25,15 +25,11 @@ const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly,
 
 export const STYLE_MODELS: Img2ImgModelSpec[] = [
   {
-    // Flux Kontext Max: purpose-built image editing model.
-    // Takes input_image + a text instruction, edits only what is asked,
-    // preserves the rest of the image including the person's identity.
-    spec: "black-forest-labs/flux-kontext-max",
-    buildInput: (prompt, _neg, imageUrl, _strength) => ({
+    spec: "google/nano-banana-pro",
+    buildInput: (prompt, _neg, imageUrl, strength) => ({
       prompt,
-      input_image:      imageUrl,
-      output_format:    "jpg",
-      safety_tolerance: 2,
+      image:    imageUrl,
+      strength,
     }),
   },
 ];
