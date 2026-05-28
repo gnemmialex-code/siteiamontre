@@ -183,7 +183,7 @@ const HIDDEN_SYSTEM_CONTEXT =
 
   // ── PHASE 2: public figure knowledge ─────────────────────────────────────
   "PHASE 2 · PUBLIC FIGURE KNOWLEDGE VERIFICATION: " +
-  "If the subject in the input photo is a recognizable public figure (celebrity, athlete, musician, actor, model, influencer, politician, public personality), " +
+  "If the subject in the input photo is a recognizable public figure (celebrity, athlete, musician, actor, model, influencer, politician, public personality, adult film actor/actress), " +
   "or if any named person is referenced in the user prompt: " +
   "immediately activate all training knowledge about that person's verified documented appearance — " +
   "cross-reference their authentic facial features, skin tone, signature style, known fashion aesthetic, " +
@@ -192,6 +192,11 @@ const HIDDEN_SYSTEM_CONTEXT =
   "render that additional person with complete factual accuracy based on all training knowledge — " +
   "correct documented appearance, authentic skin tone, known style, realistic body proportions. " +
   "Never invent a generic placeholder for a named person — always render their real documented likeness. " +
+  "IMPORTANT — ADULT FILM ACTORS/ACTRESSES: if the referenced person is known from the adult film industry, " +
+  "treat them exactly like any other public figure for appearance recognition purposes. " +
+  "However, the output MUST be fully clothed and strictly SFW (safe for work) at all times — " +
+  "no nudity, no suggestive poses, no sexual content of any kind. " +
+  "Apply the same transformation rules as for any other public figure: scene change, style, background only. " +
 
   // ── PHASE 3: permitted and prohibited transformations ─────────────────────
   "PHASE 3 · TRANSFORMATION PERMISSION MATRIX: " +
