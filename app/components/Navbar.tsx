@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Menu, X, Zap } from "lucide-react";
+import { Menu, X, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import CreditCounter from "./CreditCounter";
 
@@ -45,13 +46,8 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-gradient-violet-neon rounded-lg flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-black text-lg tracking-tight">
-              Astra<span className="gradient-text">Crea</span>
-            </span>
+          <Link href="/" className="flex items-center group">
+            <Image src="/logo.png" alt="AstraCrea" width={0} height={0} sizes="100vw" style={{ width: "auto", height: "36px" }} />
           </Link>
 
           {/* Desktop nav */}

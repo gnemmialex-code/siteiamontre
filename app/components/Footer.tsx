@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Sparkles, Instagram } from "lucide-react";
+import Image from "next/image";
+import { Instagram } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -8,13 +9,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="md:col-span-2">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-violet-neon rounded-lg flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-black text-lg">
-                Astra<span className="gradient-text">Crea</span>
-              </span>
+            <Link href="/" className="inline-flex mb-4">
+              <Image src="/logo.png" alt="AstraCrea" width={0} height={0} sizes="100vw" style={{ width: "auto", height: "36px" }} />
             </Link>
             <p className="text-white/50 text-sm leading-relaxed max-w-xs">
               La plateforme de transformation photo par IA Ultra HD la plus avancée.

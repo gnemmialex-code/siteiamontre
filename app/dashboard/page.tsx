@@ -664,13 +664,8 @@ export default function DashboardPage() {
       <aside className="w-72 xl:w-80 shrink-0 border-r border-surface-border flex flex-col sticky top-0 h-screen bg-background/70 backdrop-blur-xl">
 
         {/* Logo */}
-        <Link href="/" className="px-5 py-5 border-b border-surface-border flex items-center gap-3 hover:bg-surface-hover transition-colors">
-          <div className="w-8 h-8 bg-gradient-violet-neon rounded-xl flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-black text-lg tracking-tight">
-            Astra<span className="gradient-text">Crea</span>
-          </span>
+        <Link href="/" className="px-5 py-4 border-b border-surface-border flex items-center hover:bg-surface-hover transition-colors">
+          <Image src="/logo.png" alt="AstraCrea" width={0} height={0} sizes="100vw" style={{ width: "auto", height: "36px" }} />
         </Link>
 
         {/* User info */}
