@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
+import { createSupabaseAdmin } from "@/lib/supabase";
 
 export async function GET() {
   const supabase = await createSupabaseServer();
@@ -10,10 +11,11 @@ export async function GET() {
     return NextResponse.json({ credits: 0, authenticated: false });
   }
 
-  // Base query — always works even without plan_id column
-  const { data: userData, error } = await supabase
+  // Use admin client to bypass RLS and always get plan_id reliably
+  const admin = createSupabaseAdmin();
+  const { data: userData, error } = await admin
     .from("users")
-    .select("credits, created_at")
+    .select("credits, created_at, plan_id")
     .eq("id", user.id)
     .single();
 
@@ -21,27 +23,16 @@ export async function GET() {
     return NextResponse.json({ credits: 0, authenticated: true });
   }
 
-  // Attempt to read plan_id (graceful — column may not exist yet in DB)
-  let planId: string = "plan_essentiel";
-  try {
-    const { data: planData } = await supabase
-      .from("users")
-      .select("plan_id")
-      .eq("id", user.id)
-      .single();
-    if (planData?.plan_id) planId = planData.plan_id;
-  } catch {
-    // plan_id column not yet in DB — use default
-  }
+  const planId: string = userData.plan_id ?? "plan_essentiel";
 
   const [
     { count: totalCount },
     { count: swapCount },
     { count: videoCount },
   ] = await Promise.all([
-    supabase.from("generations").select("*", { count: "exact", head: true }).eq("user_id", user.id),
-    supabase.from("generations").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("style", "SwapFace"),
-    supabase.from("generations").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("style", "Vidéo IA"),
+    admin.from("generations").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+    admin.from("generations").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("style", "SwapFace"),
+    admin.from("generations").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("style", "Vidéo IA"),
   ]);
 
   const total = totalCount ?? 0;
@@ -49,13 +40,13 @@ export async function GET() {
   const video = videoCount ?? 0;
 
   return NextResponse.json({
-    credits:            userData.credits,
-    plan:               planId,
-    authenticated:      true,
-    total_generations:  total,
-    image_generations:  total - swap - video,
+    credits:              userData.credits,
+    plan:                 planId,
+    authenticated:        true,
+    total_generations:    total,
+    image_generations:    total - swap - video,
     swapface_generations: swap,
-    video_generations:  video,
-    member_since:       userData.created_at,
+    video_generations:    video,
+    member_since:         userData.created_at,
   });
 }
