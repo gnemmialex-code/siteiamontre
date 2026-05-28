@@ -110,33 +110,45 @@ const HIDDEN_SYSTEM_CONTEXT =
   "ABSOLUTE IMAGE-TO-IMAGE TRANSFORMATION CONTRACT — READ EVERY INSTRUCTION BEFORE GENERATING. " +
 
   // ── CRITICAL PREAMBLE: the base image is sacred ───────────────────────────
-  "CRITICAL PREAMBLE — THE BASE IMAGE IS SACRED AND MUST NOT BE MODIFIED: " +
-  "This is an image-to-image transformation task. An input photograph has been provided. " +
-  "That input photograph contains a real person. That person, exactly as they appear in the input photograph, " +
-  "must appear in the output image with ZERO modification, ZERO reinterpretation, and ZERO deviation. " +
-  "The base image is not a reference, not an inspiration, not a style guide — it is the subject itself. " +
-  "The person in the base image must be reproduced in the output as if they were copy-pasted from the original photo and placed into the new scene. " +
-  "Their face must look exactly the same. Their skin tone must look exactly the same. " +
-  "Their hair color, hair texture, and hairstyle must look exactly the same. " +
-  "Their body shape, posture, and proportions must look exactly the same. " +
-  "Nothing about the person changes. Not a single pixel of their physical appearance should look different from the input. " +
-  "If you are about to generate an output where the person looks even slightly different from the input — stop and correct it. " +
-  "The only things that should change between the input and the output are the elements explicitly requested " +
-  "in the user's prompt (background, environment, lighting, scene, additional people, clothing only if explicitly asked). " +
-  "Everything else remains completely identical to the input photograph. " +
+  "CRITICAL PREAMBLE — THE BASE IMAGE IS A FIXED CANVAS THAT MUST NOT BE MODIFIED: " +
+  "This is an image-to-image task. You have received an input photograph. That photograph is your fixed canvas. " +
+  "Your role is NOT to regenerate this photograph. Your role is NOT to reimagine it. " +
+  "Your role is NOT to improve it, reinterpret it, or recreate it from scratch. " +
+  "Your sole role is to apply ONLY what the user has explicitly requested on top of this fixed canvas, " +
+  "while leaving every single other element of the photograph exactly as it is. " +
+  "The person in the input photograph — their face, skin tone, hair, body, clothing, posture, expression — " +
+  "must appear in the output as if their pixels were directly transferred from the input without any processing. " +
+  "This person must not be regenerated, not be redrawn, not be smoothed, not be altered in any way. " +
+  "Their face must be pixel-for-pixel identical to the input. " +
+  "Their skin color must be pixel-for-pixel identical to the input. " +
+  "Their hair must be pixel-for-pixel identical to the input. " +
+  "Their body must be pixel-for-pixel identical to the input. " +
+  "If the user says 'add someone next to me' — add only that person. Do not touch me. " +
+  "If the user says 'change the background' — change only the background. Do not touch me. " +
+  "If the user says 'put me on a beach' — construct the beach scene around me. Do not touch me. " +
+  "In every single scenario, the original person in the base image is untouched, unmodified, and preserved completely. " +
+  "The output image should look as though someone took the original photograph and made only the specific requested addition or change — " +
+  "nothing more, nothing less. Everything else is frozen exactly as in the input. " +
 
   // ── SPECIAL CASE: adding someone to the photo ─────────────────────────────
-  "SPECIAL CASE — ADDING A PERSON TO THE SCENE: " +
-  "If the user requests that another person be added to the photo (e.g. 'add Cristiano Ronaldo next to me', " +
-  "'put me with Beyoncé', 'add my friend', 'place someone beside me'), " +
-  "the instruction is ONLY to add that new person to the scene alongside the existing subject. " +
-  "Under absolutely no circumstances should adding a new person cause any change whatsoever to the original subject. " +
-  "The original person in the base image must remain completely unchanged — same face, same skin, same hair, same body, same expression. " +
-  "The new person is simply placed into the scene next to them. " +
-  "The original subject is not repositioned, not resized, not relit, not recolored, not altered in any way. " +
-  "Both people should exist naturally in the same scene together, but the original person is untouched and the new person is added. " +
-  "The added person must be rendered with their real, documented, authentic appearance based on all available training knowledge — " +
-  "never a generic placeholder, always their real face, real skin tone, real body type, and authentic personal style. " +
+  "SPECIAL CASE — ADDING A PERSON NEXT TO THE ORIGINAL SUBJECT: " +
+  "This is a critically important case. If the user requests that another person be added to the photo " +
+  "(e.g. 'add Cristiano Ronaldo next to me', 'put Beyoncé beside me', 'add someone next to me', " +
+  "'place this person alongside me', 'I want to appear with [name]'), " +
+  "the only action to perform is: place that new person into the scene beside the existing subject. " +
+  "The existing subject — the person already in the base image — must not be touched, moved, resized, " +
+  "recolored, redrawn, or altered in any way whatsoever. " +
+  "Their face remains exactly the same. Their skin tone remains exactly the same. " +
+  "Their hair remains exactly the same. Their clothing remains exactly the same. " +
+  "Their position in the frame remains exactly the same. Their expression remains exactly the same. " +
+  "The ONLY new element introduced into the output is the requested additional person, " +
+  "placed naturally into the available space of the scene. " +
+  "The added person must be rendered with their authentic, real, documented appearance: " +
+  "their correct real face, their correct real skin tone, their correct real body proportions, " +
+  "and their authentic recognizable style — never a generic or invented stand-in. " +
+  "To be absolutely clear: adding a person to the photo means the photo gains one element. " +
+  "It does not mean the original person is replaced, regenerated, or modified in any way. " +
+  "The original person stays. A new person is added next to them. That is all. " +
 
   // ── RULE ZERO: the person is untouchable ──────────────────────────────────
   "RULE ZERO — NON-NEGOTIABLE IDENTITY LOCK: " +
@@ -286,12 +298,13 @@ function buildStylePrompt(
 // higher = follow the prompt more aggressively
 
 function intensityToStrength(intensity?: string): number {
-  // Kept low so the person remains visible in the img2img output,
-  // ensuring the face-injection step (step 2) has a face to anchor onto.
+  // Very low values: the base image is treated as a near-fixed canvas.
+  // The model adds/modifies only what the prompt requests and preserves
+  // the rest of the original photograph as closely as possible.
   switch (intensity) {
-    case "light":  return 0.20;
-    case "strong": return 0.50;
-    default:       return 0.32; // moderate
+    case "light":  return 0.12;
+    case "strong": return 0.38;
+    default:       return 0.20; // moderate
   }
 }
 
