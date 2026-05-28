@@ -7,6 +7,11 @@ export const metadata: Metadata = {
   description:
     "Transformez vos photos avec la technologie IA Ultra HD d'AstraCrea. Résultats 4K en quelques secondes.",
   keywords: ["AstraCrea", "IA", "photo", "transformation", "ultra hd", "face swap"],
+  icons: {
+    icon: "/logo2.png",
+    shortcut: "/logo2.png",
+    apple: "/logo2.png",
+  },
   openGraph: {
     title: "AstraCrea — Transformations IA Ultra HD",
     description: "Transformez vos photos avec l'IA Ultra HD d'AstraCrea",
