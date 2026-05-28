@@ -4,10 +4,8 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
 });
 
-// Face-swap and upscale — SwapFace mode and Ultra upscale only
 const MODELS = {
-  faceSwap:   "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
-  realEsrgan: "nightmareai/real-esrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc3a73abf41610695738c1d7b",
+  faceSwap: "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
 } as const;
 
 // ─── Créer mode: img2img fallback chain ──────────────────────────────────────
@@ -52,10 +50,10 @@ export const ZIMAGE_DIMS: Record<string, { width: number; height: number }> = {
 
 // ─── Quality settings ─────────────────────────────────────────────────────────
 const QUALITY_SETTINGS = {
-  free:      { quality: 80,  format: "jpg" as const, upscale: false },
-  essentiel: { quality: 85,  format: "jpg" as const, upscale: false },
-  pro:       { quality: 95,  format: "jpg" as const, upscale: false },
-  ultra:     { quality: 100, format: "png" as const, upscale: true  },
+  free:      { quality: 80,  format: "jpg" as const },
+  essentiel: { quality: 85,  format: "jpg" as const },
+  pro:       { quality: 95,  format: "jpg" as const },
+  ultra:     { quality: 100, format: "png" as const },
 } as const;
 
 // ─── Render style descriptors ─────────────────────────────────────────────────
@@ -459,8 +457,8 @@ function extractUrl(output: unknown): string {
 
 // ─── ASYNC JOB API ────────────────────────────────────────────────────────────
 //
-// Créer mode:    img2img model chain (photo is actual input) → optional upscale (Ultra)
-// SwapFace mode: face-swap → optional upscale (Ultra)
+// Créer mode:    img2img model chain (photo is actual input)
+// SwapFace mode: face-swap
 
 export type AsyncJobConfig = {
   mode:           "style" | "swapface";
@@ -564,42 +562,11 @@ export type AdvanceResult =
   | { done: false; predictionId: string; step: number };
 
 export async function advanceAsyncJob(
-  config:     AsyncJobConfig,
-  step:       number,
+  _config:    AsyncJobConfig,
+  _step:      number,
   predOutput: unknown,
 ): Promise<AdvanceResult> {
-  const q         = QUALITY_SETTINGS[config.qualityTier];
-  const outputUrl = extractUrl(predOutput);
-
-  if (config.mode === "swapface") {
-    if (step === 1 && q.upscale) {
-      try {
-        const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 2, face_enhance: true });
-        return { done: false, predictionId: p.id, step: 2 };
-      } catch {
-        console.warn("[Pipeline] Upscale failed — returning base result");
-        return { done: true, outputUrl };
-      }
-    }
-    return { done: true, outputUrl };
-  }
-
-  // Style step 1: img2img done → optional upscale (Ultra) or done
-  if (step === 1) {
-    if (q.upscale) {
-      try {
-        const p = await createPred(MODELS.realEsrgan, { image: outputUrl, scale: 2, face_enhance: true });
-        return { done: false, predictionId: p.id, step: 2 };
-      } catch {
-        console.warn("[Pipeline] Upscale failed — returning base result");
-        return { done: true, outputUrl };
-      }
-    }
-    return { done: true, outputUrl };
-  }
-
-  // step 2+: upscale done
-  return { done: true, outputUrl };
+  return { done: true, outputUrl: extractUrl(predOutput) };
 }
 
 export { replicate, withRetry, loadImageAsBase64 };
