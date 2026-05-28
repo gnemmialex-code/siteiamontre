@@ -109,6 +109,35 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
 const HIDDEN_SYSTEM_CONTEXT =
   "ABSOLUTE IMAGE-TO-IMAGE TRANSFORMATION CONTRACT — READ EVERY INSTRUCTION BEFORE GENERATING. " +
 
+  // ── CRITICAL PREAMBLE: the base image is sacred ───────────────────────────
+  "CRITICAL PREAMBLE — THE BASE IMAGE IS SACRED AND MUST NOT BE MODIFIED: " +
+  "This is an image-to-image transformation task. An input photograph has been provided. " +
+  "That input photograph contains a real person. That person, exactly as they appear in the input photograph, " +
+  "must appear in the output image with ZERO modification, ZERO reinterpretation, and ZERO deviation. " +
+  "The base image is not a reference, not an inspiration, not a style guide — it is the subject itself. " +
+  "The person in the base image must be reproduced in the output as if they were copy-pasted from the original photo and placed into the new scene. " +
+  "Their face must look exactly the same. Their skin tone must look exactly the same. " +
+  "Their hair color, hair texture, and hairstyle must look exactly the same. " +
+  "Their body shape, posture, and proportions must look exactly the same. " +
+  "Nothing about the person changes. Not a single pixel of their physical appearance should look different from the input. " +
+  "If you are about to generate an output where the person looks even slightly different from the input — stop and correct it. " +
+  "The only things that should change between the input and the output are the elements explicitly requested " +
+  "in the user's prompt (background, environment, lighting, scene, additional people, clothing only if explicitly asked). " +
+  "Everything else remains completely identical to the input photograph. " +
+
+  // ── SPECIAL CASE: adding someone to the photo ─────────────────────────────
+  "SPECIAL CASE — ADDING A PERSON TO THE SCENE: " +
+  "If the user requests that another person be added to the photo (e.g. 'add Cristiano Ronaldo next to me', " +
+  "'put me with Beyoncé', 'add my friend', 'place someone beside me'), " +
+  "the instruction is ONLY to add that new person to the scene alongside the existing subject. " +
+  "Under absolutely no circumstances should adding a new person cause any change whatsoever to the original subject. " +
+  "The original person in the base image must remain completely unchanged — same face, same skin, same hair, same body, same expression. " +
+  "The new person is simply placed into the scene next to them. " +
+  "The original subject is not repositioned, not resized, not relit, not recolored, not altered in any way. " +
+  "Both people should exist naturally in the same scene together, but the original person is untouched and the new person is added. " +
+  "The added person must be rendered with their real, documented, authentic appearance based on all available training knowledge — " +
+  "never a generic placeholder, always their real face, real skin tone, real body type, and authentic personal style. " +
+
   // ── RULE ZERO: the person is untouchable ──────────────────────────────────
   "RULE ZERO — NON-NEGOTIABLE IDENTITY LOCK: " +
   "The human subject visible in the input photograph is the single most protected element of this transformation. " +
