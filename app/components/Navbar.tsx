@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Menu, X, Zap } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import CreditCounter from "./CreditCounter";
 
 const NAV_LINKS = [
@@ -14,14 +15,23 @@ const NAV_LINKS = [
 ];
 
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled,    setScrolled]    = useState(false);
+  const [mobileOpen,  setMobileOpen]  = useState(false);
+  const [userEmail,   setUserEmail]   = useState<string | null>(null);
   const pathname = usePathname();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUserEmail(session?.user?.email ?? null);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   return (
@@ -64,9 +74,18 @@ export default function Navbar() {
           {/* Right side */}
           <div className="hidden md:flex items-center gap-3">
             <CreditCounter />
-            <Link href="/login" className="btn-ghost text-sm">
-              Connexion
-            </Link>
+            {userEmail ? (
+              <Link href="/dashboard" className="btn-ghost text-sm flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-gradient-violet-neon flex items-center justify-center text-white text-[10px] font-black flex-shrink-0">
+                  {userEmail[0].toUpperCase()}
+                </div>
+                <span className="max-w-[140px] truncate">{userEmail}</span>
+              </Link>
+            ) : (
+              <Link href="/login" className="btn-ghost text-sm">
+                Connexion
+              </Link>
+            )}
             <Link href="/upload" className="btn-primary text-sm px-4 py-2 flex items-center gap-1">
               <Zap className="w-4 h-4" />
               Générer
@@ -105,9 +124,18 @@ export default function Navbar() {
               ))}
               <div className="pt-2 border-t border-surface-border flex flex-col gap-2">
                 <CreditCounter />
-                <Link href="/login" className="btn-secondary text-center">
-                  Connexion
-                </Link>
+                {userEmail ? (
+                  <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="btn-secondary text-center flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-gradient-violet-neon flex items-center justify-center text-white text-[9px] font-black flex-shrink-0">
+                      {userEmail[0].toUpperCase()}
+                    </div>
+                    <span className="truncate max-w-[180px]">{userEmail}</span>
+                  </Link>
+                ) : (
+                  <Link href="/login" className="btn-secondary text-center">
+                    Connexion
+                  </Link>
+                )}
                 <Link href="/upload" className="btn-primary text-center">
                   Générer maintenant
                 </Link>
