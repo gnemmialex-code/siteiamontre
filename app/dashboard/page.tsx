@@ -664,9 +664,10 @@ export default function DashboardPage() {
       <aside className="w-72 xl:w-80 shrink-0 border-r border-surface-border flex flex-col sticky top-0 h-screen bg-background/70 backdrop-blur-xl">
 
         {/* Logo */}
-        <Link href="/" className="px-5 py-4 border-b border-surface-border flex items-center hover:bg-surface-hover transition-colors">
+        <Link href="/" className="px-5 py-4 border-b border-surface-border flex items-center gap-2 hover:bg-surface-hover transition-colors">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo2.png" alt="AstraCrea" className="h-11 w-auto rounded-xl" />
+          <span className="font-black text-lg tracking-tight">Astra<span className="gradient-text">Crea</span></span>
         </Link>
 
         {/* User info */}

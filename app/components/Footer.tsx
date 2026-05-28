@@ -8,9 +8,10 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="md:col-span-2">
-            <Link href="/" className="inline-flex mb-4">
+            <Link href="/" className="inline-flex items-center gap-2 mb-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo2.png" alt="AstraCrea" className="h-11 w-auto rounded-xl" />
+              <span className="font-black text-lg tracking-tight">Astra<span className="gradient-text">Crea</span></span>
             </Link>
             <p className="text-white/50 text-sm leading-relaxed max-w-xs">
               La plateforme de transformation photo par IA Ultra HD la plus avancée.
