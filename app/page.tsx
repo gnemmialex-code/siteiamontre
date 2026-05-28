@@ -44,6 +44,8 @@ const EXAMPLES_IMAGES = [
   { style: "Denzel Washington",       before: "/examples/denzel_avant.png", after: "/examples/denzel_apres.png" },
   { style: "Johnny Sins",      before: "/examples/johnny_avant.png", after: "/examples/johnny_apres.png" },
   { style: "Kylian Mbappé",      before: "/examples/kylian_avant.png", after: "/examples/kylian_apres.png" },
+  { style: "Eva Femme",      before: "/examples/eva_avant.png", after: "/examples/eva_apres.png" },
+
 ];
 
 // Vidéos : remplis youtubeId OU localSrc (pas les deux)
