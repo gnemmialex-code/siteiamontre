@@ -343,7 +343,9 @@ export default function DashboardPage() {
   const [showPaywall,   setShowPaywall]   = useState(false);
   const [resultUrl,     setResultUrl]     = useState<string | null>(null);
   const [resultStyle,   setResultStyle]   = useState<string>("");
-  const [deletingId,    setDeletingId]    = useState<string | null>(null);
+  const [deletingId,       setDeletingId]       = useState<string | null>(null);
+  const [deletingAll,      setDeletingAll]      = useState(false);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
 
   const cancelRef    = useRef(false);
   const activePredRef = useRef<{ jobId?: string; predId?: string }>({});
@@ -377,6 +379,24 @@ export default function DashboardPage() {
       const res = await fetch(`/api/generations/${id}`, { method: "DELETE" });
       if (res.ok) { setGenerations(prev => prev.filter(g => g.id !== id)); toast.success("Supprimé"); }
     } finally { setDeletingId(null); }
+  };
+
+  const handleDeleteAll = async () => {
+    setDeletingAll(true);
+    try {
+      const res = await fetch("/api/generations", { method: "DELETE" });
+      if (res.ok) {
+        setGenerations([]);
+        setConfirmDeleteAll(false);
+        toast.success("Historique supprimé");
+      } else {
+        toast.error("Erreur lors de la suppression");
+      }
+    } catch {
+      toast.error("Erreur de connexion");
+    } finally {
+      setDeletingAll(false);
+    }
   };
 
   const handleDownload = async (url: string, id: string) => {
@@ -1195,8 +1215,39 @@ export default function DashboardPage() {
               {navView === "history" && (
                 <motion.div key="history" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>
                   <div className="mb-7 pt-8">
-                    <h1 className="text-3xl font-black mb-1">Historique</h1>
-                    <p className="text-white/40">{generations.length} création{generations.length!==1?"s":""}</p>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h1 className="text-3xl font-black mb-1">Historique</h1>
+                        <p className="text-white/40">{generations.length} création{generations.length!==1?"s":""}</p>
+                      </div>
+                      {generations.length > 0 && !confirmDeleteAll && (
+                        <button
+                          onClick={() => setConfirmDeleteAll(true)}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-500/30 text-red-400/70 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/50 text-xs font-medium transition-all mt-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Tout supprimer
+                        </button>
+                      )}
+                      {confirmDeleteAll && (
+                        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2">
+                          <p className="text-red-400 text-xs font-medium">Supprimer les {generations.length} images ?</p>
+                          <button
+                            onClick={handleDeleteAll}
+                            disabled={deletingAll}
+                            className="px-2.5 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition-all disabled:opacity-50"
+                          >
+                            {deletingAll ? "…" : "Confirmer"}
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteAll(false)}
+                            className="px-2.5 py-1 rounded-lg border border-surface-border text-white/50 hover:text-white text-xs transition-all"
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     {userPlanTier(stats?.plan) === "essentiel" && (
                       <div className="mt-3 flex items-center gap-3 bg-accent-violet/8 border border-accent-violet/20 rounded-xl px-4 py-2.5">
                         <Lock className="w-3.5 h-3.5 text-accent-violet flex-shrink-0" />
