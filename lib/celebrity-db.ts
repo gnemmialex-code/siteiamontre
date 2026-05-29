@@ -11,6 +11,8 @@ export type Celebrity = {
   category: string;
   nationality: string;
   visual_description: string;
+  /** Publicly accessible photo URL used as face reference for generation */
+  reference_image_url?: string;
 };
 
 export const CELEBRITY_DB: Celebrity[] = [
@@ -1667,6 +1669,7 @@ export const CELEBRITY_DB: Celebrity[] = [
     gender: "male",
     category: "int_athlete",
     nationality: "pt",
+    reference_image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Cristiano_Ronaldo_2018.jpg/440px-Cristiano_Ronaldo_2018.jpg",
     visual_description:
       "Portuguese soccer superstar Cristiano Ronaldo, late 30s male. Dark brown hair, very well-groomed (often with a fade or slicked-back style). Hazel or light brown eyes. Light/Mediterranean skin. Extremely muscular athletic physique, tall (~6'2\"). Defined jawline and chiseled facial features. Designer style on and off the field.",
   },
@@ -1677,6 +1680,7 @@ export const CELEBRITY_DB: Celebrity[] = [
     gender: "male",
     category: "int_athlete",
     nationality: "ar",
+    reference_image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Messi_vs_Nigeria_2018.jpg/440px-Messi_vs_Nigeria_2018.jpg",
     visual_description:
       "Argentine soccer legend Lionel Messi, late 30s male. Dark brown hair and beard. Brown eyes. Olive/medium-tan skin (South American heritage). Shorter stature (~5'7\") but extremely athletic build. Recognizable by his beard and humble, understated presence.",
   },
@@ -1687,6 +1691,7 @@ export const CELEBRITY_DB: Celebrity[] = [
     gender: "male",
     category: "int_athlete",
     nationality: "br",
+    reference_image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Neymar_vs_Croatia_%28cropped%29.jpg/440px-Neymar_vs_Croatia_%28cropped%29.jpg",
     visual_description:
       "Brazilian soccer star Neymar Jr., early 30s male. Often has distinctive unique hairstyle (mohawk, bleached tips, braids — changes regularly). Brown eyes. Warm medium/brown skin (Brazilian heritage). Athletic lean build. Very stylish and fashionable sportswear to luxury street style.",
   },

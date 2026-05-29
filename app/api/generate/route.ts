@@ -9,6 +9,7 @@ import {
 } from "@/scripts/pipeline";
 import { validateImageFile } from "@/lib/validation";
 import { uploadToStorage } from "@/lib/storage";
+import { findAllCelebrities } from "@/lib/celebrity-db";
 
 export const maxDuration = 60;
 
@@ -156,6 +157,10 @@ export async function POST(req: NextRequest) {
       const { url: inputImageUrl, b64: sourceB64 } = await uploadFile(supabase, imageFile, effectiveUserId);
       inputImageForRecord = inputImageUrl;
 
+      // Detect if a celebrity with a reference image is mentioned in the prompt
+      const detectedCelebs  = findAllCelebrities((customPrompt ?? "") + " " + (stylePrompt ?? ""));
+      const celebRefImageUrl = detectedCelebs.find((c) => c.reference_image_url)?.reference_image_url;
+
       const pipelineInput: PipelineInput = {
         mode:              "style",
         inputImageUrl,
@@ -167,6 +172,7 @@ export async function POST(req: NextRequest) {
         transformIntensity,
         outputFormat,
         preserveOutfit,
+        celebRefImageUrl,
       };
 
       jobConfig    = buildAsyncJobConfig(pipelineInput, sourceB64);

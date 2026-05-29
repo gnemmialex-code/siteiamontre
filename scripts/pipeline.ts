@@ -17,7 +17,7 @@ const MODELS = {
 
 type Img2ImgModelSpec = {
   spec:       string;
-  buildInput: (prompt: string, negPrompt: string, imageUrl: string, strength: number, resolution?: string) => Record<string, unknown>;
+  buildInput: (prompt: string, negPrompt: string, imageUrl: string, strength: number, resolution?: string, celebRefB64?: string) => Record<string, unknown>;
 };
 
 const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly, deformed, nsfw, different person, extra limbs";
@@ -27,9 +27,9 @@ export const STYLE_MODELS: Img2ImgModelSpec[] = [
     spec: "google/nano-banana-pro",
     // Correct API schema: image_input is an array of URIs, no strength param.
     // Passing image + strength was silently ignored — photo was never used.
-    buildInput: (prompt, _neg, imageUrl, _strength, resolution = "2K") => ({
+    buildInput: (prompt, _neg, imageUrl, _strength, resolution = "2K", celebRefB64?: string) => ({
       prompt,
-      image_input:          [imageUrl],
+      image_input:          celebRefB64 ? [imageUrl, celebRefB64] : [imageUrl],
       aspect_ratio:         "match_input_image",
       resolution,
       output_format:        "jpg",
@@ -80,6 +80,7 @@ export interface PipelineInput {
   transformIntensity?: string;
   outputFormat?:      string;
   preserveOutfit?:    boolean;
+  celebRefImageUrl?:  string;
 }
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
@@ -272,43 +273,57 @@ function buildStylePrompt(
 ): { positive: string; negative: string } {
   const translated = translateToEnglish(customPrompt.trim());
   const style      = stylePrompt.trim();
-
-  let sceneDesc = "";
-  if (translated && style) {
-    sceneDesc = `${translated}, ${style}`;
-  } else {
-    sceneDesc = translated || style || "professional portrait with perfect lighting";
-  }
-
-  const intensityMap: Record<string, string> = {
-    light:  "subtle natural transformation",
-    strong: "dramatic bold transformation",
-  };
-  const intensityNote = intensityMap[intensity ?? "moderate"] ?? "";
-  const outfitNote    = preserveOutfit ? "preserve original clothing" : "";
-  const renderDesc    = RENDER_STYLE_PROMPTS[renderStyle ?? ""] ?? "";
-
-  // Flux Kontext uses direct editing instructions, not diffusion-style tag prompts.
-  // Format: what to do → what to strictly preserve.
-  const intensityPrefix: Record<string, string> = {
-    light:  "Subtly and minimally:",
-    strong: "Boldly and dramatically:",
-  };
-  const prefix   = intensityPrefix[intensity ?? ""] ?? "";
+  const renderDesc = RENDER_STYLE_PROMPTS[renderStyle ?? ""] ?? "";
   const outfitRule = preserveOutfit
     ? " Keep the person's current clothing and outfit completely unchanged."
     : "";
-  const renderRule = renderDesc ? ` Render style: ${renderDesc}.` : "";
+  const renderRule   = renderDesc ? ` Render style: ${renderDesc}.` : "";
+  const intensityPfx: Record<string, string> = {
+    light:  "Subtly and minimally:",
+    strong: "Boldly and dramatically:",
+  };
+  const prefix = intensityPfx[intensity ?? ""] ?? "";
 
-  const editInstruction = [prefix, sceneDesc].filter(Boolean).join(" ").trim()
-    || "Enhance the photo quality and lighting.";
+  // ── Detect celebrities in the full text ─────────────────────────────────
+  const celebs = findAllCelebrities(customPrompt + " " + stylePrompt);
 
-  // Inject visual descriptions for any named celebrities detected in the prompt
-  const celebs   = findAllCelebrities(customPrompt + " " + stylePrompt);
-  const celebCtx = buildCelebrityContext(celebs);
+  let editInstruction: string;
+
+  if (celebs.length > 0) {
+    // ── CELEBRITY INSERTION MODE ─────────────────────────────────────────
+    // Build an explicit, prominent instruction so the model understands it
+    // must ADD a real identified person — not apply a style, not invent a face.
+    const celebNames     = celebs.map((c) => c.name).join(" and ");
+    const celebDataBlock = celebs.map((c) =>
+      `[${c.name.toUpperCase()}] ${c.visual_description}`,
+    ).join(" | ");
+
+    // Anything in the translated prompt that isn't just the celebrity name
+    // is treated as scene context (background, mood, etc.).
+    const sceneExtra = [translated, style]
+      .filter(Boolean)
+      .map((s) => s.replace(new RegExp(celebs.map((c) => c.name).join("|"), "gi"), "").trim())
+      .filter(Boolean)
+      .join(", ");
+
+    editInstruction =
+      `TASK — ADD ${celebNames.toUpperCase()} TO THIS PHOTO: ` +
+      `Insert ${celebNames} as a new person standing naturally beside the original subject in this image. ` +
+      `VERIFIED CELEBRITY APPEARANCE DATA: ${celebDataBlock}. ` +
+      `Render ${celebNames} using their authentic, real, documented face, skin tone, hair, and body — ` +
+      `draw on all available training knowledge of this public figure to produce their true likeness. ` +
+      `Do NOT invent a generic face — use the real ${celebNames}. ` +
+      `${sceneExtra ? `Scene context: ${sceneExtra}. ` : ""}` +
+      `The original person in the photo remains 100% unchanged, pixel-perfect.`;
+  } else {
+    // ── STANDARD STYLE / SCENE TRANSFORMATION ───────────────────────────
+    const sceneDesc = [translated, style].filter(Boolean).join(", ")
+      || "professional portrait with perfect lighting";
+    editInstruction = [prefix, sceneDesc].filter(Boolean).join(" ").trim()
+      || "Enhance the photo quality and lighting.";
+  }
 
   const positive =
-    celebCtx +
     `${editInstruction}.${renderRule}${outfitRule} ` +
     HIDDEN_SYSTEM_CONTEXT;
 
@@ -339,6 +354,16 @@ function translateToEnglish(text: string): string {
   const rules: Rule[] = [
     [/\b(?:mets?(?:\s+moi)?|met(?:\s+moi)?|fais(?:\s+moi)?|donne(?:\s+moi)?|place(?:\s+moi)?|change(?:\s+moi)?|transforme(?:\s+moi)?|rends?(?:\s+moi)?)\b/gi, ""],
     [/\b(?:s'il te plaît|stp|svp|please)\b/gi, ""],
+    [/\bajoute(?:r)?\s+/gi, "add "],
+    [/\bà\s+côté\s+de\b/gi, "next to"],
+    [/\bà\s+coté\s+de\b/gi, "next to"],
+    [/\bcôte\s+à\s+côte\b/gi, "side by side"],
+    [/\bpose\s*(?:[-–])?(?:\s*toi)?\s+avec\b/gi, "standing with"],
+    [/\bmets\s*[-–]?\s*(?:toi|moi)\s+avec\b/gi, "standing with"],
+    [/\bà\s+côté\b/gi, "next to"],
+    [/\baux\s+côtés\s+de\b/gi, "alongside"],
+    [/\bensemble\s+avec\b/gi, "together with"],
+    [/\bprès\s+de\b/gi, "next to"],
     [/fond\s+(?:de\s+)?plage|fond\s+plage/gi, "beach background with ocean"],
     [/fond\s+(?:de\s+)?ville|fond\s+urbain/gi, "city skyline background"],
     [/fond\s+(?:de\s+)?forêt/gi, "forest background"],
@@ -472,15 +497,16 @@ function extractUrl(output: unknown): string {
 // SwapFace mode: face-swap
 
 export type AsyncJobConfig = {
-  mode:           "style" | "swapface";
-  qualityTier:    keyof typeof QUALITY_SETTINGS;
-  prompt?:        string;
-  negPrompt?:     string;
-  inputImageUrl?: string;  // img2img: the uploaded image URL passed to the model
-  strength?:      number;  // img2img strength (0–1)
-  sourceB64?:     string;  // swapface only
-  modelIndex?:    number;  // style only: current index in STYLE_MODELS
-  resolution?:    string;  // 1K / 2K / 4K based on plan
+  mode:              "style" | "swapface";
+  qualityTier:       keyof typeof QUALITY_SETTINGS;
+  prompt?:           string;
+  negPrompt?:        string;
+  inputImageUrl?:    string;
+  strength?:         number;
+  sourceB64?:        string;
+  modelIndex?:       number;
+  resolution?:       string;
+  celebRefImageUrl?: string; // when set, passed as second image to the model
 };
 
 function tierToResolution(tier: keyof typeof QUALITY_SETTINGS): string {
@@ -519,14 +545,15 @@ export function buildAsyncJobConfig(
   );
 
   return {
-    mode:          "style",
-    qualityTier:   tier,
-    prompt:        positive,
-    negPrompt:     negative,
-    inputImageUrl: input.inputImageUrl,
-    strength:      intensityToStrength(input.transformIntensity),
-    modelIndex:    0,
-    resolution:    tierToResolution(tier),
+    mode:              "style",
+    qualityTier:       tier,
+    prompt:            positive,
+    negPrompt:         negative,
+    inputImageUrl:     input.inputImageUrl,
+    strength:          intensityToStrength(input.transformIntensity),
+    modelIndex:        0,
+    resolution:        tierToResolution(tier),
+    celebRefImageUrl:  input.celebRefImageUrl,
   };
 }
 
@@ -548,12 +575,23 @@ export async function startAsyncJob(
 
   if (!config.inputImageUrl) throw new Error("Image source manquante pour la génération");
 
-  // Download image to base64 so Replicate can access it regardless of bucket permissions
+  // Download user image to base64
   const imageData = await loadImageAsBase64(config.inputImageUrl);
+
+  // Optionally download celebrity reference image
+  let celebRefB64: string | undefined;
+  if (config.celebRefImageUrl) {
+    const ref = await downloadImageAsBase64(config.celebRefImageUrl);
+    if (ref) {
+      celebRefB64 = ref;
+      console.log(`[Pipeline] Celebrity reference image loaded`);
+    }
+  }
 
   console.log(`[Pipeline] img2img model [${modelIdx}]: ${model.spec}`);
   console.log(`[Pipeline] Prompt: "${(config.prompt ?? "").slice(0, 200)}"`);
   console.log(`[Pipeline] Strength: ${config.strength ?? 0.62}`);
+  console.log(`[Pipeline] Celebrity ref: ${celebRefB64 ? "YES" : "none"}`);
 
   const p = await createPred(
     model.spec,
@@ -563,6 +601,7 @@ export async function startAsyncJob(
       imageData,
       config.strength  ?? 0.62,
       config.resolution,
+      celebRefB64,
     ),
   );
   return p.id;
