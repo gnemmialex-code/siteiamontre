@@ -1219,7 +1219,7 @@ export default function DashboardPage() {
 
                   {/* ── RIGHT: result panel ── */}
                   <div className="xl:col-span-2">
-                    <div className="sticky top-6">
+                    <div className="sticky top-6 max-h-[calc(100vh-3.5rem)] overflow-y-auto rounded-2xl">
                       <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl overflow-hidden">
                         <div className="px-4 py-3 border-b border-surface-border flex items-center justify-between">
                           <h3 className="font-semibold text-sm">Résultat</h3>
