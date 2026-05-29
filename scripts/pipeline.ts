@@ -1,4 +1,5 @@
 import Replicate from "replicate";
+import { findAllCelebrities, buildCelebrityContext } from "@/lib/celebrity-db";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
@@ -302,7 +303,12 @@ function buildStylePrompt(
   const editInstruction = [prefix, sceneDesc].filter(Boolean).join(" ").trim()
     || "Enhance the photo quality and lighting.";
 
+  // Inject visual descriptions for any named celebrities detected in the prompt
+  const celebs   = findAllCelebrities(customPrompt + " " + stylePrompt);
+  const celebCtx = buildCelebrityContext(celebs);
+
   const positive =
+    celebCtx +
     `${editInstruction}.${renderRule}${outfitRule} ` +
     HIDDEN_SYSTEM_CONTEXT;
 

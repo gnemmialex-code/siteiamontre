@@ -178,6 +178,30 @@ CREATE POLICY "Anyone can insert contact messages"
   WITH CHECK (true);
 
 -- ============================================================
+-- TABLE: celebrities
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.celebrities (
+  id          TEXT PRIMARY KEY,
+  name        TEXT NOT NULL,
+  aliases     TEXT[] DEFAULT '{}',
+  category    TEXT NOT NULL,
+  gender      TEXT NOT NULL DEFAULT 'male',
+  nationality TEXT NOT NULL DEFAULT 'fr',
+  visual_description TEXT,
+  active      BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS celebrities_name_idx   ON public.celebrities(name);
+CREATE INDEX IF NOT EXISTS celebrities_active_idx ON public.celebrities(active);
+
+-- Read-only for public (search endpoint)
+ALTER TABLE public.celebrities ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can read celebrities"
+  ON public.celebrities FOR SELECT
+  USING (active = TRUE);
+
+-- ============================================================
 -- STORAGE BUCKET
 -- ============================================================
 
