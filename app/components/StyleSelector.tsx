@@ -2,6 +2,15 @@
 
 import { motion } from "framer-motion";
 import { Check, Pen } from "lucide-react";
+import { useState, useEffect } from "react";
+
+function useIsPointerDevice() {
+  const [isPointer, setIsPointer] = useState(false);
+  useEffect(() => {
+    setIsPointer(window.matchMedia("(hover: hover)").matches);
+  }, []);
+  return isPointer;
+}
 
 export interface Style {
   id: string;
@@ -182,6 +191,7 @@ interface StyleSelectorProps {
 }
 
 export default function StyleSelector({ selected, onSelect, customPrompt, onCustomPromptChange }: StyleSelectorProps) {
+  const isPointerDevice = useIsPointerDevice();
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -193,10 +203,11 @@ export default function StyleSelector({ selected, onSelect, customPrompt, onCust
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
+              whileHover={isPointerDevice ? { scale: 1.05, transition: { duration: 0.15 } } : undefined}
               onClick={() => onSelect(style)}
               className={`
                 relative rounded-xl border text-left transition-all duration-200 overflow-hidden
-                [@media(hover:hover)]:hover:scale-105 [@media(hover:hover)]:hover:z-10
+                [@media(hover:hover)]:hover:z-10
                 ${isSelected
                   ? "border-accent-violet shadow-violet"
                   : "border-surface-border bg-surface hover:border-accent-violet/40 hover:bg-surface-hover"
