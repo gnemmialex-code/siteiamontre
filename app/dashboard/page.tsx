@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 import {
   Sparkles, Download, Trash2, Zap, Plus, LogOut,
   Shuffle, Film, Crown, Settings, History,
-  ChevronRight, Check, Star, Replace, PlusCircle, AlertCircle, StopCircle, Lock,
+  ChevronRight, ChevronLeft, Check, Star, Replace, PlusCircle, AlertCircle, StopCircle, Lock,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { resizeImageFile } from "@/lib/resize-image";
@@ -339,6 +339,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [navView, setNavView]   = useState<NavView>("create");
   const [genType, setGenType]   = useState<GenType>("create");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   /* data */
   const [generations, setGenerations] = useState<Generation[]>([]);
@@ -662,8 +663,23 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background flex overflow-hidden">
 
+      {/* Overlay mobile — ferme le sidebar au clic */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            key="sidebar-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* ═══════════════ LEFT SIDEBAR ═══════════════ */}
-      <aside className="w-72 xl:w-80 shrink-0 border-r border-surface-border flex flex-col sticky top-0 h-screen bg-background/70 backdrop-blur-xl">
+      <aside className={`fixed lg:sticky top-0 h-screen z-50 lg:z-auto relative w-60 lg:w-72 xl:w-80 shrink-0 border-r border-surface-border flex flex-col bg-background/95 lg:bg-background/70 backdrop-blur-xl transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
 
         {/* Logo */}
         <Link href="/" className="px-5 py-4 border-b border-surface-border flex items-center gap-2 hover:bg-surface-hover transition-colors">
@@ -761,6 +777,15 @@ export default function DashboardPage() {
             Déconnexion
           </motion.button>
         </div>
+
+        {/* Bouton flèche — mobile/tablette uniquement */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full lg:hidden w-6 h-14 rounded-r-2xl bg-background/95 border border-l-0 border-surface-border flex items-center justify-center text-white/60 hover:text-white transition-colors shadow-lg"
+          aria-label={sidebarOpen ? "Fermer le menu" : "Ouvrir le menu"}
+        >
+          {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </button>
       </aside>
 
       {/* ═══════════════ MAIN CONTENT ═══════════════ */}
