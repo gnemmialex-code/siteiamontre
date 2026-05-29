@@ -10,6 +10,7 @@ import {
 import { validateImageFile } from "@/lib/validation";
 import { uploadToStorage } from "@/lib/storage";
 import { findAllCelebrities } from "@/lib/celebrity-db";
+import { getCelebRefImages } from "@/lib/celebrity-refs";
 
 export const maxDuration = 60;
 
@@ -157,9 +158,24 @@ export async function POST(req: NextRequest) {
       const { url: inputImageUrl, b64: sourceB64 } = await uploadFile(supabase, imageFile, effectiveUserId);
       inputImageForRecord = inputImageUrl;
 
-      // Detect if a celebrity with a reference image is mentioned in the prompt
-      const detectedCelebs  = findAllCelebrities((customPrompt ?? "") + " " + (stylePrompt ?? ""));
-      const celebRefImageUrl = detectedCelebs.find((c) => c.reference_image_url)?.reference_image_url;
+      // Detect celebrities in the prompt and load their reference images from Storage
+      const detectedCelebs = findAllCelebrities((customPrompt ?? "") + " " + (stylePrompt ?? ""));
+      const primaryCeleb   = detectedCelebs[0];
+
+      let celebRefImageUrls: string[] = [];
+      let celebRefImageUrl: string | undefined;
+
+      if (primaryCeleb) {
+        celebRefImageUrls = await getCelebRefImages(
+          primaryCeleb.id,
+          primaryCeleb.reference_images ?? [],
+          primaryCeleb.reference_image_url,
+        );
+        celebRefImageUrl = celebRefImageUrls[0];
+        if (celebRefImageUrls.length > 0) {
+          console.log(`[Generate] ${primaryCeleb.name}: ${celebRefImageUrls.length} reference image(s) loaded`);
+        }
+      }
 
       const pipelineInput: PipelineInput = {
         mode:              "style",
@@ -173,6 +189,7 @@ export async function POST(req: NextRequest) {
         outputFormat,
         preserveOutfit,
         celebRefImageUrl,
+        celebRefImageUrls,
       };
 
       jobConfig    = buildAsyncJobConfig(pipelineInput, sourceB64);

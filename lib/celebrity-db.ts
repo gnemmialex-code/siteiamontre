@@ -12,8 +12,10 @@ export type Celebrity = {
   category: string;
   nationality: string;
   visual_description: string;
-  /** Stable public photo URL used as second image input for better likeness */
+  /** One stable public photo URL (legacy single-image support) */
   reference_image_url?: string;
+  /** Multiple reference photo URLs — fetched from Supabase Storage celebrity-refs/{id}/ */
+  reference_images?: string[];
 };
 
 export const CELEBRITY_DB: Celebrity[] = [

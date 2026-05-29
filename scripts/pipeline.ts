@@ -17,7 +17,7 @@ const MODELS = {
 
 type Img2ImgModelSpec = {
   spec:       string;
-  buildInput: (prompt: string, negPrompt: string, imageUrl: string, strength: number, resolution?: string, celebRefB64?: string) => Record<string, unknown>;
+  buildInput: (prompt: string, negPrompt: string, imageUrl: string, strength: number, resolution?: string, celebRefB64?: string, allCelebRefs?: string[]) => Record<string, unknown>;
 };
 
 const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly, deformed, nsfw, different person, extra limbs";
@@ -27,9 +27,12 @@ export const STYLE_MODELS: Img2ImgModelSpec[] = [
     spec: "google/nano-banana-pro",
     // Correct API schema: image_input is an array of URIs, no strength param.
     // Passing image + strength was silently ignored — photo was never used.
-    buildInput: (prompt, _neg, imageUrl, _strength, resolution = "2K", celebRefB64?: string) => ({
+    buildInput: (prompt, _neg, imageUrl, _strength, resolution = "2K", _primary?: string, allRefs?: string[]) => ({
       prompt,
-      image_input:          celebRefB64 ? [imageUrl, celebRefB64] : [imageUrl],
+      // user's photo first, then all celebrity reference images (up to 3)
+      image_input:          allRefs && allRefs.length > 0
+        ? [imageUrl, ...allRefs]
+        : [imageUrl],
       aspect_ratio:         "match_input_image",
       resolution,
       output_format:        "jpg",
@@ -81,6 +84,7 @@ export interface PipelineInput {
   outputFormat?:      string;
   preserveOutfit?:    boolean;
   celebRefImageUrl?:  string;
+  celebRefImageUrls?: string[];
 }
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
@@ -497,16 +501,17 @@ function extractUrl(output: unknown): string {
 // SwapFace mode: face-swap
 
 export type AsyncJobConfig = {
-  mode:              "style" | "swapface";
-  qualityTier:       keyof typeof QUALITY_SETTINGS;
-  prompt?:           string;
-  negPrompt?:        string;
-  inputImageUrl?:    string;
-  strength?:         number;
-  sourceB64?:        string;
-  modelIndex?:       number;
-  resolution?:       string;
-  celebRefImageUrl?: string; // when set, passed as second image to the model
+  mode:               "style" | "swapface";
+  qualityTier:        keyof typeof QUALITY_SETTINGS;
+  prompt?:            string;
+  negPrompt?:         string;
+  inputImageUrl?:     string;
+  strength?:          number;
+  sourceB64?:         string;
+  modelIndex?:        number;
+  resolution?:        string;
+  celebRefImageUrl?:  string;    // legacy single-ref support
+  celebRefImageUrls?: string[];  // up to 3 reference images from Storage
 };
 
 function tierToResolution(tier: keyof typeof QUALITY_SETTINGS): string {
@@ -545,15 +550,16 @@ export function buildAsyncJobConfig(
   );
 
   return {
-    mode:              "style",
-    qualityTier:       tier,
-    prompt:            positive,
-    negPrompt:         negative,
-    inputImageUrl:     input.inputImageUrl,
-    strength:          intensityToStrength(input.transformIntensity),
-    modelIndex:        0,
-    resolution:        tierToResolution(tier),
-    celebRefImageUrl:  input.celebRefImageUrl,
+    mode:               "style",
+    qualityTier:        tier,
+    prompt:             positive,
+    negPrompt:          negative,
+    inputImageUrl:      input.inputImageUrl,
+    strength:           intensityToStrength(input.transformIntensity),
+    modelIndex:         0,
+    resolution:         tierToResolution(tier),
+    celebRefImageUrl:   input.celebRefImageUrl,
+    celebRefImageUrls:  input.celebRefImageUrls,
   };
 }
 
@@ -578,20 +584,24 @@ export async function startAsyncJob(
   // Download user image to base64
   const imageData = await loadImageAsBase64(config.inputImageUrl);
 
-  // Optionally download celebrity reference image
-  let celebRefB64: string | undefined;
-  if (config.celebRefImageUrl) {
-    const ref = await downloadImageAsBase64(config.celebRefImageUrl);
-    if (ref) {
-      celebRefB64 = ref;
-      console.log(`[Pipeline] Celebrity reference image loaded`);
-    }
+  // Download all celebrity reference images (up to 3) and convert to base64
+  const refUrls: string[] = [
+    ...(config.celebRefImageUrls ?? []),
+    ...(config.celebRefImageUrl && !config.celebRefImageUrls?.includes(config.celebRefImageUrl)
+      ? [config.celebRefImageUrl]
+      : []),
+  ].slice(0, 3);
+
+  const celebRefB64s: string[] = [];
+  for (const url of refUrls) {
+    const b64 = await downloadImageAsBase64(url);
+    if (b64) celebRefB64s.push(b64);
   }
 
   console.log(`[Pipeline] img2img model [${modelIdx}]: ${model.spec}`);
   console.log(`[Pipeline] Prompt: "${(config.prompt ?? "").slice(0, 200)}"`);
   console.log(`[Pipeline] Strength: ${config.strength ?? 0.62}`);
-  console.log(`[Pipeline] Celebrity ref: ${celebRefB64 ? "YES" : "none"}`);
+  console.log(`[Pipeline] Celebrity refs: ${celebRefB64s.length > 0 ? celebRefB64s.length : "none"}`);
 
   const p = await createPred(
     model.spec,
@@ -601,7 +611,8 @@ export async function startAsyncJob(
       imageData,
       config.strength  ?? 0.62,
       config.resolution,
-      celebRefB64,
+      celebRefB64s[0],   // primary ref (backward-compat param)
+      celebRefB64s,      // all refs for multi-image support
     ),
   );
   return p.id;
