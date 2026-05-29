@@ -143,13 +143,13 @@ export const STYLES: Style[] = [
 
   // ── Elite exclusifs ───────────────────────────────────────
   {
-    id: "army",
-    label: "Army",
+    id: "armee",
+    label: "Armée",
     description: "Look militaire, ambiance de guerre épique",
     emoji: "🪖",
     prompt: "Hollywood movie poster photography, epic cinematic lighting, dramatic hero pose, VFX-quality compositing, IMAX cinematic resolution",
     tags: ["Cinéma", "Épique"],
-    previewImg: "/styles/army.png",
+    previewImg: "/styles/armee.png",
     tier: "elite",
   },
   {
@@ -196,6 +196,7 @@ export default function StyleSelector({ selected, onSelect, customPrompt, onCust
               onClick={() => onSelect(style)}
               className={`
                 relative rounded-xl border text-left transition-all duration-200 overflow-hidden
+                [@media(hover:hover)]:hover:scale-105 [@media(hover:hover)]:hover:z-10
                 ${isSelected
                   ? "border-accent-violet shadow-violet"
                   : "border-surface-border bg-surface hover:border-accent-violet/40 hover:bg-surface-hover"

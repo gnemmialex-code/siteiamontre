@@ -126,7 +126,7 @@ function GenOptionChips({ title, options, selected, onSelect, planTier, onLocked
                 : onSelect(opt.id)
               }
               title={locked ? `Disponible avec le plan ${opt.tier === "elite" ? "Elite" : "Pro"}` : undefined}
-              className={`relative px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
+              className={`relative px-2.5 py-1 rounded-full text-xs font-medium border transition-all [@media(hover:hover)]:hover:scale-110 [@media(hover:hover)]:hover:z-10 ${
                 locked
                   ? "border-surface-border text-white/20 cursor-pointer line-through"
                   : selected === opt.id
