@@ -322,9 +322,9 @@ function NavButton({
         }`}>
           <Icon className="w-5 h-5" />
         </div>
-        <div>
-          <p className="text-sm font-bold leading-none mb-1">{item.label}</p>
-          <p className="text-xs text-white/35">{item.desc}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold leading-none mb-1 truncate">{item.label}</p>
+          <p className="text-xs text-white/35 truncate">{item.desc}</p>
         </div>
         {active && (
           <ChevronRight className="w-4 h-4 text-accent-violet ml-auto" />
@@ -664,8 +664,8 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-background flex overflow-hidden">
 
       {/* ═══════════════ LEFT SIDEBAR ═══════════════ */}
-      <div className={`shrink-0 sticky top-0 h-screen overflow-hidden relative transition-[width] duration-300 ease-in-out lg:w-72 xl:w-80 ${sidebarOpen ? "w-60" : "w-0"}`}>
-      <aside className="absolute inset-0 min-w-[240px] lg:min-w-[288px] border-r border-surface-border flex flex-col bg-background/70 backdrop-blur-xl">
+      <div className={`shrink-0 sticky top-0 h-screen overflow-hidden relative transition-[width] duration-300 ease-in-out lg:w-80 xl:w-[340px] ${sidebarOpen ? "w-60" : "w-0"}`}>
+      <aside className="absolute inset-0 min-w-[240px] lg:min-w-[320px] xl:min-w-[340px] border-r border-surface-border flex flex-col bg-background/70 backdrop-blur-xl">
 
         {/* Logo */}
         <Link href="/" className="px-5 py-4 border-b border-surface-border flex items-center gap-2 hover:bg-surface-hover transition-colors">
@@ -682,10 +682,10 @@ export default function DashboardPage() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-sm truncate">{userEmail?.split("@")[0] ?? "—"}</p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <Zap className="w-3 h-3 text-accent-violet" />
-                <span className="text-accent-violet text-xs font-bold">{stats?.credits ?? "—"}</span>
-                <span className="text-white/30 text-xs">crédits</span>
+              <div className="flex items-center gap-1.5 mt-0.5 overflow-hidden">
+                <Zap className="w-3 h-3 text-accent-violet flex-shrink-0" />
+                <span className="text-accent-violet text-xs font-bold truncate">{stats?.credits ?? "—"}</span>
+                <span className="text-white/30 text-xs flex-shrink-0">crédits</span>
               </div>
             </div>
             {/* Plan badge */}
