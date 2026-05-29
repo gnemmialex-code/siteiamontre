@@ -1,196 +1,950 @@
--- Celebrity seed data — generated from lib/celebrity-db.ts
--- Run in Supabase SQL Editor after schema.sql
--- Uses INSERT ... ON CONFLICT DO UPDATE to be idempotent
+-- ============================================================
+-- Celebrity seed — rebuilt with accurate physical descriptions
+-- Run AFTER schema.sql (table must exist).
+-- Idempotent: safe to re-run.
+-- ============================================================
 
-INSERT INTO public.celebrities (id, name, aliases, category, gender, nationality, visual_description) VALUES
--- FRENCH GAMING / STREAMERS
-('squeezie','Squeezie',ARRAY['gabriel squeezio','gabriel didal'],'fr_gaming','male','fr','French YouTuber and gamer, late 20s male. Tall lean build (~180cm). Very dark brown, almost black short-to-medium hair, often slightly tousled. Dark brown eyes. Light skin. Narrow oval face with a thin jaw. Typically wears casual French streetwear: hoodies, graphic t-shirts, caps. Youthful, friendly, energetic expression.'),
-('michou','Michou',ARRAY['mickaël vendetta','mickael vendetta'],'fr_gaming','male','fr','French streamer and YouTuber, early-to-mid 20s male. Signature platinum blonde / bleached white hair, short and styled upward. Light blue or grey eyes. Very round, full-cheeked face. Light skin. Wide infectious smile. Colorful casual streetwear style.'),
-('inoxtag','Inoxtag',ARRAY['inox','inoxydable'],'fr_gaming','male','fr','French-Algerian YouTuber and gamer, early 20s male. Short black hair, sometimes with a slight fade. Dark brown eyes. Olive/light-brown skin. Lean medium build. Oval face. Casual streetwear style.'),
-('amixem','Amixem',ARRAY['florian fedérico','florian federico'],'fr_gaming','male','fr','French YouTuber, early 30s male. Brown/chestnut hair, medium length. Short beard or stubble. Green or hazel eyes. Light skin. Square jaw, athletic medium build. Relaxed casual style.'),
-('mcfly-carlito','McFly & Carlito',ARRAY['mcfly','carlito','bryan mahe','alexis patry'],'fr_comedy','duo','fr','French comedy YouTube duo, both mid-to-late 30s. McFly: short brown hair, brown eyes, light skin. Carlito: dark black hair, dark eyes, beard, slightly olive skin. Both in casual everyday French style.'),
-('cyprien','Cyprien',ARRAY['cyprien iov'],'fr_comedy','male','fr','French YouTuber and comedian, mid 30s male. Short brown hair. Blue eyes. Light skin. Slim build, slightly lanky. Oval elongated face. Very casual everyday French style.'),
-('norman','Norman',ARRAY['norman thavaud','normanfaitdesvideos'],'fr_comedy','male','fr','French YouTuber, late 30s male. Brown hair. Brown eyes. Light skin. Average build. Relaxed everyday casual style.'),
-('tibo-inshape','Tibo InShape',ARRAY['tibo','thibault inshape'],'fr_fitness','male','fr','French fitness YouTuber and bodybuilder, early-to-mid 30s male. Extremely muscular physique, broad shoulders, very developed build. Dark brown hair, short. Brown eyes. Light skin, slightly tanned. Square jaw. Often in tight athletic wear.'),
-('joyca','Joyca',ARRAY['joris cantin'],'fr_gaming','male','fr','French YouTuber and gamer, late 20s to early 30s male. Light brown/chestnut hair. Brown or hazel eyes. Light skin. Average lean build. Casual everyday style.'),
-('mastu','Mastu',ARRAY['mastuvu'],'fr_gaming','male','fr','French YouTuber and streamer, early-to-mid 30s male. Dark brown or black hair, medium length. Beard or heavy stubble. Dark brown eyes. Light skin. Medium build. Casual gaming style.'),
-('theodort','Théodort',ARRAY['theodort','theo dort','theo streamer'],'fr_gaming','male','fr','French streamer, mid 20s male. Brown hair. Light skin. Casual gaming style.'),
-('seb','Seb',ARRAY['seb la frite','sebastien lhermitte','sébastien lhermitte'],'fr_gaming','male','fr','French gamer and YouTuber (SEB la frite), mid 30s male. Brown hair, often short. Beard or stubble. Light skin. Average build. Casual gaming style.'),
-('pierre-croce','Pierre Croce',ARRAY['pierre croce'],'fr_gaming','male','fr','French YouTuber and gamer, early-to-mid 30s male. Brown hair. Light skin. Average build. Casual everyday French style.'),
-('gotaga','Gotaga',ARRAY['corentin houssein'],'fr_gaming','male','fr','French gamer and streamer, early 30s male. Short black hair, fade cut. Dark brown eyes. Olive/light-brown skin (North African-French heritage). Athletic compact build. Casual streetwear gaming style.'),
-('domingo','Domingo',ARRAY['quentin domingo'],'fr_gaming','male','fr','French streamer and gamer, early-to-mid 30s male. Brown hair, medium length. Beard or stubble. Brown eyes. Light skin. Medium build. Casual relaxed style.'),
-('billy','Billy',ARRAY['billy streamer','billy fr'],'fr_gaming','male','fr','French streamer, mid 20s male. Brown hair. Light skin. Casual gaming style.'),
-('lebouseuh','LeBouseuh',ARRAY['bouseuh','le bouseuh','remi'],'fr_gaming','male','fr','French streamer, mid 20s male. Brown hair. Light skin. Casual gaming streetwear style.'),
-('just-riadh','Just Riadh',ARRAY['riadh','riadh belaiche','riadh belaïche'],'fr_comedy','male','fr','French YouTuber and comedian of Tunisian descent, early 30s male. Black short hair. Dark brown eyes. Olive/medium-brown skin. Average build. Casual everyday style. Warm expressive smile.'),
-('valouzz','Valouzz',ARRAY['valouz'],'fr_gaming','male','fr','French streamer and gamer, mid-to-late 20s male. Dark brown hair. Light skin. Casual gaming style.'),
-('pidi','Pidi',ARRAY['pidi streamer'],'fr_gaming','male','fr','French streamer, mid 20s male. Casual gaming style.'),
-('sora','Sora',ARRAY['sora streamer','sora fr'],'fr_gaming','male','fr','French streamer, mid 20s male. Dark hair. Casual gaming style.'),
-('maxestla','MaxEstLa',ARRAY['max est la','max gaming'],'fr_gaming','male','fr','French gamer and YouTuber, mid-to-late 20s male. Brown hair. Light skin. Casual gaming style.'),
-('kameto','Kameto',ARRAY['kévin diagne','kevin diagne'],'fr_gaming','male','fr','French-Senegalese streamer and gamer, late 20s male. Short black hair, sometimes afro. Dark brown/deep skin. Brown eyes. Athletic medium build. Streetwear gaming style.'),
-('zerator','Zerator',ARRAY['antoine bournier','ze rator'],'fr_gaming','male','fr','French streamer, early 30s male. Brown hair, short. Brown eyes. Light skin. Average to slim build. Casual everyday gaming style.'),
-('ponce','Ponce',ARRAY['anthony hazael-massieux','anthoponce'],'fr_gaming','male','fr','French streamer, late 20s to early 30s male. Chestnut/light brown hair. Light skin. Casual gaming and everyday style.'),
-('maghla','Maghla',ARRAY['margaux streamer'],'fr_gaming','female','fr','French streamer, late 20s female. Blonde hair, medium length. Light blue or grey eyes. Light skin. Casual gaming style.'),
-('ultia','Ultia',ARRAY['mathilde galoyer'],'fr_gaming','female','fr','French streamer, mid-to-late 20s female. Often has dyed hair in bold colors (pink, purple, etc.). Light skin. Slim build. Alternative, colorful gaming aesthetic.'),
-('chowh1','Chowh1',ARRAY['chow'],'fr_gaming','male','fr','French streamer, mid 20s male. Casual gaming style.'),
-('mistermv','MisterMV',ARRAY['martin victor','mister mv'],'fr_gaming','male','fr','French streamer, early 30s male. Brown hair, beard. Sometimes glasses. Light skin. Average build. Casual geek/gaming style.'),
-('etoiles','Etoiles',ARRAY['alexandre danois','étoiles'],'fr_gaming','male','fr','French streamer, late 20s male. Dark hair. Light skin. Casual gaming style.'),
-('locklear','Locklear',ARRAY['locklear streamer'],'fr_gaming','male','fr','French streamer and gamer, mid-to-late 20s male. Dark brown hair. Light skin. Casual gaming style.'),
-('vodk','VodK',ARRAY['vodk','vodk streamer'],'fr_gaming','male','fr','French streamer, mid-to-late 20s male. Brown hair. Light skin. Casual gaming style.'),
-('le-roi-des-rats','Le Roi des Rats',ARRAY['roi des rats','roiderats'],'fr_gaming','male','fr','French streamer, mid 20s male. Dark hair. Casual gaming style.'),
-('wankil-studio','Wankil Studio',ARRAY['terracid','laink','terracid et laink','laink et terracid'],'fr_gaming','duo','fr','French gaming YouTube duo. Terracid: mid 30s male, dark hair, beard, medium build. Laink: mid 30s male, brown hair, casual gaming style. Both light skin, casual gaming and comedy aesthetic.'),
-('jl-tomy','JL Tomy',ARRAY['tomy jl','jl crew tomy'],'fr_gaming','male','fr','French streamer, mid 20s male. Dark hair. Casual gaming style.'),
-('jl-amine','JL Amine',ARRAY['amine jl','jl crew amine'],'fr_gaming','male','fr','French streamer of North African descent, mid 20s male. Black hair. Olive/medium skin. Casual gaming style.'),
-('jl-bichou','JL Bichou',ARRAY['bichou jl','jl crew bichou'],'fr_gaming','male','fr','French streamer, mid 20s male. Casual gaming style.'),
-('enzo-foukra','Enzo Foukra',ARRAY['enzo'],'fr_gaming','male','fr','French YouTuber and gamer, early 20s male. Brown or dark hair. Light skin. Lean young build. Casual gaming and comedy style.'),
-('alex-levand','Alex Levand',ARRAY['alexlevand'],'fr_gaming','male','fr','French gamer and streamer, mid 20s male. Brown hair. Light skin. Casual gaming style.'),
-('ad-laurent','AD Laurent',ARRAY['ad laurent','adlaurent'],'fr_gaming','male','fr','French streamer and content creator, mid-to-late 20s male. Dark hair. Casual gaming style.'),
-('gatooz','Gatooz',ARRAY['gatoo z'],'fr_gaming','male','fr','French streamer, mid 20s male. Casual gaming style.'),
--- FRENCH EDUCATION / VULGARISATION
-('hugodecrypte','HugoDécrypte',ARRAY['hugo decrypte','hugo décrypte','hugo travers'],'fr_education','male','fr','French journalist and YouTuber, late 20s to early 30s male. Brown hair, well-groomed. Brown eyes. Light skin. Clean-shaven or very light stubble. Slim average build. Smart-casual or professional style: often in button-up shirts, blazers, or neat polos. Confident journalistic presence.'),
-('nota-bene','Nota Bene',ARRAY['notabene','benjamin brillaud'],'fr_education','male','fr','French history YouTuber, mid 30s male. Brown hair, sometimes with a beard. Occasionally wears glasses. Light skin. Average build. Smart casual style. Intellectual and calm demeanor.'),
-('dr-nozman','Dr Nozman',ARRAY['nozman','nicolas beudin'],'fr_education','male','fr','French science YouTuber, mid-to-late 30s male. Brown hair, trimmed beard. Light skin. Average build. Smart casual style. Curious and enthusiastic expression.'),
-('poisson-fecond','Poisson Fécond',ARRAY['poisson fecond'],'fr_education','male','fr','French science YouTuber, mid 30s male. Brown hair. Light skin. Casual style.'),
-('dirty-biology','DirtyBiology',ARRAY['dirty biology','léo bernard','leo bernard'],'fr_education','male','fr','French biology science YouTuber, early-to-mid 30s male. Brown hair, beard. Light skin. Casual relaxed style.'),
-('cyrus-north','Cyrus North',ARRAY['cyrusnorth'],'fr_education','male','fr','French philosophy YouTuber, mid 30s male. Brown hair. Light skin. Smart casual intellectual style.'),
-('gaspard-g','Gaspard G',ARRAY['gaspard'],'fr_education','male','fr','French chemistry science YouTuber, mid 30s male. Brown or dark hair. Light skin. Casual style.'),
-('science-etonnante','ScienceEtonnante',ARRAY['science etonnante','david louapre'],'fr_education','male','fr','French physics YouTuber, late 30s to early 40s male. Brown hair, beard. Light skin. Casual intellectual style.'),
-('monsieur-phi','Monsieur Phi',ARRAY['monsieurphi'],'fr_education','male','fr','French philosophy YouTuber, mid 30s male. Brown hair. Light skin. Casual smart style.'),
-('linguisticae','Linguisticae',ARRAY['rémi fonteneau','remi fonteneau'],'fr_education','male','fr','French linguistics YouTuber, mid 30s male. Brown hair. Light skin. Casual intellectual style.'),
-('le-tatou','Le Tatou',ARRAY['le tatou youtube'],'fr_education','male','fr','French science vulgarisation YouTuber, mid 30s male. Casual style.'),
-('doc-seven','Doc Seven',ARRAY['doc 7'],'fr_education','male','fr','French medical/science YouTuber, mid 30s male. Casual or semi-professional style.'),
-('le-rire-jaune','Le Rire Jaune',ARRAY['rire jaune'],'fr_comedy','duo','fr','French comedy YouTube duo, both mid 30s. Light skin. Casual comedy style.'),
-('le-monde-a-lenvers','Le Monde à l''Envers',ARRAY['monde a lenvers','monde à l''envers'],'fr_education','male','fr','French vulgarisation YouTuber, mid 30s male. Casual style.'),
-('antoine-daniel','Antoine Daniel',ARRAY['antoinedaniel'],'fr_comedy','male','fr','French comedy YouTuber, mid-to-late 30s male. Brown curly or wavy hair. Light skin. Casual relaxed style. Expressive comedic face.'),
-('charles-villa','Charles Villa',ARRAY['charlesvilla'],'fr_education','male','fr','French vulgarisation YouTuber, mid 30s male. Brown hair. Light skin. Smart casual style.'),
-('thinkerview','Thinkerview',ARRAY['think erview'],'fr_education','male','fr','French interview show host, mid 30s to 40s male. Beard and medium-length dark hair. Light skin. Intellectual casual style.'),
-('mister-v','Mister V',ARRAY['yvick letexier','mistervofficial'],'fr_comedy','male','fr','French actor, comedian, and YouTuber of Cameroonian descent, early-to-mid 30s male. Medium-length afro or tight curls. Beard. Dark brown/deep warm skin. Expressive, animated face. Medium athletic build. Varied stylish or casual attire.'),
-('le-grand-jd','Le Grand JD',ARRAY['grand jd','jean dragan'],'fr_comedy','male','be','Belgian-French comedian and YouTuber, mid-to-late 30s male. Brown or dark hair. Light skin. Casual style.'),
-('doc-jazy','Doc Jazy',ARRAY['docjazy'],'fr_education','male','fr','French doctor and content creator of African descent, mid 30s male. Short black hair. Dark brown/warm skin. Professional or smart casual style.'),
-('jean-onche','Jean Onche',ARRAY['jeanonche'],'fr_comedy','male','fr','French YouTuber and comedian, mid-to-late 20s male. Casual everyday French style.'),
--- FRENCH LIFESTYLE / INFLUENCEURS
-('lena-situations','Léna Situations',ARRAY['lena situations','léna mahfouf','lena mahfouf'],'fr_lifestyle','female','fr','French-Algerian fashion influencer and YouTuber, mid 20s female. Long dark chestnut/brown hair, often straight or lightly wavy. Brown eyes. Oval face with refined features. Light to olive skin tone. Slim elegant build. Signature style: chic Parisian fashion, often in designer brands (Jacquemus, Valentino, Balmain). Very fashionable, polished appearance.'),
-('natoo','Natoo',ARRAY['natasha','natoo youtube'],'fr_lifestyle','female','fr','French YouTuber of Guadeloupean descent, early-to-mid 30s female. Often wears her hair very short/cropped or in natural textured styles. Dark brown/deep warm skin. Brown eyes. Tall slim build. Alternative, colorful, eclectic style. Expressive and bold personality in her appearance.'),
-('paola-locatelli','Paola Locatelli',ARRAY['paola'],'fr_lifestyle','female','fr','French-Italian model and influencer, early 20s female. Long dark chestnut/brown hair, usually straight. Brown eyes. Oval face with Mediterranean features. Olive/light Mediterranean skin. Slim model physique, tall. Chic fashion style blending Italian and French aesthetics. Very photogenic, natural beauty.'),
-('sundy-jules','Sundy Jules',ARRAY['sundy'],'fr_lifestyle','female','fr','French lifestyle influencer of Afro-Caribbean descent, mid-to-late 20s female. Natural hair, often in afro or braided styles. Warm dark brown skin. Expressive brown eyes. Medium build. Colorful, vibrant lifestyle fashion style.'),
-('romy','Romy',ARRAY['romy influencer','romy fr'],'fr_lifestyle','female','fr','French lifestyle influencer, mid 20s female. Brown hair. Light skin. Fashion lifestyle style.'),
-('mayadorable','Mayadorable',ARRAY['maya adorable','maya'],'fr_lifestyle','female','fr','French lifestyle and kawaii influencer, mid-to-late 20s female. Dark hair, often styled in cute kawaii-inspired ways. Light to medium skin tone. Round expressive face. Petite build. Cute, kawaii, pastel-inspired fashion aesthetic.'),
-('carla-ginola','Carla Ginola',ARRAY['carla ginola'],'fr_lifestyle','female','fr','French model and influencer (daughter of David Ginola), mid 20s female. Long dark brown or chestnut hair. Brown eyes. Light/Mediterranean skin. Tall slim model physique. Elegant chic style.'),
-('chloe-b','Chloé B',ARRAY['chloe b','chloé influencer'],'fr_lifestyle','female','fr','French lifestyle influencer, mid 20s female. Brown hair. Light skin. Casual chic French style.'),
-('camille-lv','Camille LV',ARRAY['camille leblanc','camille l v'],'fr_lifestyle','female','fr','French lifestyle influencer, mid 20s female. Blonde or light brown hair. Light skin. Blue or light eyes. Chic casual French style.'),
-('juste-zoe','Juste Zoé',ARRAY['juste zoe','zoé'],'fr_lifestyle','female','fr','French lifestyle influencer, mid 20s female. Blonde hair. Light skin. Light eyes. Casual French lifestyle style.'),
-('clara-marz','Clara Marz',ARRAY['claramarz'],'fr_lifestyle','female','fr','French lifestyle influencer, mid 20s female. Brown hair. Light skin. Casual lifestyle style.'),
-('mymi-rose','Mymi Rose',ARRAY['mymi'],'fr_lifestyle','female','fr','French influencer and content creator, mid-to-late 20s female. Dark or brown hair. Light skin. Lifestyle style.'),
-('cassandra-calogera','Cassandra Calogera',ARRAY['cassandra'],'fr_lifestyle','female','fr','French influencer, mid-to-late 20s female. Dark hair, Mediterranean features. Olive/light skin. Glamorous lifestyle style.'),
-('eva-elfie-fr','Eva Elfie FR',ARRAY['eva elfie france'],'fr_lifestyle','female','fr','French content creator, mid 20s female. Dark hair. Light skin. Lifestyle style.'),
-('lila-taleb','Lila Taleb',ARRAY['lila'],'fr_lifestyle','female','fr','French influencer, mid-to-late 20s female. Dark hair. Light/olive skin. Lifestyle style.'),
-('lea-mary','Léa Mary',ARRAY['lea mary','léa'],'fr_lifestyle','female','fr','French influencer, mid-to-late 20s female. Brown or blonde hair. Light skin. Lifestyle style.'),
--- FRENCH BEAUTY / MUA
-('juju-fitcats','Juju Fitcats',ARRAY['juju fitcats','justine quintin'],'fr_fitness','female','fr','French fitness and lifestyle influencer, late 20s female. Golden blonde to light brown hair, often long and wavy. Light hazel or brown eyes. Light skin with a natural light tan. Athletic toned physique. Glamour meets fitness style.'),
-('gaelle-garcia-diaz','Gaëlle Garcia Diaz',ARRAY['gaelle garcia diaz','gaelle garcia','gaëlle garcia'],'fr_beauty','female','fr','French-Spanish influencer and glamour model, early 30s female. Long dark brown or black hair, often straight and sleek. Dark brown eyes. Oval face with defined Mediterranean features. Olive/light-brown Mediterranean skin. Voluptuous figure. Glamorous fashion style.'),
-('sissy-mua','Sissy MUA',ARRAY['sissy','sissymua'],'fr_beauty','female','fr','French makeup artist and influencer, early 30s female. Signature extremely artistic and elaborate makeup looks as her visual identity. Hair often dyed or styled in dramatic ways. Medium build. Glamorous and bold beauty aesthetic.'),
-('enjoy-phoenix','EnjoyPhoenix',ARRAY['enjoyphoenix','marie lopez'],'fr_beauty','female','fr','French beauty and lifestyle YouTuber, late 20s female. Chestnut/medium brown hair, often with blonde highlights or balayage. Green or blue-green eyes. Light skin. Slim build. Casual chic French beauty style.'),
-('sananas','Sananas',ARRAY['sanam wae','sanam waé'],'fr_beauty','female','fr','French-Iranian beauty and lifestyle influencer, early 30s female. Long dark brown/black hair. Brown eyes. Warm golden/olive skin (Persian heritage). Oval face. Slim medium build. Glamorous beauty style.'),
-('iris-mittenaere','Iris Mittenaere',ARRAY['iris','miss france','miss univers 2016'],'fr_model','female','fr','French model and former Miss France and Miss Universe 2016, late 20s female. Chestnut to light brown hair. Blue or light eyes. Light skin. Tall slim model physique (~177cm). Elegant high-fashion style.'),
-('shera-kerienski','Shera Kerienski',ARRAY['shera'],'fr_fitness','female','fr','French fitness and glamour influencer, late 20s female. Dark brown hair, often long. Brown eyes. Light/slightly tanned skin. Very athletic, toned physique. Glamour fitness style.'),
-('the-doll-beauty','The Doll Beauty',ARRAY['doll beauty','thedollbeauty'],'fr_beauty','female','fr','French beauty influencer, mid-to-late 20s female. Dark hair. Light skin. Glamorous beauty makeup style.'),
-('danae-makeup','Danae Makeup',ARRAY['danae','danaemakeup'],'fr_beauty','female','fr','French beauty and makeup influencer, mid 20s female. Brown or dark hair. Light skin. Glamorous beauty style.'),
-('marion-cameleon','Marion Caméléon',ARRAY['marion cameleon','marioncameleon'],'fr_beauty','female','fr','French beauty influencer, late 20s female. Signature trait: constantly changing hair color and styles (her caméléon identity). Light skin. Diverse and transformative beauty looks.'),
--- FRENCH FITNESS / SPORT
-('nassim-sahili','Nassim Sahili',ARRAY['nassim'],'fr_fitness','male','fr','French fitness influencer of North African descent, late 20s male. Black short hair. Olive/medium-brown skin. Muscular athletic physique. Fitness and lifestyle style.'),
-('thibault-geoffray','Thibault Geoffray',ARRAY['thibault geoffray'],'fr_fitness','male','fr','French fitness YouTuber and influencer, late 20s to early 30s male. Brown hair. Light skin. Athletic medium build. Fitness and lifestyle casual style.'),
-('justine-gallice','Justine Gallice',ARRAY['justine gallice'],'fr_fitness','female','fr','French fitness and lifestyle influencer, late 20s female. Blonde or light brown hair. Light skin. Toned athletic physique. Sporty and lifestyle casual style.'),
-('yanisport','Yanisport',ARRAY['yanis sport','yanis'],'fr_fitness','male','fr','French fitness YouTuber, mid-to-late 20s male. Dark hair. Medium skin. Athletic muscular build. Fitness and sport style.'),
-('bodytime','Bodytime',ARRAY['body time'],'fr_fitness','male','fr','French fitness influencer, mid-to-late 20s male. Athletic muscular build. Fitness style.'),
--- FRENCH REALITY TV
-('nabilla','Nabilla',ARRAY['nabilla benattia'],'fr_reality','female','fr','French reality TV celebrity of Algerian-Turkish descent, early 30s female. Very long dark black hair, often with extensions straight and sleek. Dark brown eyes. Full lips, often with dramatic makeup. Voluptuous curvaceous figure. Olive/warm skin tone. Glamorous high-end style.'),
-('maeva-ghennam','Maeva Ghennam',ARRAY['maeva'],'fr_reality','female','fr','French reality TV influencer of Algerian descent, late 20s female. Dark hair, often with extensions. Dark eyes. Full lips. Olive/light skin. Glamorous style with dramatic makeup. Curvaceous figure.'),
-('thibault-garcia','Thibault Garcia',ARRAY['thibault garcia temptation'],'fr_reality','male','fr','French reality TV personality, late 20s male. Dark brown hair, short. Light skin, slightly tanned. Athletic muscular build. Casual chic style.'),
-('astrid-nelsia','Astrid Nelsia',ARRAY['astrid'],'fr_reality','female','fr','French influencer of West African-Caribbean descent, late 20s female. Natural hair, often braided or in protective styles. Warm dark brown skin. Athletic build. Fitness meets glamour style.'),
-('marine-el-himer','Marine El Himer',ARRAY['marine elhimer'],'fr_reality','female','fr','French reality TV influencer (twin), late 20s female. Dark hair. Mediterranean olive/light-brown skin. Glamorous style.'),
-('oceane-el-himer','Océane El Himer',ARRAY['oceane el himer','océane elhimer'],'fr_reality','female','fr','French reality TV influencer (twin sister of Marine El Himer), late 20s female. Dark hair. Mediterranean olive/light-brown skin. Almost identical appearance to Marine. Glamorous style.'),
-('laura-lempika','Laura Lempika',ARRAY['laura lempika'],'fr_reality','female','fr','French-Martinican reality TV influencer, late 20s female. Dark hair. Mixed-race warm brown skin. Glamorous lifestyle style.'),
-('carla-moreau','Carla Moreau',ARRAY['carla moreau jlc'],'fr_reality','female','fr','French reality TV personality (JLC Family), late 20s female. Dark brown hair. Light skin. Glamorous family lifestyle style.'),
-('shanna-kress','Shanna Kress',ARRAY['shanna'],'fr_reality','female','fr','French reality TV personality, late 20s to early 30s female. Dark hair. Light/Mediterranean skin. Glamorous style.'),
-('kim-glow','Kim Glow',ARRAY['kimglow'],'fr_reality','female','fr','French-Guadeloupean reality TV and social media influencer, late 20s female. Mixed heritage. Warm/light-brown skin. Dark hair. Glamorous style.'),
-('sarah-fraisou','Sarah Fraisou',ARRAY['sarah fraisou'],'fr_reality','female','fr','French reality TV personality, early 30s female. Dark hair. Light skin. Glamorous style.'),
-('manon-tanti','Manon Tanti',ARRAY['manon tanti'],'fr_reality','female','fr','French reality TV influencer, late 20s female. Dark hair. Light skin. Glamorous lifestyle style.'),
-('melanie-orl','Mélanie Orl',ARRAY['melanie orl','mélanie orl'],'fr_reality','female','fr','French influencer, late 20s female. Dark hair. Light skin. Glamorous style.'),
--- INTERNATIONAL YOUTUBE / TIKTOK
-('mrbeast','MrBeast',ARRAY['mr beast','jimmy donaldson'],'int_youtube','male','us','American YouTuber MrBeast (Jimmy Donaldson), mid 20s male. Tall (~6''3"). Brown hair, casual relaxed cut. Brown eyes. Light skin. Athletic lean build. Casual everyday American style (hoodies, t-shirts, caps). Wide infectious smile.'),
-('pewdiepie','PewDiePie',ARRAY['pewdiepie','felix kjellberg'],'int_youtube','male','us','Swedish YouTuber PewDiePie (Felix Kjellberg), mid-to-late 30s male. Blonde hair. Blue or grey eyes. Light skin. Medium athletic build. Casual Scandinavian style.'),
-('markiplier','Markiplier',ARRAY['mark fischbach','mark'],'int_youtube','male','us','American YouTuber Markiplier (Mark Fischbach), early-to-mid 30s male. Dark brown to black hair. Brown eyes. Light skin with mixed Korean-American heritage. Athletic muscular build. Casual style.'),
-('mkbhd','MKBHD',ARRAY['marques brownlee','marques','mkbhd tech'],'int_youtube','male','us','American tech YouTuber MKBHD (Marques Brownlee), late 20s male. Black hair, short fade. Dark brown/deep skin (African-American). Tall (~6''3") athletic build. Professional, clean-cut style.'),
-('casey-neistat','Casey Neistat',ARRAY['casey neistat','casey'],'int_youtube','male','us','American filmmaker and YouTuber, early-to-mid 40s male. Brown hair. Signature wayfarer sunglasses. Light skin. Athletic lean build. Casual New York street style. Square jaw, defined features.'),
-('logan-paul','Logan Paul',ARRAY['logan paul','logan'],'int_youtube','male','us','American YouTuber and influencer, late 20s male. Blonde hair. Blue eyes. Light skin. Very tall (~6''2") and muscular build (boxer physique). Confident bold style.'),
-('jake-paul','Jake Paul',ARRAY['jake paul','jake'],'int_youtube','male','us','American YouTuber and boxer, late 20s male. Blonde hair. Blue eyes. Light skin. Athletic muscular build. Bold streetwear style.'),
-('ksi','KSI',ARRAY['jj olatunji','jj'],'int_youtube','male','uk','British-Nigerian YouTuber and rapper KSI (JJ Olatunji), late 20s male. Dark brown/black hair in various styles. Dark brown/warm skin (Nigerian British). Athletic boxing-trained build. Bold streetwear style.'),
-('emma-chamberlain','Emma Chamberlain',ARRAY['emma chamberlain','emma'],'int_youtube','female','us','American YouTuber and influencer, early-to-mid 20s female. Light brown to chestnut hair, often casually styled. Hazel or brown eyes. Light skin. Slim average build. Very casual, relatable, effortlessly cool fashion style.'),
-('charli-damelio','Charli D''Amelio',ARRAY['charli damelio','charli'],'int_tiktok','female','us','American TikTok creator, early 20s female. Long dark brown hair. Brown eyes. Light skin. Slim build, dancer physique. Casual sporty American style.'),
-('addison-rae','Addison Rae',ARRAY['addison rae','addison'],'int_tiktok','female','us','American TikTok creator, early-to-mid 20s female. Light brown to dirty blonde hair, often long and wavy. Brown eyes. Light skin. Slim athletic build. Casual cheerful American style.'),
-('bella-poarch','Bella Poarch',ARRAY['bella poarch','bella'],'int_tiktok','female','us','Filipino-American TikTok creator, mid 20s female. Dark hair, sometimes dyed. Dark eyes. East Asian features. Light/fair skin. Petite slim build. Alternative pop style. Distinctive tattoos on arms.'),
-('khaby-lame','Khaby Lame',ARRAY['khaby lame','khaby'],'int_tiktok','male','it','Senegalese-Italian TikTok creator, mid 20s male. Black short hair. Warm dark brown/deep skin. Tall lean build (~6''2"). Expressive deadpan face. Casual simple style.'),
-('zach-king','Zach King',ARRAY['zach king','zach'],'int_tiktok','male','us','American digital illusionist and TikToker, early 30s male. Dark hair. Light/medium skin. Average build. Clean casual style.'),
-('brent-rivera','Brent Rivera',ARRAY['brent rivera','brent'],'int_tiktok','male','us','American TikToker and YouTuber, mid 20s male. Brown hair. Hazel or brown eyes. Light skin. Slim athletic build. Casual American style.'),
-('lele-pons','Lele Pons',ARRAY['lele pons','lele'],'int_tiktok','female','us','Venezuelan-American influencer, mid-to-late 20s female. Blonde hair, long and often wavy or curly. Brown eyes. Light/olive skin. Athletic slim build. Bold fun Latin-American style.'),
-('david-dobrik','David Dobrik',ARRAY['david dobrik','david'],'int_youtube','male','us','Slovak-American YouTuber, mid-to-late 20s male. Brown hair. Brown eyes. Light skin. Average build. Casual hoodie-and-jeans American style. Wide smile.'),
-('ryan-trahan','Ryan Trahan',ARRAY['ryan trahan'],'int_youtube','male','us','American YouTuber, mid 20s male. Brown hair. Light skin. Slim build. Casual everyday style.'),
-('airrack','Airrack',ARRAY['eric decker','airrack'],'int_youtube','male','us','American YouTuber, mid 20s male. Brown hair. Light skin. Casual everyday YouTube style.'),
-('dhar-mann','Dhar Mann',ARRAY['dharr mann','dhar mann'],'int_youtube','male','us','Indian-American YouTuber and entrepreneur, early 40s male. Black hair. Brown/warm skin. South Asian heritage. Average build. Business casual style.'),
-('dream','Dream',ARRAY['clay dream','dreamwastaken'],'int_gaming','male','us','American gaming YouTuber who revealed his face, mid 20s male. Brown hair, longer style. Light skin. Average build. Casual gaming style.'),
-('linus-tech-tips','Linus Tech Tips',ARRAY['linus','ltt','linus sebastian'],'int_youtube','male','ca','Canadian tech YouTuber Linus Sebastian, mid 30s male. Brown hair. Light skin. Average build. Casual tech style.'),
-('veritasium','Veritasium',ARRAY['derek muller'],'int_youtube','male','ca','Australian-Canadian science YouTuber Derek Muller, late 30s male. Brown hair. Blue eyes. Light skin. Casual professional science style.'),
-('smarter-every-day','SmarterEveryDay',ARRAY['smarter every day','destin sandlin'],'int_youtube','male','us','American science YouTuber Destin Sandlin, early 40s male. Brown hair. Light skin. Casual Southern American style.'),
-('michelle-phan','Michelle Phan',ARRAY['michelle phan','michelle'],'int_beauty','female','us','Vietnamese-American beauty YouTuber, mid 30s female. Dark black hair. Dark eyes. Light/fair East Asian skin. Slim build. Elegant beauty and lifestyle style.'),
-('lilly-singh','Lilly Singh',ARRAY['iisuperwomanii','superwoman','lilly singh'],'int_youtube','female','ca','Canadian-Indian YouTuber, early 30s female. Long dark brown/black hair. Brown eyes. Medium-warm brown skin (Punjabi-Indian). Athletic slim build. Bold colorful style.'),
-('huda-kattan','Huda Kattan',ARRAY['huda beauty','huda kattan','huda'],'int_beauty','female','us','Iraqi-American beauty mogul, late 30s female. Long dark brown to black hair. Brown eyes. Warm olive/medium skin (Middle Eastern). Full lips. Curvaceous figure. Glamorous luxury beauty style.'),
-('nikkie-tutorials','NikkieTutorials',ARRAY['nikkie de jager','nikkie tutorials','nikkie'],'int_beauty','female','nl','Dutch beauty YouTuber NikkieTutorials, late 20s female. Blonde or light hair. Blue eyes. Light skin. Very tall and statuesque build. Always dramatically made up. Glamorous bold beauty style.'),
-('james-charles','James Charles',ARRAY['james charles'],'int_beauty','male','us','American beauty YouTuber, mid 20s male. Brown hair. Brown eyes. Light skin. Often wears elaborate, artistic makeup. Slim build. Glamorous, bold fashion style.'),
-('bretman-rock','Bretman Rock',ARRAY['bretman rock','bretman'],'int_beauty','male','us','Filipino-American beauty influencer, mid 20s male. Dark hair in various styles. Dark eyes. Filipino features, light-medium skin. Athletic build. Bold, extravagant beauty and fashion style.'),
-('chiara-ferragni','Chiara Ferragni',ARRAY['chiara ferragni','chiara'],'int_beauty','female','it','Italian fashion influencer, late 30s female. Blonde hair, long. Blue eyes. Light skin. Slim model figure. High-fashion Italian luxury style.'),
--- INTERNATIONAL GAMING / STREAMING
-('ninja','Ninja',ARRAY['tyler blevins','ninja streamer'],'int_gaming','male','us','American gaming streamer Ninja (Tyler Blevins), early-to-mid 30s male. Signature dyed hair (most famously electric blue, but changes frequently). Brown eyes. Light skin. Average build. Gaming streetwear style.'),
-('pokimane','Pokimane',ARRAY['imane anys','poki'],'int_gaming','female','ca','French-Moroccan Canadian streamer Pokimane (Imane Anys), late 20s female. Long dark brown to black hair. Brown eyes. Light olive/warm skin. Slim build. Casual cute streaming style.'),
-('kai-cenat','Kai Cenat',ARRAY['kai cenat','kai'],'int_gaming','male','us','American streamer, early 20s male. Black hair in various styles. Dark brown/deep skin (African-American). Athletic medium build. Streetwear style. Very energetic and expressive.'),
-('ishowspeed','IShowSpeed',ARRAY['speed','darren watkins','ishowspeed'],'int_gaming','male','us','American streamer IShowSpeed (Darren Watkins Jr.), early 20s male. Black short hair. Dark brown/warm deep skin (African-American). Slim athletic build. Casual streetwear style. Extremely expressive and energetic.'),
-('shroud','Shroud',ARRAY['michael grzesiek','shroud streamer'],'int_gaming','male','ca','Polish-Canadian streamer Shroud (Michael Grzesiek), late 20s male. Brown hair. Brown eyes. Light skin. Average build. Casual gaming style.'),
-('tfue','Tfue',ARRAY['turner tenney','tfue streamer'],'int_gaming','male','us','American streamer Tfue (Turner Tenney), mid-to-late 20s male. Blonde to brown hair. Blue or light eyes. Light skin. Athletic build. Casual everyday style.'),
-('timthetatman','TimTheTatman',ARRAY['tim thetatman','tim'],'int_gaming','male','us','American streamer, early 30s male. Brown hair, beard. Light skin. Larger build. Casual everyday style.'),
-('valkyrae','Valkyrae',ARRAY['rachell hofstetter','valkyrae streamer'],'int_gaming','female','us','Filipino-American streamer Valkyrae (Rachell Hofstetter), late 20s female. Long dark black hair. Dark eyes. Light to medium skin. Slim build. Casual gaming and lifestyle style.'),
-('sykkuno','Sykkuno',ARRAY['thomas lu','sykkuno streamer'],'int_gaming','male','us','Asian-American streamer Sykkuno (Thomas Lu), late 20s male. Black hair. Light/fair skin (Chinese-American). Slim build. Casual shy-cute style.'),
-('xqc','xQc',ARRAY['felix lengyel','xqcow'],'int_gaming','male','ca','French-Canadian streamer xQc (Felix Lengyel), mid-to-late 20s male. Brown or dark hair (often short). Blue eyes. Light skin. Slim build. Casual gaming everyday style.'),
-('dr-disrespect','Dr Disrespect',ARRAY['dr disrespect','doc'],'int_gaming','male','us','American streamer, mid 40s male. Signature look: tall black mullet wig, dark thick mustache, dark wraparound sunglasses, black or camo tactical jacket. Very tall and imposing build.'),
-('ludwig','Ludwig',ARRAY['ludwig ahgren','ludwig streamer'],'int_gaming','male','us','American streamer Ludwig Ahgren, mid 20s male. Brown hair. Brown eyes. Light skin. Average build. Casual cozy streaming style.'),
-('asmongold','Asmongold',ARRAY['zack asmongold'],'int_gaming','male','us','American gaming streamer, early 30s male. Blonde hair, sometimes longer and unkempt. Brown or hazel eyes. Light skin. Average build. Very casual minimal style.'),
-('amouranth','Amouranth',ARRAY['kaitlyn siragusa','amouranth streamer'],'int_gaming','female','us','American streamer (SFW context only), late 20s female. Signature long auburn/red hair, often in waves. Green eyes. Light skin. Curvaceous figure. Cosplay-influenced bold style.'),
--- INTERNATIONAL CELEBRITIES / ATHLETES
-('kim-kardashian','Kim Kardashian',ARRAY['kim k','kim kardashian west'],'int_celebrity','female','us','American media personality, early-to-mid 40s female. Long dark black hair. Dark brown eyes. Warm olive/medium skin (Armenian-American). Famously curvaceous hourglass figure. Ultra-glamorous designer luxury style.'),
-('kylie-jenner','Kylie Jenner',ARRAY['kylie jenner','kylie'],'int_celebrity','female','us','American beauty entrepreneur, mid-to-late 20s female. Dark brown to black hair (sometimes dyed). Brown eyes. Full lips. Warm olive skin. Curvaceous slim figure. Ultra-trendy luxury fashion style.'),
-('kendall-jenner','Kendall Jenner',ARRAY['kendall jenner','kendall'],'int_celebrity','female','us','American supermodel, mid-to-late 20s female. Long dark brown hair. Brown eyes. Light skin. Extremely tall and slim model physique (~5''10"). High-fashion model style.'),
-('hailey-bieber','Hailey Bieber',ARRAY['hailey baldwin','hailey bieber','hailey'],'int_celebrity','female','us','American model, mid-to-late 20s female. Blonde hair, often straight and glossy. Blue eyes. Light skin. Very slim tall model figure. Minimalist chic aesthetic.'),
-('dixie-damelio','Dixie D''Amelio',ARRAY['dixie damelio','dixie'],'int_tiktok','female','us','American content creator and singer, early 20s female. Brown or dark blonde hair. Brown eyes. Light skin. Slim build. Casual American fashion style.'),
-('sommer-ray','Sommer Ray',ARRAY['sommer ray','sommer'],'int_celebrity','female','us','American fitness model and influencer, mid 20s female. Long brown/chestnut hair. Light brown eyes. Light skin with a tan. Very athletic and toned physique. Fitness and lifestyle casual style.'),
-('selena-gomez','Selena Gomez',ARRAY['selena gomez','selena'],'int_celebrity','female','us','American singer and actress of Mexican-American heritage, early 30s female. Dark brown hair. Brown eyes. Warm light/olive skin. Slim medium build. Casual chic to elegant style.'),
-('beyonce','Beyoncé',ARRAY['beyonce','queen bey'],'int_celebrity','female','us','American superstar Beyoncé, early-to-mid 40s female. Often long blonde/highlighted hair (extensions). Brown eyes. Warm brown skin (African-American). Curvaceous powerful figure. Iconic, glamorous, theatrical style.'),
-('cristiano-ronaldo','Cristiano Ronaldo',ARRAY['ronaldo','cr7','cristiano ronaldo'],'int_athlete','male','pt','Portuguese soccer superstar Cristiano Ronaldo, late 30s male. Dark brown hair, very well-groomed (often with a fade or slicked-back style). Hazel or light brown eyes. Light/Mediterranean skin. Extremely muscular athletic physique, tall (~6''2"). Defined jawline and chiseled facial features.'),
-('lionel-messi','Lionel Messi',ARRAY['messi','leo messi','lionel messi'],'int_athlete','male','ar','Argentine soccer legend Lionel Messi, late 30s male. Dark brown hair and beard. Brown eyes. Olive/medium-tan skin. Shorter stature (~5''7") but extremely athletic build. Recognizable by his beard and humble presence.'),
-('neymar','Neymar',ARRAY['neymar jr','neymar'],'int_athlete','male','br','Brazilian soccer star Neymar Jr., early 30s male. Often has distinctive unique hairstyle (changes regularly). Brown eyes. Warm medium/brown skin. Athletic lean build. Very stylish streetwear to luxury style.'),
-('drake','Drake',ARRAY['aubrey graham','champagnepapi'],'int_celebrity','male','ca','Canadian rapper Drake (Aubrey Graham), late 30s male. Short black hair (fade cut) and beard. Dark brown/warm skin (African-Canadian). Athletic medium build. Signature OVO luxury streetwear style.'),
--- INTERNATIONAL ADULT CONTENT (SFW ONLY)
-('belle-delphine','Belle Delphine',ARRAY['belle delphine'],'int_adult','female','uk','British content creator, mid 20s female. Signature pink hair (most recognizable, though styles change). Blue or grey eyes. Light/pale skin. Petite slim build. Kawaii-inspired pastel aesthetic with cosplay elements. Large expressive eyes, doll-like face. (SFW output only.)'),
-('corinna-kopf','Corinna Kopf',ARRAY['corinna kopf','corinna'],'int_adult','female','us','American influencer and content creator, mid-to-late 20s female. Blonde hair, long and often wavy. Blue eyes. Light skin. Slim athletic figure. Casual American influencer style. (SFW output only.)'),
-('jem-wolfie','Jem Wolfie',ARRAY['jem wolfie','jem'],'int_adult','female','au','Australian fitness model and content creator, late 20s to early 30s female. Dark brown hair. Brown eyes. Light/tan skin. Very athletic and muscular fitness physique. (SFW output only.)'),
-('emily-black','Emily Black',ARRAY['emily black'],'int_adult','female','uk','British content creator, mid 20s female. Brown or dark hair. Brown eyes. Light skin. Slim figure. Casual lifestyle style. (SFW output only.)'),
-('lauren-alexis','Lauren Alexis',ARRAY['lauren alexis'],'int_adult','female','uk','British content creator, mid 20s female. Blonde hair. Light eyes. Light skin. Slim build. Casual British lifestyle style. (SFW output only.)'),
-('lena-the-plug','Lena The Plug',ARRAY['lena the plug','lena plug'],'int_adult','female','us','American content creator, late 20s female. Dark hair. Brown eyes. Light skin. Athletic slim build. Casual lifestyle style. (SFW output only.)'),
-('sky-bri','Sky Bri',ARRAY['sky bri','skybri'],'int_adult','female','us','American content creator, mid 20s female. Blonde hair. Light eyes. Light skin. Slim figure. Casual lifestyle style. (SFW output only.)'),
-('ana-cheri','Ana Cheri',ARRAY['ana cheri','anacheri'],'int_adult','female','us','American fitness model and content creator, early 30s female. Dark brown or black hair. Brown eyes. Light/medium tan skin (mixed Caucasian-Persian). Very athletic curvaceous physique. Fitness glamour style. (SFW output only.)'),
-('hannah-owo','Hannah Owo',ARRAY['hannah owo','hannah'],'int_adult','female','us','American content creator, early-to-mid 20s female. Brown hair. Brown eyes. Light skin. Slim build. Kawaii-inspired casual style. (SFW output only.)'),
-('kinsey-wolanski','Kinsey Wolanski',ARRAY['kinsey wolanski','kinsey'],'int_adult','female','us','American model and influencer, late 20s female. Blonde hair, long. Blue eyes. Light skin. Slim athletic figure. Lifestyle glamour style. (SFW output only.)'),
-('abby-rao','Abby Rao',ARRAY['abby rao','abby'],'int_adult','female','us','American influencer, mid 20s female. Blonde hair. Blue eyes. Light skin. Slim athletic figure. Lifestyle casual style. (SFW output only.)'),
-('katie-sigmond','Katie Sigmond',ARRAY['katie sigmond','katie'],'int_adult','female','us','American TikTok influencer, early 20s female. Blonde hair. Blue eyes. Light skin. Slim build. Casual lifestyle style. (SFW output only.)'),
-('jack-doherty','Jack Doherty',ARRAY['jack doherty','jack'],'int_youtube','male','us','American YouTuber, early 20s male. Blonde or light hair. Blue eyes. Light skin. Average build. Casual American style.'),
-('bryce-hall','Bryce Hall',ARRAY['bryce hall','bryce'],'int_tiktok','male','us','American TikToker, mid 20s male. Brown hair. Brown eyes. Light skin. Athletic medium build. Casual American style.'),
-('harry-jowsey','Harry Jowsey',ARRAY['harry jowsey','harry'],'int_celebrity','male','au','Australian influencer (Too Hot To Handle), late 20s male. Blonde or light brown hair. Blue eyes. Light skin. Tall athletic muscular build. Casual beach lifestyle style.')
+-- Add reference_image_url column if not yet present
+ALTER TABLE public.celebrities
+  ADD COLUMN IF NOT EXISTS reference_image_url TEXT;
+
+-- ============================================================
+-- MAIN INSERT — 7 columns (reference_image_url via UPDATE below)
+-- ============================================================
+INSERT INTO public.celebrities
+  (id, name, aliases, category, gender, nationality, visual_description)
+VALUES
+
+-- ── DIVERTISSEMENT / HUMOUR (FRANCE) ────────────────────────
+('squeezie','Squeezie',
+ ARRAY['gabriel squeezio','gabriel didal'],
+ 'fr_comedy','male','fr',
+ 'French YouTuber (music, gaming, concepts). Male, ~1.65m, slim but slightly muscular. Ash-blonde hair, blue eyes, fair skin. Youthful juvenile face. Oversized streetwear: hoodies, graphic tees, caps.'),
+
+('michou','Michou',
+ ARRAY['mickaël vendetta','mickael vendetta'],
+ 'fr_comedy','male','fr',
+ 'French vlogger (humor, dance). Male, ~1.75m, slim dynamic build. Platinum blonde hair, brown eyes, three-day stubble. Colorful relaxed style: flashy sweaters, sneakers.'),
+
+('inoxtag','Inoxtag',
+ ARRAY['inox','inoxydable'],
+ 'fr_comedy','male','fr',
+ 'French YouTuber (extreme challenges, adventure). Male, ~1.80m, athletic sporty build. Medium-length brown hair, green eyes, olive skin. Angular face. Sports or casual outdoor wear.'),
+
+('amixem','Amixem',
+ ARRAY['florian fedérico','florian federico'],
+ 'fr_comedy','male','fr',
+ 'French YouTuber (humor, gaming, vlogs). Male, ~1.78m, average build. Brown hair, hazel eyes, full thick beard. Relaxed boho-chic look: shirts, casual blazers.'),
+
+('mcfly','McFly',
+ ARRAY['mcfly carlito','bryan mahe','mcfly et carlito'],
+ 'fr_comedy','male','fr',
+ 'French comedian duo McFly & Carlito. Male, ~1.75m, normal build. Bald head, dark brown beard, brown eyes. Casual: jeans, t-shirt. Mischievous smile.'),
+
+('carlito','Carlito',
+ ARRAY['carlito mcfly','alexis patry','mcfly et carlito'],
+ 'fr_comedy','male','fr',
+ 'French comedian duo McFly & Carlito. Male, ~1.80m, slightly heavy build. Long brown hair tied back, beard, light eyes. Casual: denim jacket, bandana.'),
+
+('mister-v','Mister V',
+ ARRAY['yvick letexier','mistervofficial','mister v'],
+ 'fr_comedy','male','fr',
+ 'French comedian and actor of Cameroonian descent. Male, ~1.85m, athletic build. Mixed race, short curly black hair, brown eyes. Streetwear: baggy pants, gold chain. Discreet tattoos.'),
+
+('seb','Seb',
+ ARRAY['seb du sud','sebastien du sud','seb la frite'],
+ 'fr_comedy','male','fr',
+ 'French humor YouTuber. Male, ~1.72m, slim. Brown hair, green eyes. Chill look: shorts, t-shirt, cap. Fine face, small beard.'),
+
+('theodort','Théodort',
+ ARRAY['theodort','theo dort'],
+ 'fr_comedy','male','fr',
+ 'French hidden-camera and humor YouTuber. Male, ~1.70m, slim energetic silhouette. Brown hair, brown eyes, thick eyebrows. Young style: Adidas tracksuit, cap.'),
+
+('just-riadh','Just Riadh',
+ ARRAY['riadh','riadh belaiche','riadh belaïche'],
+ 'fr_comedy','male','fr',
+ 'French storytelling and humor creator. Male, ~1.78m, normal build. Mixed race, wavy black hair, brown eyes. Neat beard. Urban look: long coat, sneakers.'),
+
+('sundy-jules','Sundy Jules',
+ ARRAY['sundy','sundy jules'],
+ 'fr_lifestyle','male','fr',
+ 'French lifestyle and fashion male creator. ~1.82m, slim and elegant. Bleached blonde hair, blue eyes. Fashion style: fitted jacket, wide-leg trousers. Angular face, bright white smile.'),
+
+('natoo','Natoo',
+ ARRAY['natasha','natoo youtube'],
+ 'fr_comedy','female','fr',
+ 'French humor and sketch creator. Female, ~1.65m, curvy build. Brown hair, hazel eyes, long hair often tied up. Quirky colorful look. Very expressive face.'),
+
+('cyprien','Cyprien',
+ ARRAY['cyprien iov'],
+ 'fr_comedy','male','fr',
+ 'French humor YouTuber (less active). Male, ~1.70m, slim. Brown hair, brown eyes. Few-days beard, sometimes glasses. Simple: jeans, sweater.'),
+
+('norman','Norman',
+ ARRAY['norman thavaud'],
+ 'fr_comedy','male','fr',
+ 'French humor vlogger (less active). Male, ~1.65m, small build. Brown hair, brown eyes. Casual hoodie and t-shirt. Round face, goofy smile.'),
+
+('pierre-croce','Pierre Croce',
+ ARRAY['pierre croce'],
+ 'fr_comedy','male','fr',
+ 'French stand-up comedian and YouTuber. Male, ~1.75m, normal build. Brown hair, brown eyes, short beard, styled hair. Smart-casual: jacket, shirt.'),
+
+('joyca','Joyca',
+ ARRAY['joris cantin'],
+ 'fr_comedy','male','fr',
+ 'French humor, gaming and vlog creator. Male, ~1.80m, slim. Blonde hair, blue eyes. Colorful style: pink sweater, sneakers. Fine face, mischievous look.'),
+
+('mastu','Mastu',
+ ARRAY['mastuvu'],
+ 'fr_comedy','male','fr',
+ 'French humor and gaming YouTuber. Male, ~1.78m, average build. Brown hair, brown eyes, beard, glasses. Geek-chic hooded sweatshirt.'),
+
+('lebouseuh','LeBouseuh',
+ ARRAY['bouseuh','le bouseuh'],
+ 'fr_comedy','male','fr',
+ 'French humor, gaming and challenge streamer. Male, ~1.75m, sporty build. Brown hair, brown eyes. Street: cap, jogging. Round face, mocking smile.'),
+
+('valouzz','Valouzz',
+ ARRAY['valouz'],
+ 'fr_comedy','male','fr',
+ 'French humor vlogger. Male, ~1.77m, normal build. Brown hair, brown eyes. Relaxed: t-shirt, jeans. Nascent beard.'),
+
+('pidi','Pidi',
+ ARRAY['pidi streamer'],
+ 'fr_comedy','male','fr',
+ 'French gaming humor creator. Male, ~1.70m, slim. Blonde hair, blue eyes. Young: sweatshirt, beanie. Baby-faced appearance.'),
+
+('doc-jazy','Doc Jazy',
+ ARRAY['docjazy'],
+ 'fr_comedy','male','fr',
+ 'French humor and music creator. Male, ~1.75m, normal build. Brown hair, brown eyes, beard, sometimes long hair. Rock look: leather jacket.'),
+
+('le-grand-jd','Le Grand JD',
+ ARRAY['grand jd','jean dragan'],
+ 'fr_comedy','male','fr',
+ 'French comedian and chronicler. Male, ~1.80m, average build. Brown hair, brown eyes, beard. Casual-chic look.'),
+
+('poisson-fecond','Poisson Fécond',
+ ARRAY['poisson fecond'],
+ 'fr_comedy','male','fr',
+ 'French absurdist humor YouTuber. Male, ~1.70m, slim. Brown hair, brown eyes. Quirky: round glasses, vintage coat.'),
+
+('le-rire-jaune','Le Rire Jaune',
+ ARRAY['rire jaune'],
+ 'fr_comedy','male','fr',
+ 'French parody and humor YouTuber. Male, ~1.75m, normal build. Brown hair, brown eyes. Simple, cap.'),
+
+('le-roi-des-rats','Le Roi des Rats',
+ ARRAY['roi des rats','roiderats'],
+ 'fr_comedy','male','fr',
+ 'French absurd humor streamer. Male, ~1.72m, slim. Brown hair, brown eyes. Dark style: black clothing, piercing.'),
+
+('antoine-daniel','Antoine Daniel',
+ ARRAY['antoinedaniel'],
+ 'fr_comedy','male','fr',
+ 'French media critic and humor creator. Male, ~1.80m, normal build. Brown hair, brown eyes, beard. Intellectual: glasses, shirt.'),
+
+('le-monde-a-lenvers','Le Monde à l''Envers',
+ ARRAY['monde a lenvers'],
+ 'fr_comedy','male','fr',
+ 'French parody humor YouTuber. Male, ~1.78m, normal build. Brown hair, brown eyes. Relaxed casual style.'),
+
+('maxestla','MaxEstLa',
+ ARRAY['max est la'],
+ 'fr_comedy','male','fr',
+ 'French humor vlogger. Male, ~1.75m, slim. Blonde hair, blue eyes. Young casual: sweatshirt, cap.'),
+
+('le-tatou','Le Tatou',
+ ARRAY['le tatou youtube'],
+ 'fr_comedy','male','fr',
+ 'French prank and hidden-camera YouTuber. Male, ~1.70m, stocky build. Brown hair, brown eyes. Street: big sneakers.'),
+
+-- ── LIFESTYLE / BEAUTÉ (FRANCE) ─────────────────────────────
+('lena-situations','Léna Situations',
+ ARRAY['lena situations','léna mahfouf','lena mahfouf'],
+ 'fr_lifestyle','female','fr',
+ 'French fashion vlogger and author. Female, ~1.58m, slim. Brown hair, brown eyes, mid-length with bangs. Modern Parisian: blazer, jeans, ankle boots. Fine face, fair skin.'),
+
+('romy','Romy',
+ ARRAY['romy influencer','romy fr'],
+ 'fr_beauty','female','fr',
+ 'French beauty and lifestyle creator. Female, ~1.65m, slim. Blonde hair, blue eyes, long wavy hair. Glamorous: fitted dress, heels. Soft face, full lips.'),
+
+('paola-locatelli','Paola Locatelli',
+ ARRAY['paola'],
+ 'fr_lifestyle','female','fr',
+ 'French mixed-race actress and lifestyle creator. Female, ~1.70m, slim. Brown curly hair, hazel eyes. Fashion structured pieces. High cheekbones, bright smile.'),
+
+('mayadorable','Mayadorable',
+ ARRAY['maya adorable','maya'],
+ 'fr_lifestyle','female','fr',
+ 'French humor and lifestyle creator. Female, ~1.60m, normal build. Brown hair, brown eyes, long hair. Natural minimal-makeup look, jeans. Round face, friendly.'),
+
+('sananas','Sananas',
+ ARRAY['sanam wae','sanam waé'],
+ 'fr_beauty','female','fr',
+ 'French beauty creator. Female, ~1.65m, slim. Brown hair, green eyes, long straight hair. Sophisticated: blazer, scarf. Fine face, fair skin.'),
+
+('enjoy-phoenix','EnjoyPhoenix',
+ ARRAY['enjoyphoenix','marie lopez'],
+ 'fr_beauty','female','fr',
+ 'French beauty, wellness and cooking creator. Female, ~1.70m, normal build. Blonde hair, blue eyes, mid-length hair. Soft pastel style: flowy dresses. Angelic face.'),
+
+('shera-kerienski','Shera Kerienski',
+ ARRAY['shera'],
+ 'fr_beauty','female','fr',
+ 'French beauty and body-positive creator. Female, ~1.68m, curvy build. Mixed race, brown curly hair, brown eyes. Assertive: fitted outfits, vivid colors. Full cheeks, wide smile.'),
+
+('carla-ginola','Carla Ginola',
+ ARRAY['carla ginola'],
+ 'fr_lifestyle','female','fr',
+ 'French fashion and luxury influencer. Female, ~1.75m, slim. Blonde hair, blue eyes, long hair. Luxury: tailored suit, designer bag. Aristocratic fine face.'),
+
+('chloe-b','Chloé B',
+ ARRAY['chloe b'],
+ 'fr_beauty','female','fr',
+ 'French skincare and beauty creator. Female, ~1.62m, slim. Brown hair, brown eyes, mid-length hair. Natural minimal-makeup, soft sweaters. Young face, flawless skin.'),
+
+('clara-marz','Clara Marz',
+ ARRAY['claramarz'],
+ 'fr_lifestyle','female','fr',
+ 'French lifestyle, music and vlog creator. Female, ~1.67m, slim. Brown wavy hair, hazel eyes. Artistic: vintage jewelry, colorful jackets. Expressive face.'),
+
+('nabilla','Nabilla',
+ ARRAY['nabilla benattia'],
+ 'fr_lifestyle','female','fr',
+ 'French glamour and reality-TV celebrity. Female, ~1.70m, slim. Brown hair, brown eyes, long straight hair. Ultra-glamorous with surgically-enhanced lips. Crop top, stiletto heels.'),
+
+('iris-mittenaere','Iris Mittenaere',
+ ARRAY['iris','miss france','miss univers 2016'],
+ 'fr_model','female','fr',
+ 'French Miss France and Miss Universe 2016. Female, ~1.63m, slim. Brown hair, brown eyes, mid-length hair. Elegant: evening dress, suit. Symmetrical face, perfect smile.'),
+
+('camille-lv','Camille LV',
+ ARRAY['camille leblanc'],
+ 'fr_lifestyle','female','fr',
+ 'French fashion and luxury influencer. Female, ~1.72m, slim. Blonde hair, blue eyes. Bourgeois-chic: trench coat, sunglasses. Fine face.'),
+
+('juste-zoe','Juste Zoé',
+ ARRAY['juste zoe'],
+ 'fr_lifestyle','female','fr',
+ 'French lifestyle and travel creator. Female, ~1.65m, normal build. Brown hair, brown eyes. Bohemian: long dresses, hat. Soft face.'),
+
+('the-doll-beauty','The Doll Beauty',
+ ARRAY['doll beauty','thedollbeauty'],
+ 'fr_beauty','female','fr',
+ 'French beauty and makeup creator. Female, ~1.60m, slim. Brown hair, brown eyes. Glamorous: false lashes, heavy contouring. Doll-like face.'),
+
+('danae-makeup','Danae Makeup',
+ ARRAY['danae','danaemakeup'],
+ 'fr_beauty','female','fr',
+ 'French professional makeup artist. Female, ~1.62m, slim. Brown hair, hazel eyes. Creative: colorful makeup, black clothing.'),
+
+('marion-cameleon','Marion Caméléon',
+ ARRAY['marion cameleon','marioncameleon'],
+ 'fr_beauty','female','fr',
+ 'French fashion and costume creator. Female, ~1.68m, normal build. Brown hair, brown eyes. Chameleon identity: constantly changes hairstyle and look. Neutral base face.'),
+
+-- ── FITNESS / SPORT (FRANCE) ─────────────────────────────────
+('tibo-inshape','Tibo InShape',
+ ARRAY['tibo','thibault inshape'],
+ 'fr_fitness','male','fr',
+ 'French bodybuilding YouTuber. Male, ~1.85m, extremely muscular bodybuilder physique. Bald head, brown eyes, tanned skin. Defined pectorals, visible veins. Tank top, shorts. Often shirtless.'),
+
+('juju-fitcats','Juju Fitcats',
+ ARRAY['juju fitcats','justine quintin'],
+ 'fr_fitness','female','fr',
+ 'French fitness and nutrition creator. Female, ~1.65m, athletic with visible abs. Blonde hair, blue eyes, long hair usually tied up. Sportswear: leggings, sports bra. Pretty determined face.'),
+
+('sissy-mua','Sissy MUA',
+ ARRAY['sissy','sissymua'],
+ 'fr_fitness','female','fr',
+ 'French fitness program creator. Female, ~1.68m, athletic with well-developed glutes. Brown hair, brown eyes, long hair. Fitted sportswear. Made-up face.'),
+
+('nassim-sahili','Nassim Sahili',
+ ARRAY['nassim'],
+ 'fr_fitness','male','fr',
+ 'French bodybuilding coach. Male, ~1.78m, very muscular. Brown hair, brown eyes, beard. Street-fitness: tracksuit, cap. Visible tattoos.'),
+
+('enzo-foukra','Enzo Foukra',
+ ARRAY['enzo foukra','enzo'],
+ 'fr_fitness','male','fr',
+ 'French fitness and motivation creator. Male, ~1.80m, lean muscular. Brown hair, brown eyes. Street: baggy, tank top. Angular face.'),
+
+('yanisport','Yanisport',
+ ARRAY['yanis sport','yanis'],
+ 'fr_fitness','male','fr',
+ 'French sports coach YouTuber. Male, ~1.75m, athletic. Brown hair, brown eyes. Clean: white t-shirt, shorts. Friendly face.'),
+
+('bodytime','Bodytime',
+ ARRAY['body time'],
+ 'fr_fitness','duo','fr',
+ 'French fitness duo. Two muscular men, shaved or bearded, ~1.80m each. Classic fitness look: gloves, belt.'),
+
+('alex-levand','Alex Levand',
+ ARRAY['alexlevand'],
+ 'fr_fitness','male','fr',
+ 'French fitness and lifestyle creator. Male, ~1.83m, lean and muscular. Brown hair, brown eyes. Fit-influencer: fitted sweatshirt, smartwatch.'),
+
+('jean-onche','Jean Onche',
+ ARRAY['jeanonche'],
+ 'fr_comedy','male','fr',
+ 'French humor and bodybuilding creator. Male, ~1.75m, massive heavy build. Bearded, bald or very short hair. Quirky: humor t-shirt, jogging.'),
+
+('thibault-geoffray','Thibault Geoffray',
+ ARRAY['thibault geoffray'],
+ 'fr_fitness','male','fr',
+ 'French nutrition and fitness creator. Male, ~1.78m, naturally athletic. Brown hair, brown eyes. Healthy: fleece, sneakers. Young face.'),
+
+('justine-gallice','Justine Gallice',
+ ARRAY['justine gallice'],
+ 'fr_fitness','female','fr',
+ 'French fitness and lifestyle creator. Female, ~1.67m, athletic. Blonde hair, blue eyes, long hair. Sports look: neon leggings.'),
+
+-- ── GAMING / STREAMING (FRANCE) ──────────────────────────────
+('gotaga','Gotaga',
+ ARRAY['corentin houssein'],
+ 'fr_gaming','male','fr',
+ 'French streamer and ex-professional FPS player. Male, ~1.78m, normal build. Mixed race, short black hair, brown eyes. Street: cap, sweatshirt. Light beard.'),
+
+('domingo','Domingo',
+ ARRAY['quentin domingo'],
+ 'fr_gaming','male','fr',
+ 'French gaming host and streamer. Male, ~1.75m, average build. Brown hair, brown eyes, glasses. Casual: shirt, jeans. Smiling friendly face.'),
+
+('kameto','Kameto',
+ ARRAY['kévin diagne','kevin diagne'],
+ 'fr_gaming','male','fr',
+ 'French streamer and KCorp CEO. Male, ~1.80m, stocky but muscular. Dark black hair, heavy beard, brown eyes. KCorp branded tracksuit. Broad strong face.'),
+
+('zerator','Zerator',
+ ARRAY['antoine bournier'],
+ 'fr_gaming','male','fr',
+ 'French gaming event organizer and streamer. Male, ~1.78m, normal build. Brown hair, beard, brown eyes. Simple: t-shirt, cap. Thick prominent eyebrows.'),
+
+('ponce','Ponce',
+ ARRAY['anthony hazael-massieux','anthoponce'],
+ 'fr_gaming','male','fr',
+ 'French chill streamer. Male, ~1.72m, slim. Brown hair, mustache, brown eyes. Relaxed: wide loose sweater.'),
+
+('maghla','Maghla',
+ ARRAY['margaux streamer'],
+ 'fr_gaming','female','fr',
+ 'French gaming streamer. Female, ~1.65m, slim. Brown hair, brown eyes, long hair. Subtle gothic style: black clothing, silver jewelry. Pale complexion.'),
+
+('ultia','Ultia',
+ ARRAY['mathilde galoyer'],
+ 'fr_gaming','female','fr',
+ 'French gaming streamer. Female, ~1.62m, slim. Blonde hair, blue eyes, long hair. Pastel kawaii look: pink and unicorn aesthetic. Doll-like face.'),
+
+('chowh1','Chowh1',
+ ARRAY['chow'],
+ 'fr_gaming','male','fr',
+ 'French FPS streamer. Male, ~1.80m, sporty build. Brown hair, brown eyes. Street: cap, jogging.'),
+
+('mistermv','MisterMV',
+ ARRAY['martin victor','mister mv'],
+ 'fr_gaming','male','fr',
+ 'French variety streamer. Male, ~1.75m, normal build. Bearded, glasses. Geek: retro gaming t-shirt.'),
+
+('etoiles','Etoiles',
+ ARRAY['alexandre danois','étoiles'],
+ 'fr_gaming','male','fr',
+ 'French variety streamer. Male, ~1.78m, young build. Brown hair, brown eyes. Simple: sweatshirt, jeans. Fine face.'),
+
+('locklear','Locklear',
+ ARRAY['locklear streamer'],
+ 'fr_gaming','male','fr',
+ 'French streamer. Male, ~1.80m, normal build. Brown hair, brown eyes. Casual everyday look.'),
+
+('jl-tomy','JL Tomy',
+ ARRAY['tomy jl','jl crew tomy'],
+ 'fr_gaming','male','fr',
+ 'French streamer (JL family). Male, ~1.70m, slim. Brown hair, glasses. Relaxed casual.'),
+
+('jl-amine','JL Amine',
+ ARRAY['amine jl','jl crew amine'],
+ 'fr_gaming','male','fr',
+ 'French streamer (JL family). Male, ~1.75m, normal build. Brown hair, brown eyes.'),
+
+('jl-bichou','JL Bichou',
+ ARRAY['bichou jl','jl crew bichou'],
+ 'fr_gaming','male','fr',
+ 'French streamer (JL family). Male, ~1.72m, slightly stocky. Brown hair.'),
+
+('terracid','Terracid',
+ ARRAY['terracid wankil','wankil studio terracid'],
+ 'fr_gaming','male','fr',
+ 'French humor streamer (Wankil Studio duo). Male, ~1.78m, normal build. Brown hair, brown eyes. Simple casual look.'),
+
+('laink','Laink',
+ ARRAY['laink wankil','wankil studio laink'],
+ 'fr_gaming','male','fr',
+ 'French humor streamer (Wankil Studio duo). Male, ~1.80m, slim. Brown hair, brown eyes. Simple casual look.'),
+
+('vodk','VodK',
+ ARRAY['vodk streamer'],
+ 'fr_gaming','male','fr',
+ 'French streamer. Male, ~1.77m, normal build. Brown hair, brown eyes. Casual gaming style.'),
+
+('sora','Sora',
+ ARRAY['sora streamer','sora fr'],
+ 'fr_gaming','male','fr',
+ 'French streamer. Male, mid-20s. Dark hair. Casual gaming style.'),
+
+('ad-laurent','AD Laurent',
+ ARRAY['ad laurent','adlaurent'],
+ 'fr_gaming','male','fr',
+ 'French streamer and adult content creator. Male, ~1.85m, muscular, numerous tattoos on arms and chest. Brown eyes, beard. Bad-boy: gold chain, leather jacket.'),
+
+('gatooz','Gatooz',
+ ARRAY['gatoo z'],
+ 'fr_gaming','male','fr',
+ 'French streamer. Male, ~1.82m, muscular, full beard, brown eyes. Virile build. Street: sweatshirt, jogging.'),
+
+-- ── ÉDUCATION / VULGARISATION (FRANCE) ──────────────────────
+('hugodecrypte','HugoDécrypte',
+ ARRAY['hugo decrypte','hugo décrypte','hugo travers'],
+ 'fr_education','male','fr',
+ 'French journalist and news YouTuber. Male, ~1.80m, slim. Brown hair, brown eyes, neatly styled. Casual-chic: shirt, jeans. Serious composed face.'),
+
+('nota-bene','Nota Bene',
+ ARRAY['notabene','benjamin brillaud'],
+ 'fr_education','male','fr',
+ 'French history YouTuber. Male, ~1.75m, normal build. Brown hair, brown eyes, beard. Intellectual: roll-neck sweater, sometimes glasses.'),
+
+('dr-nozman','Dr Nozman',
+ ARRAY['nozman','nicolas beudin'],
+ 'fr_education','male','fr',
+ 'French science YouTuber. Male, ~1.78m, normal build. Brown hair, brown eyes, beard. Relaxed geek: science t-shirt.'),
+
+('dirty-biology','DirtyBiology',
+ ARRAY['dirty biology','léo bernard','leo bernard'],
+ 'fr_education','male','fr',
+ 'French biology YouTuber with humor. Male, ~1.80m, slim, long hair. Brown hair, brown eyes. Hipster: full beard, flannel check shirt.'),
+
+('cyrus-north','Cyrus North',
+ ARRAY['cyrusnorth'],
+ 'fr_education','male','fr',
+ 'French philosophy and debate YouTuber. Male, ~1.75m, normal build. Brown hair, brown eyes, beard. Simple casual look.'),
+
+('gaspard-g','Gaspard G',
+ ARRAY['gaspard'],
+ 'fr_education','male','fr',
+ 'French politics and economics YouTuber. Male, ~1.82m, slim. Brown hair, brown eyes. BCBG: tailored suit or blazer.'),
+
+('science-etonnante','ScienceEtonnante',
+ ARRAY['science etonnante','david louapre'],
+ 'fr_education','male','fr',
+ 'French physics YouTuber. Male, ~1.70m, normal build. Brown hair, brown eyes, glasses. Professor look.'),
+
+('monsieur-phi','Monsieur Phi',
+ ARRAY['monsieurphi'],
+ 'fr_education','male','fr',
+ 'French philosophy YouTuber. Male, ~1.78m, normal build. Brown hair, brown eyes, beard. University intellectual look.'),
+
+('linguisticae','Linguisticae',
+ ARRAY['rémi fonteneau','remi fonteneau'],
+ 'fr_education','male','fr',
+ 'French linguistics YouTuber. Male, ~1.75m, normal build. Brown hair, brown eyes. Casual everyday look.'),
+
+('charles-villa','Charles Villa',
+ ARRAY['charlesvilla'],
+ 'fr_education','male','fr',
+ 'French geography and history YouTuber. Male, ~1.80m, slim. Brown hair, brown eyes. Modern casual look.'),
+
+('doc-seven','Doc Seven',
+ ARRAY['doc 7'],
+ 'fr_education','male','fr',
+ 'French medical content creator. Male, ~1.75m. Casual semi-professional look.'),
+
+-- ── +18 / GLAMOUR / CONTENU ADULTE — SFW OUTPUT ONLY ────────
+('mymi-rose','Mymi Rose',
+ ARRAY['mymi'],
+ 'fr_lifestyle','female','fr',
+ 'French content creator (SFW). Female, ~1.62m, generous curvy figure (large chest, wide hips). Brown hair, brown eyes, long hair. Glamorous look. (SFW output only.)'),
+
+('eva-elfie-fr','Eva Elfie FR',
+ ARRAY['eva elfie france'],
+ 'fr_lifestyle','female','fr',
+ 'French content creator (SFW). Female, ~1.63m, slim. Blonde hair, blue eyes, long hair. Girl-next-door: light dress. Juvenile face. (SFW output only.)'),
+
+('lila-taleb','Lila Taleb',
+ ARRAY['lila taleb'],
+ 'fr_lifestyle','female','fr',
+ 'French content creator (SFW). Female, ~1.65m, athletic. Brown hair, brown eyes. Fitted outfits. (SFW output only.)'),
+
+('cassandra-calogera','Cassandra Calogera',
+ ARRAY['cassandra'],
+ 'fr_lifestyle','female','fr',
+ 'French content creator (SFW). Female, ~1.68m, curvy. Brown hair, hazel eyes, long hair. Glamorous. (SFW output only.)'),
+
+('lea-mary','Léa Mary',
+ ARRAY['lea mary','léa'],
+ 'fr_lifestyle','female','fr',
+ 'French content creator (SFW). Female, ~1.67m, slim. Blonde hair, blue eyes. Natural look. (SFW output only.)'),
+
+('astrid-nelsia','Astrid Nelsia',
+ ARRAY['astrid'],
+ 'fr_lifestyle','female','fr',
+ 'French content creator (SFW). Female, ~1.70m, athletic. Mixed race, curly natural hair. Exotic style. (SFW output only.)'),
+
+('marine-el-himer','Marine El Himer',
+ ARRAY['marine elhimer'],
+ 'fr_lifestyle','female','fr',
+ 'French content creator (SFW). Female, ~1.65m, slim. Brown hair, brown eyes. Glamorous look. (SFW output only.)'),
+
+('oceane-el-himer','Océane El Himer',
+ ARRAY['oceane el himer'],
+ 'fr_lifestyle','female','fr',
+ 'French content creator (SFW). Female, ~1.64m, slim. Brown hair, brown eyes. Near-identical twin of Marine El Himer. (SFW output only.)'),
+
+('melanie-orl','Mélanie Orl',
+ ARRAY['melanie orl'],
+ 'fr_lifestyle','female','fr',
+ 'French content creator (SFW). Female, ~1.68m, curvy. Brown hair, green eyes. (SFW output only.)'),
+
+('maeva-ghennam','Maeva Ghennam',
+ ARRAY['maeva'],
+ 'fr_lifestyle','female','fr',
+ 'French glamour influencer. Female, ~1.70m, generous curves (notable chest and hips). Brown hair, brown eyes. Very glamorous: crop top, leggings. (SFW output only.)'),
+
+('sarah-fraisou','Sarah Fraisou',
+ ARRAY['sarah fraisou'],
+ 'fr_lifestyle','female','fr',
+ 'French content creator (SFW). Female, ~1.65m, full-figured. Brown hair, brown eyes. Body-positive look. (SFW output only.)'),
+
+('laura-lempika','Laura Lempika',
+ ARRAY['laura lempika'],
+ 'fr_lifestyle','female','fr',
+ 'French content creator (SFW). Female, ~1.72m, slim. Brown hair, brown eyes. Glamorous. (SFW output only.)'),
+
+('manon-tanti','Manon Tanti',
+ ARRAY['manon tanti'],
+ 'fr_lifestyle','female','fr',
+ 'French content creator (SFW). Female, ~1.63m, normal build. Brown hair, brown eyes. (SFW output only.)'),
+
+('carla-moreau','Carla Moreau',
+ ARRAY['carla moreau'],
+ 'fr_lifestyle','female','fr',
+ 'French content creator (SFW). Female, ~1.60m, short and slim. Brown hair, brown eyes. (SFW output only.)'),
+
+('shanna-kress','Shanna Kress',
+ ARRAY['shanna'],
+ 'fr_lifestyle','female','fr',
+ 'French content creator (SFW). Female, ~1.70m, athletic. Brown hair, green eyes. (SFW output only.)'),
+
+('kim-glow','Kim Glow',
+ ARRAY['kimglow'],
+ 'fr_lifestyle','female','fr',
+ 'French content creator (SFW). Female, ~1.68m, slim. Blonde hair, blue eyes. Glowing glittery makeup style. (SFW output only.)'),
+
+('gaelle-garcia-diaz','Gaëlle Garcia Diaz',
+ ARRAY['gaelle garcia diaz','gaelle garcia'],
+ 'fr_lifestyle','female','fr',
+ 'French glamour influencer. Female, ~1.72m, sculpted body (abs, prominent glutes). Long brown hair. Luxury look. (SFW output only.)'),
+
+('amouranth','Amouranth',
+ ARRAY['kaitlyn siragusa'],
+ 'int_adult','female','us',
+ 'American streamer and content creator (SFW only). Female, ~1.65m, very generous curves. Signature long red hair, green eyes. Kawaii or glamour style. (SFW output only.)'),
+
+('belle-delphine','Belle Delphine',
+ ARRAY['belle delphine'],
+ 'int_adult','female','uk',
+ 'British content creator (SFW only). Female, ~1.62m, slim. Signature pink hair, blue eyes. Kawaii: fairy ears, heavy doll-like makeup. (SFW output only.)'),
+
+('corinna-kopf','Corinna Kopf',
+ ARRAY['corinna kopf','corinna'],
+ 'int_adult','female','us',
+ 'American content creator (SFW). Female, ~1.70m, slim slender. Blonde hair, blue eyes. Californian casual look. (SFW output only.)'),
+
+('jem-wolfie','Jem Wolfie',
+ ARRAY['jem wolfie'],
+ 'int_adult','female','au',
+ 'Australian fitness content creator (SFW). Female, ~1.68m, athletic with prominent glutes. Brown hair, brown eyes. Sportswear. (SFW output only.)'),
+
+('violet-myers','Violet Myers',
+ ARRAY['violet myers'],
+ 'int_adult','female','us',
+ 'American content creator (SFW). Female, ~1.60m, generous curves. Brown hair, brown eyes. Latina style. (SFW output only.)'),
+
+('emily-black','Emily Black',
+ ARRAY['emily black'],
+ 'int_adult','female','uk',
+ 'British content creator (SFW). Female, ~1.65m, slim. Brown hair, brown eyes. Girl-next-door look. (SFW output only.)'),
+
+('lauren-alexis','Lauren Alexis',
+ ARRAY['lauren alexis'],
+ 'int_adult','female','uk',
+ 'British content creator (SFW). Female, ~1.67m, slim. Brown hair, brown eyes. British glam look. (SFW output only.)'),
+
+('lena-the-plug','Lena The Plug',
+ ARRAY['lena plug','lena the plug'],
+ 'int_adult','female','us',
+ 'American content creator (SFW). Female, ~1.70m, athletic, tattoos. Brown hair, brown eyes. Spicy fitness look. (SFW output only.)'),
+
+('sky-bri','Sky Bri',
+ ARRAY['sky bri','skybri'],
+ 'int_adult','female','us',
+ 'American content creator (SFW). Female, ~1.73m, slim. Blonde hair, blue eyes, long hair. Californian beach style. (SFW output only.)'),
+
+('karina-pedro','Karina Pedro',
+ ARRAY['karina pedro'],
+ 'int_adult','female','us',
+ 'American content creator (SFW). Female, ~1.62m, generous curves. Brown hair, brown eyes. Latina style. (SFW output only.)'),
+
+('ana-cheri','Ana Cheri',
+ ARRAY['ana cheri'],
+ 'int_adult','female','us',
+ 'American fitness model and content creator (SFW). Female, ~1.68m, very athletic (abs, prominent glutes). Brown hair, green eyes. Sport-chic. (SFW output only.)'),
+
+('sommer-ray','Sommer Ray',
+ ARRAY['sommer ray','sommer'],
+ 'int_adult','female','us',
+ 'American glamour fitness influencer (SFW). Female, ~1.73m, athletic, celebrated glutes. Brown hair, brown eyes. Fitness lifestyle look. (SFW output only.)'),
+
+('abby-rao','Abby Rao',
+ ARRAY['abby rao'],
+ 'int_adult','female','us',
+ 'American content creator (SFW). Female, ~1.65m, slim, tattoos. Brown hair, brown eyes. Alternative look. (SFW output only.)'),
+
+('katie-sigmond','Katie Sigmond',
+ ARRAY['katie sigmond'],
+ 'int_adult','female','us',
+ 'American content creator (SFW). Female, ~1.68m, athletic. Brown hair, brown eyes. Glamorous golfer aesthetic. (SFW output only.)'),
+
+('hannah-owo','Hannah Owo',
+ ARRAY['hannah owo'],
+ 'int_adult','female','us',
+ 'American content creator (SFW). Female, ~1.62m, slim. Brown hair, brown eyes. E-girl style. (SFW output only.)'),
+
+('sarati','Sarati',
+ ARRAY['sarati'],
+ 'int_adult','female','us',
+ 'American content creator (SFW). Female, ~1.67m, normal build. Brown hair, brown eyes. (SFW output only.)'),
+
+('kinsey-wolanski','Kinsey Wolanski',
+ ARRAY['kinsey wolanski'],
+ 'int_adult','female','us',
+ 'American model and content creator (SFW). Female, ~1.70m, slim. Blonde hair, blue eyes. Model look. (SFW output only.)'),
+
+('jack-doherty','Jack Doherty',
+ ARRAY['jack doherty'],
+ 'int_adult','male','us',
+ 'American YouTuber. Male, ~1.75m, slim, young. Brown hair, brown eyes. Casual American look.'),
+
+('jason-luv','Jason Luv',
+ ARRAY['jason luv'],
+ 'int_adult','male','us',
+ 'American content creator (SFW). Male, ~1.88m, very muscular, numerous tattoos. Beard. Bodybuilder street look. (SFW output only.)'),
+
+('bryce-hall','Bryce Hall',
+ ARRAY['bryce hall'],
+ 'int_adult','male','us',
+ 'American TikToker (SFW). Male, ~1.83m, slim, tattoos. Brown hair, brown eyes. TikTok influencer look. (SFW output only.)'),
+
+('harry-jowsey','Harry Jowsey',
+ ARRAY['harry jowsey'],
+ 'int_adult','male','au',
+ 'Australian Too Hot To Handle star (SFW). Male, ~1.90m, muscular. Brown hair, brown eyes, tattoos. Playboy Australian look. (SFW output only.)'),
+
+-- ── INTERNATIONAUX — YOUTUBE / TIKTOK ───────────────────────
+('mrbeast','MrBeast',
+ ARRAY['mr beast','jimmy donaldson'],
+ 'int_youtube','male','us',
+ 'American philanthropist YouTuber (Jimmy Donaldson). Male, ~1.88m, tall slim. Medium-long brown hair, brown eyes, angular face. Wide forced smile. Casual: t-shirt, jeans.'),
+
+('pewdiepie','PewDiePie',
+ ARRAY['pewdiepie','felix kjellberg'],
+ 'int_youtube','male','se',
+ 'Swedish gaming and humor YouTuber (Felix Kjellberg). Male, ~1.80m, slim. Brown hair, blue eyes, several-day beard. Casual Scandinavian: sweatshirt, jogging.'),
+
+('charli-damelio','Charli D''Amelio',
+ ARRAY['charli damelio','charli'],
+ 'int_tiktok','female','us',
+ 'American TikTok dance creator. Female, ~1.70m, slim. Brown hair, brown eyes, long hair. Teenage look: leggings, crop top. Pretty neutral face.'),
+
+('khaby-lame','Khaby Lame',
+ ARRAY['khaby lame','khaby'],
+ 'int_tiktok','male','it',
+ 'Senegalese-Italian silent-humor TikTok creator. Male, ~1.85m, slim. Black, brown eyes, clean-shaved head. Simple iconic: white t-shirt, jeans. Very expressive deadpan face.'),
+
+('addison-rae','Addison Rae',
+ ARRAY['addison rae','addison'],
+ 'int_tiktok','female','us',
+ 'American TikTok dance and music creator. Female, ~1.68m, slim. Brown hair, brown eyes, long hair. American glamour: short dress, heels.'),
+
+('logan-paul','Logan Paul',
+ ARRAY['logan paul','logan'],
+ 'int_youtube','male','us',
+ 'American YouTuber and boxer. Male, ~1.83m, muscular with tattoos. Brown hair, brown eyes. Show-biz: flashy tracksuit, gold chain.'),
+
+('jake-paul','Jake Paul',
+ ARRAY['jake paul','jake'],
+ 'int_youtube','male','us',
+ 'American boxer and YouTuber. Male, ~1.85m, muscular with tattoos. Brown hair, brown eyes. Baggy streetwear.'),
+
+('ksi','KSI',
+ ARRAY['jj olatunji','jj'],
+ 'int_youtube','male','uk',
+ 'British-Nigerian YouTuber and rapper (JJ Olatunji). Male, ~1.83m, stocky but muscular. Black, brown eyes. Streetwear: bandana, oversize sweatshirt.'),
+
+('emma-chamberlain','Emma Chamberlain',
+ ARRAY['emma chamberlain','emma'],
+ 'int_youtube','female','us',
+ 'American vlogger. Female, ~1.68m, slim. Brown hair, brown eyes, mid-length. Vintage look: wide trousers, small cropped tops. Stylishly tired face.'),
+
+('bella-poarch','Bella Poarch',
+ ARRAY['bella poarch','bella'],
+ 'int_tiktok','female','us',
+ 'Filipino-American TikTok creator. Female, ~1.60m, petite, tattoos. Filipino features, brown eyes. E-girl: colorful style, tights.'),
+
+('zach-king','Zach King',
+ ARRAY['zach king'],
+ 'int_tiktok','male','us',
+ 'American digital illusionist and TikToker. Male, ~1.75m, normal. Brown hair, brown eyes. Casual: shirt, jeans.'),
+
+('brent-rivera','Brent Rivera',
+ ARRAY['brent rivera'],
+ 'int_tiktok','male','us',
+ 'American vlogger and TikToker. Male, ~1.80m, muscular, light beard. Brown hair, brown eyes. Californian: white t-shirt.'),
+
+('lele-pons','Lele Pons',
+ ARRAY['lele pons'],
+ 'int_tiktok','female','us',
+ 'Venezuelan-American creator. Female, ~1.68m, slim, tattoos. Brown hair, brown eyes. Latina glam look.'),
+
+('markiplier','Markiplier',
+ ARRAY['mark fischbach'],
+ 'int_youtube','male','us',
+ 'American gaming YouTuber (Mark Fischbach). Male, ~1.78m, normal build. Brown hair, brown eyes, beard. Casual hooded sweatshirt.'),
+
+('ninja','Ninja',
+ ARRAY['tyler blevins'],
+ 'int_gaming','male','us',
+ 'American Fortnite streamer (Tyler Blevins). Male, ~1.80m, slim. Blonde hair often dyed vibrant colors (signature blue), blue eyes. Street casual look.'),
+
+('pokimane','Pokimane',
+ ARRAY['imane anys','poki'],
+ 'int_gaming','female','ca',
+ 'Moroccan-Canadian streamer (Imane Anys). Female, ~1.62m, slim. Brown long hair, brown eyes, North African features. Cute casual: pink sweater.'),
+
+('kai-cenat','Kai Cenat',
+ ARRAY['kai cenat'],
+ 'int_gaming','male','us',
+ 'American streamer. Male, ~1.78m, normal build. Black, brown eyes, shaved head. Streetwear: big sneakers, cap. Very energetic expressive face.'),
+
+('ishowspeed','IShowSpeed',
+ ARRAY['speed','darren watkins'],
+ 'int_gaming','male','us',
+ 'American gaming streamer (Darren Watkins Jr.). Male, ~1.78m, slim. Black, brown eyes, braided hair. Flashy tracksuit. Extremely energetic.'),
+
+('dream','Dream',
+ ARRAY['clay dream','dreamwastaken'],
+ 'int_gaming','male','us',
+ 'American gaming YouTuber. Male, ~1.87m, tall slim. Light brown hair, light skin. Wears white smiley-face mask in older content. Now shows face openly.'),
+
+('mkbhd','MKBHD',
+ ARRAY['marques brownlee','marques'],
+ 'int_youtube','male','us',
+ 'American tech YouTuber Marques Brownlee. Male, ~1.85m, slim. Black, brown eyes, clean-shaved. Smart-casual: polo shirt, quality sneakers.'),
+
+('casey-neistat','Casey Neistat',
+ ARRAY['casey neistat'],
+ 'int_youtube','male','us',
+ 'American filmmaker and vlogger. Male, ~1.78m, normal build. Blonde hair, blue eyes, beard. New York style: always wears sunglasses, motorcycle jacket.'),
+
+('david-dobrik','David Dobrik',
+ ARRAY['david dobrik'],
+ 'int_youtube','male','us',
+ 'Slovak-American vlogger. Male, ~1.75m, slim. Brown hair, brown eyes. Young casual: sweatshirt, jeans.'),
+
+('ryan-trahan','Ryan Trahan',
+ ARRAY['ryan trahan'],
+ 'int_youtube','male','us',
+ 'American challenge YouTuber. Male, ~1.78m, slim, young. Brown hair, brown eyes. Casual everyday.'),
+
+('airrack','Airrack',
+ ARRAY['airrack'],
+ 'int_youtube','male','us',
+ 'American stunt YouTuber. Male, ~1.80m, normal. Brown hair, brown eyes. Casual American.'),
+
+('dhar-mann','Dhar Mann',
+ ARRAY['dharr mann'],
+ 'int_youtube','male','us',
+ 'Indian-American moral video creator. Male, ~1.75m, normal. Brown hair, brown eyes, beard. Business-casual.'),
+
+('dude-perfect','Dude Perfect',
+ ARRAY['dude perfect'],
+ 'int_youtube','group','us',
+ 'American trick-shot stunt team (5 men). Five tall athletic American men, sporty styles.'),
+
+('sidemen','Sidemen',
+ ARRAY['sidemen group'],
+ 'int_youtube','group','uk',
+ 'British YouTube group of 7. Includes KSI (dark skin), various physiques. Young British men, streetwear UK style.'),
+
+('veritasium','Veritasium',
+ ARRAY['derek muller'],
+ 'int_youtube','male','ca',
+ 'Australian-Canadian science YouTuber (Derek Muller). Male, ~1.83m, slim. Blonde hair, blue eyes. Simple casual.'),
+
+('smarter-every-day','SmarterEveryDay',
+ ARRAY['smarter every day','destin sandlin'],
+ 'int_youtube','male','us',
+ 'American science YouTuber (Destin Sandlin). Male, ~1.78m, normal. Brown hair, brown eyes, beard. Engineer look.'),
+
+('linus-tech-tips','Linus Tech Tips',
+ ARRAY['linus','ltt','linus sebastian'],
+ 'int_youtube','male','ca',
+ 'Canadian tech YouTuber (Linus Sebastian). Male, ~1.78m, normal. Brown hair, brown eyes, beard. Geek casual.'),
+
+('the-try-guys','The Try Guys',
+ ARRAY['try guys'],
+ 'int_youtube','group','us',
+ 'American YouTube test group (4 diverse men). Diverse physiques: Eugene Lee Yang (Korean-American), Keith Habersberger (tall), Zach Kornfeld (shorter), and Ned Fulmer (former member).'),
+
+-- ── INTERNATIONAUX — BEAUTÉ / MODE / ICÔNES ─────────────────
+('huda-kattan','Huda Kattan',
+ ARRAY['huda beauty','huda kattan'],
+ 'int_beauty','female','us',
+ 'Iraqi-American beauty mogul. Female, ~1.65m, slim. Long brown hair, brown eyes. Luxury glamorous: blazer, heels. Middle Eastern features.'),
+
+('kim-kardashian','Kim Kardashian',
+ ARRAY['kim k','kim kardashian west'],
+ 'int_celebrity','female','us',
+ 'American media personality. Female, ~1.59m, iconic hourglass (strong hips, narrow waist). Brown hair, brown eyes. Hyper-glamorous luxury look.'),
+
+('kylie-jenner','Kylie Jenner',
+ ARRAY['kylie jenner','kylie'],
+ 'int_celebrity','female','us',
+ 'American beauty mogul. Female, ~1.68m, generous curves, surgically augmented full lips. Brown hair, brown eyes. Luxury streetwear.'),
+
+('kendall-jenner','Kendall Jenner',
+ ARRAY['kendall jenner','kendall'],
+ 'int_celebrity','female','us',
+ 'American supermodel. Female, ~1.79m, very slim and long. Brown hair, brown eyes. Top-model look: runway style or casual chic.'),
+
+('hailey-bieber','Hailey Bieber',
+ ARRAY['hailey baldwin','hailey bieber'],
+ 'int_celebrity','female','us',
+ 'American model. Female, ~1.71m, slim. Brown hair, brown eyes. Model streetwear style.'),
+
+('selena-gomez','Selena Gomez',
+ ARRAY['selena gomez','selena'],
+ 'int_celebrity','female','us',
+ 'American singer and actress. Female, ~1.65m, normal build. Brown hair, brown eyes, round face. Elegant yet relaxed look.'),
+
+('beyonce','Beyoncé',
+ ARRAY['beyonce','queen bey'],
+ 'int_celebrity','female','us',
+ 'American global superstar. Female, ~1.69m, athletic with strong curves. Black, brown eyes. Stage: sequins, power suits. Warm brown skin, often long blonde extensions.'),
+
+('nikkie-tutorials','NikkieTutorials',
+ ARRAY['nikkie de jager','nikkie tutorials'],
+ 'int_beauty','female','nl',
+ 'Dutch beauty YouTuber Nikkie de Jager. Female, ~1.88m, very tall, blonde hair, blue eyes, transgender woman. Always dramatically glam: sequins, heels, bold makeup.'),
+
+('james-charles','James Charles',
+ ARRAY['james charles'],
+ 'int_beauty','male','us',
+ 'American beauty YouTuber. Male, ~1.70m, slim. Brown hair, brown eyes. Androgynous. Signature bold flashy artistic makeup.'),
+
+('bretman-rock','Bretman Rock',
+ ARRAY['bretman rock'],
+ 'int_beauty','male','us',
+ 'Filipino-American beauty influencer. Male, ~1.70m, normal build. Filipino features, brown eyes, tattoos. Eccentric extravagant look.'),
+
+('chiara-ferragni','Chiara Ferragni',
+ ARRAY['chiara ferragni'],
+ 'int_beauty','female','it',
+ 'Italian fashion influencer. Female, ~1.77m, slim. Blonde hair, blue eyes. Italian luxury high-fashion.'),
+
+('dixie-damelio','Dixie D''Amelio',
+ ARRAY['dixie damelio','dixie'],
+ 'int_tiktok','female','us',
+ 'American TikToker and singer, sister of Charli. Female, ~1.68m, slim. Brown hair, brown eyes. Casual American style.'),
+
+('michelle-phan','Michelle Phan',
+ ARRAY['michelle phan'],
+ 'int_beauty','female','us',
+ 'Vietnamese-American beauty YouTuber. Female, ~1.57m, slim. Dark black hair, dark eyes. Light East Asian fair skin. Elegant beauty style.'),
+
+('lilly-singh','Lilly Singh',
+ ARRAY['iisuperwomanii','superwoman'],
+ 'int_youtube','female','ca',
+ 'Canadian-Indian YouTuber. Female, ~1.67m, athletic slim. Long dark hair, brown eyes. Warm brown skin (Punjabi-Indian). Bold colorful style.'),
+
+-- ── INTERNATIONAUX — ATHLÈTES ────────────────────────────────
+('cristiano-ronaldo','Cristiano Ronaldo',
+ ARRAY['ronaldo','cr7'],
+ 'int_athlete','male','pt',
+ 'Portuguese soccer superstar. Male, ~1.87m, extremely lean and muscular. Brown hair, brown eyes, chiseled sharp jaw. Often wears sharp fade haircut. Sporty-chic or tailored suit. Very defined muscular body.'),
+
+('lionel-messi','Lionel Messi',
+ ARRAY['messi','leo messi'],
+ 'int_athlete','male','ar',
+ 'Argentine soccer legend. Male, ~1.70m, short and stocky. Brown hair and beard, brown eyes. Olive/medium skin. Simple look: t-shirt, jeans. Very recognizable dark beard.'),
+
+('neymar','Neymar',
+ ARRAY['neymar jr'],
+ 'int_athlete','male','br',
+ 'Brazilian soccer star Neymar Jr. Male, ~1.75m, slim with tattoos. Brown hair (often unique styles: mohawk, braids, bleached). Brown eyes. Fashion-forward: cap, jewelry.'),
+
+('drake','Drake',
+ ARRAY['aubrey graham','champagnepapi'],
+ 'int_celebrity','male','ca',
+ 'Canadian rapper Drake (Aubrey Graham). Male, ~1.82m, normal build. Mixed race, brown eyes, beard. Luxury streetwear: Canada Goose, Nike. Fade haircut.'),
+
+-- ── INTERNATIONAUX — GAMING / STREAMING ─────────────────────
+('shroud','Shroud',
+ ARRAY['michael grzesiek'],
+ 'int_gaming','male','ca',
+ 'Polish-Canadian FPS streamer. Male, ~1.83m, normal. Brown hair, brown eyes, beard. Casual everyday.'),
+
+('tfue','Tfue',
+ ARRAY['turner tenney'],
+ 'int_gaming','male','us',
+ 'American Fortnite streamer. Male, ~1.78m, slim, tattoos. Blonde hair, blue eyes. Street casual.'),
+
+('timthetatman','TimTheTatman',
+ ARRAY['tim thetatman'],
+ 'int_gaming','male','us',
+ 'American streamer. Male, ~1.90m, large heavyset build, beard, glasses. Casual everyday.'),
+
+('valkyrae','Valkyrae',
+ ARRAY['rachell hofstetter'],
+ 'int_gaming','female','us',
+ 'Filipino-American streamer. Female, ~1.63m, slim. Black hair, brown eyes. E-girl look.'),
+
+('sykkuno','Sykkuno',
+ ARRAY['thomas lu'],
+ 'int_gaming','male','us',
+ 'Asian-American streamer. Male, ~1.70m, very slim. Black hair, brown eyes. Shy cute style.'),
+
+('xqc','xQc',
+ ARRAY['felix lengyel','xqcow'],
+ 'int_gaming','male','ca',
+ 'French-Canadian streamer. Male, ~1.88m, normal. Brown hair, brown eyes, beard. Very casual.'),
+
+('dr-disrespect','Dr Disrespect',
+ ARRAY['dr disrespect'],
+ 'int_gaming','male','us',
+ 'American streamer persona. Male, ~1.96m, very tall. Signature: large black mullet wig, thick black mustache, dark wraparound sunglasses, camo or black tactical jacket. The champion persona.'),
+
+('ludwig','Ludwig',
+ ARRAY['ludwig ahgren'],
+ 'int_gaming','male','us',
+ 'American streamer (Ludwig Ahgren). Male, ~1.85m, slim. Brown hair, brown eyes, beard. Casual cozy.'),
+
+('asmongold','Asmongold',
+ ARRAY['zack asmongold'],
+ 'int_gaming','male','us',
+ 'American WoW streamer. Male, ~1.75m, normal. Brown hair (sometimes unkempt medium-length), brown eyes. Minimal geek casual.')
+
 ON CONFLICT (id) DO UPDATE SET
   name               = EXCLUDED.name,
   aliases            = EXCLUDED.aliases,
@@ -198,3 +952,18 @@ ON CONFLICT (id) DO UPDATE SET
   gender             = EXCLUDED.gender,
   nationality        = EXCLUDED.nationality,
   visual_description = EXCLUDED.visual_description;
+
+-- ============================================================
+-- Set reference_image_url for celebrities with known stable photos
+-- ============================================================
+UPDATE public.celebrities SET reference_image_url =
+  'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Cristiano_Ronaldo_2018.jpg/440px-Cristiano_Ronaldo_2018.jpg'
+WHERE id = 'cristiano-ronaldo';
+
+UPDATE public.celebrities SET reference_image_url =
+  'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Messi_vs_Nigeria_2018.jpg/440px-Messi_vs_Nigeria_2018.jpg'
+WHERE id = 'lionel-messi';
+
+UPDATE public.celebrities SET reference_image_url =
+  'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Neymar_vs_Croatia_%28cropped%29.jpg/440px-Neymar_vs_Croatia_%28cropped%29.jpg'
+WHERE id = 'neymar';
