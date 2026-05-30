@@ -6,11 +6,7 @@ const replicate = new Replicate({
 });
 
 const MODELS = {
-  faceSwap:  "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
-  // Face-to-face: injects a reference face into a target image.
-  // Used when a celebrity reference image is available — much more accurate
-  // than text description because it reads the actual face pixels.
-  faceToFace: "fofr/face-to-face:b1c17d148455c1fda435ababe9ab1e03bc0d917cc3cf4251916f22c45c83c7df",
+  faceSwap: "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
 } as const;
 
 // ─── Créer mode: img2img fallback chain ──────────────────────────────────────
@@ -310,21 +306,37 @@ function buildStylePrompt(
       .join(", ");
 
     if (hasRefImages) {
-      // ── CELEBRITY INSERTION — IMAGE-GUIDED (reference photos provided) ──
-      // The reference images of the celebrity are passed as image_input[1..n].
-      // Tell the model explicitly to extract the face from those images.
-      const refNoun = celebRefCount === 1 ? "image" : "images";
+      // ── CELEBRITY INSERTION — VISUAL ANALYSIS MODE ──────────────────────
+      // Reference images of the celebrity are in image_input[1], [2], [3]...
+      // Nano-banana-pro (Gemini-based) can visually analyse multiple images.
+      // The prompt tells it: study the reference photos, then reproduce that
+      // person's appearance accurately in the scene.
+      const n = celebRefCount!;
+      const imgWord = n === 1 ? "image" : "images";
+
       editInstruction =
-        `IMPORTANT — REFERENCE ${refNoun.toUpperCase()} PROVIDED: ` +
-        `Image #1 is the user's photo. ` +
-        `Images #2 onwards are real reference photographs of ${celebNames} — ` +
-        `they show their actual face, hair color, skin tone, and body. ` +
-        `YOUR TASK: Add ${celebNames} to image #1 by placing them naturally beside the existing person. ` +
-        `CRITICAL FACE RULE: Copy ${celebNames}'s face EXACTLY from the reference ${refNoun} — ` +
-        `do NOT invent their appearance, do NOT use generic features. ` +
-        `The face, hair, skin tone, and body proportions in the output must match the reference ${refNoun} precisely. ` +
-        `${sceneExtra ? `Scene: ${sceneExtra}. ` : ""}` +
-        `The original person in image #1 stays 100% unchanged.`;
+        `You are given ${n + 1} images. ` +
+        `Image 1 is the main photo (the user). ` +
+        `${n === 1 ? "Image 2 is" : `Images 2 to ${n + 1} are`} real reference ${imgWord} of ${celebNames}. ` +
+
+        `STEP 1 — VISUAL ANALYSIS: Study the reference ${imgWord} of ${celebNames} carefully. ` +
+        `Identify and memorise: ` +
+        `their exact face shape and features (jawline, nose, eyes, eyebrows, lips, forehead), ` +
+        `their precise skin tone and texture, ` +
+        `their hair (exact color, cut, texture, style), ` +
+        `their body type and proportions, ` +
+        `any visible tattoos, scars or distinctive marks, ` +
+        `their signature clothing style and aesthetic. ` +
+
+        `STEP 2 — GENERATION: Add ${celebNames} to image 1 as a new person standing naturally beside the existing subject. ` +
+        `Reproduce ${celebNames}'s appearance EXACTLY as observed in the reference ${imgWord} — ` +
+        `same face, same skin tone, same hair, same body. ` +
+        `Do NOT invent generic features. Do NOT guess from text descriptions. ` +
+        `Use only what you see in the reference ${imgWord}. ` +
+
+        `${sceneExtra ? `Scene context: ${sceneExtra}. ` : ""}` +
+        `The original person in image 1 stays 100% unchanged, pixel-perfect.`;
+
     } else {
       // ── CELEBRITY INSERTION — DESCRIPTION-GUIDED (no reference photos) ──
       const celebDataBlock = celebs.map((c) =>
@@ -520,10 +532,9 @@ function extractUrl(output: unknown): string {
 //
 // Créer mode:    img2img model chain (photo is actual input)
 // SwapFace mode: face-swap
-// FaceToFace mode: inject celebrity face from reference image into user's photo
 
 export type AsyncJobConfig = {
-  mode:               "style" | "swapface" | "facetoface";
+  mode:               "style" | "swapface";
   qualityTier:        keyof typeof QUALITY_SETTINGS;
   prompt?:            string;
   negPrompt?:         string;
@@ -564,22 +575,6 @@ export function buildAsyncJobConfig(
     return { mode: "swapface", qualityTier: tier, sourceB64 };
   }
 
-  // ── If celebrity reference images are available, use the face-to-face model.
-  // This model actually reads the face pixels from the reference image and
-  // injects that face into the target photo — far more accurate than text desc.
-  if ((input.celebRefCount ?? 0) > 0 && input.celebRefImageUrl) {
-    console.log(`[Pipeline] Celebrity with refs detected — switching to face-to-face mode`);
-    return {
-      mode:              "facetoface",
-      qualityTier:       tier,
-      inputImageUrl:     input.inputImageUrl,   // user's photo (target)
-      celebRefImageUrl:  input.celebRefImageUrl, // celebrity face (source)
-      celebRefImageUrls: input.celebRefImageUrls,
-      celebRefCount:     input.celebRefCount,
-      prompt:            buildFaceToFacePrompt(input),
-    };
-  }
-
   const { positive, negative } = buildStylePrompt(
     input.customPrompt ?? "",
     input.stylePrompt  ?? "",
@@ -604,14 +599,6 @@ export function buildAsyncJobConfig(
   };
 }
 
-function buildFaceToFacePrompt(input: PipelineInput): string {
-  const translated = translateToEnglish((input.customPrompt ?? "").trim());
-  const style      = (input.stylePrompt ?? "").trim();
-  const scene      = [translated, style].filter(Boolean).join(", ");
-  return scene
-    || "photorealistic portrait, natural lighting, ultra HD, professional photography";
-}
-
 export async function startAsyncJob(
   config:     AsyncJobConfig,
   targetB64?: string,
@@ -620,32 +607,6 @@ export async function startAsyncJob(
     const p = await createPred(MODELS.faceSwap, {
       swap_image:  config.sourceB64!,
       input_image: targetB64!,
-    });
-    return p.id;
-  }
-
-  // ── FACE-TO-FACE: use celebrity reference photo as face source ──────────
-  // The model reads the actual face pixels from the reference image and
-  // renders that face into the user's photo. No text description needed.
-  if (config.mode === "facetoface") {
-    if (!config.inputImageUrl)    throw new Error("Image utilisateur manquante");
-    if (!config.celebRefImageUrl) throw new Error("Image de référence célébrité manquante");
-
-    const [targetB64Data, refB64] = await Promise.all([
-      loadImageAsBase64(config.inputImageUrl),
-      loadImageAsBase64(config.celebRefImageUrl),
-    ]);
-
-    console.log(`[Pipeline] face-to-face: injecting celebrity face into user photo`);
-    console.log(`[Pipeline] Prompt: "${(config.prompt ?? "").slice(0, 150)}"`);
-
-    const p = await createPred(MODELS.faceToFace, {
-      input_image:   targetB64Data,  // user's photo — scene/background kept
-      source_image:  refB64,         // celebrity reference — face extracted
-      prompt:        config.prompt ?? "photorealistic portrait, natural lighting",
-      negative_prompt: NEG,
-      face_strength: 1.0,            // maximum face fidelity from reference
-      output_format: "jpg",
     });
     return p.id;
   }
