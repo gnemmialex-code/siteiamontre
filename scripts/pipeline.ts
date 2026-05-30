@@ -6,7 +6,8 @@ const replicate = new Replicate({
 });
 
 const MODELS = {
-  faceSwap: "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
+  faceSwap:   "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
+  photoMaker: "tencentarc/photomaker",
 } as const;
 
 // ─── Créer mode: img2img fallback chain ──────────────────────────────────────
@@ -85,7 +86,9 @@ export interface PipelineInput {
   preserveOutfit?:    boolean;
   celebRefImageUrl?:  string;
   celebRefImageUrls?: string[];
-  celebRefCount?:     number;   // how many ref images are actually loaded
+  celebRefCount?:     number;
+  celebName?:         string;
+  celebGender?:       string;
 }
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
@@ -532,9 +535,10 @@ function extractUrl(output: unknown): string {
 //
 // Créer mode:    img2img model chain (photo is actual input)
 // SwapFace mode: face-swap
+// PhotoMaker mode: generate celebrity from reference photos (accurate face)
 
 export type AsyncJobConfig = {
-  mode:               "style" | "swapface";
+  mode:               "style" | "swapface" | "photomaker";
   qualityTier:        keyof typeof QUALITY_SETTINGS;
   prompt?:            string;
   negPrompt?:         string;
@@ -546,6 +550,8 @@ export type AsyncJobConfig = {
   celebRefImageUrl?:  string;
   celebRefImageUrls?: string[];
   celebRefCount?:     number;
+  celebName?:         string;
+  celebGender?:       string;
 };
 
 function tierToResolution(tier: keyof typeof QUALITY_SETTINGS): string {
@@ -575,6 +581,22 @@ export function buildAsyncJobConfig(
     return { mode: "swapface", qualityTier: tier, sourceB64 };
   }
 
+  // ── When reference images exist → PhotoMaker for accurate face generation ──
+  if ((input.celebRefCount ?? 0) > 0 && (input.celebRefImageUrls?.length ?? 0) > 0) {
+    const pmPrompt = buildPhotoMakerPrompt(input);
+    console.log(`[Pipeline] PhotoMaker mode — "${input.celebName}" — ${input.celebRefCount} refs`);
+    return {
+      mode:               "photomaker",
+      qualityTier:        tier,
+      prompt:             pmPrompt,
+      celebRefImageUrls:  input.celebRefImageUrls,
+      celebRefCount:      input.celebRefCount,
+      celebName:          input.celebName,
+      celebGender:        input.celebGender,
+    };
+  }
+
+  // ── Default: nano-banana-pro (style / scene transformation) ──────────────
   const { positive, negative } = buildStylePrompt(
     input.customPrompt ?? "",
     input.stylePrompt  ?? "",
@@ -599,6 +621,27 @@ export function buildAsyncJobConfig(
   };
 }
 
+function buildPhotoMakerPrompt(input: PipelineInput): string {
+  const genderWord = input.celebGender === "female" ? "woman" : "man";
+  const translated = translateToEnglish((input.customPrompt ?? "").trim());
+  const styleDesc  = (input.stylePrompt ?? "").trim();
+
+  // Remove celebrity name from scene description to avoid confusion
+  const namePattern = input.celebName
+    ? new RegExp(input.celebName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi")
+    : null;
+
+  const scene = [translated, styleDesc]
+    .filter(Boolean)
+    .map((s) => (namePattern ? s.replace(namePattern, "").trim() : s))
+    .filter(Boolean)
+    .join(", ");
+
+  // PhotoMaker requires "img" trigger word — it marks where the reference face is used
+  const base = scene || "standing in a natural environment";
+  return `photorealistic portrait photo of a ${genderWord} img, ${base}, natural light, ultra HD, professional photography, sharp focus`;
+}
+
 export async function startAsyncJob(
   config:     AsyncJobConfig,
   targetB64?: string,
@@ -608,6 +651,38 @@ export async function startAsyncJob(
       swap_image:  config.sourceB64!,
       input_image: targetB64!,
     });
+    return p.id;
+  }
+
+  // ── PHOTOMAKER: generate celebrity from reference photos ─────────────────
+  if (config.mode === "photomaker") {
+    const urls = config.celebRefImageUrls ?? [];
+    if (urls.length === 0) throw new Error("Aucune image de référence pour PhotoMaker");
+
+    // Download up to 4 reference images in parallel
+    const b64s = await Promise.all(
+      urls.slice(0, 4).map((u) => downloadImageAsBase64(u)),
+    );
+    const [ref1, ref2, ref3, ref4] = b64s;
+
+    if (!ref1) throw new Error("Impossible de charger l'image de référence principale");
+
+    const pmInput: Record<string, unknown> = {
+      prompt:               config.prompt ?? "photorealistic portrait of a person img",
+      negative_prompt:      NEG,
+      input_image:          ref1,
+      style_strength_ratio: 35,   // 20–50 : higher = closer to reference face
+      num_outputs:          1,
+      output_format:        "jpg",
+    };
+    if (ref2) pmInput["input_image2"] = ref2;
+    if (ref3) pmInput["input_image3"] = ref3;
+    if (ref4) pmInput["input_image4"] = ref4;
+
+    console.log(`[Pipeline] PhotoMaker: ${urls.length} ref image(s) — "${config.celebName}"`);
+    console.log(`[Pipeline] Prompt: "${(config.prompt ?? "").slice(0, 150)}"`);
+
+    const p = await createPred(MODELS.photoMaker, pmInput);
     return p.id;
   }
 
