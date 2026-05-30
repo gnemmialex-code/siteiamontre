@@ -97,8 +97,8 @@ function userPlanTier(plan?: string): "essentiel" | "pro" | "elite" {
 
 const PLAN_CREDITS_MAX: Record<string, number> = {
   essentiel: 2500,
-  pro:       10250,
-  elite:     10250,
+  pro:       11250,
+  elite:     11250,
 };
 
 function GenOptionChips({ title, options, selected, onSelect, planTier, onLocked }: {
@@ -843,14 +843,14 @@ export default function DashboardPage() {
                   </div>
 
                   {/* ── Forms — compacts, centrés, glass ── */}
-                  <div className="max-w-7xl mx-auto pb-10">
-                  <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-                  {/* ── LEFT: forms ── */}
-                  <div className="xl:col-span-3 space-y-4">
+                  <div className="max-w-7xl xl:max-w-none xl:px-4 mx-auto pb-10">
+                  <div className="grid grid-cols-1 gap-6">
+                  {/* ── LEFT: forms — full width on desktop ── */}
+                  <div className="space-y-4">
 
                   {/* ── CRÉER (Style IA + Image IA fusionnés) ── */}
                   {genType === "create" && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 xl:gap-6">
                       {/* Col gauche — upload */}
                       <div className="lg:col-span-1">
                         <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
@@ -868,7 +868,7 @@ export default function DashboardPage() {
                       </div>
 
                       {/* Col droite — style + options + prompt + generate */}
-                      <div className="lg:col-span-2 space-y-4">
+                      <div className="lg:col-span-2 xl:col-span-3 space-y-4">
 
 
                         {/* Style Celebrity — optionnel */}
@@ -1217,8 +1217,8 @@ export default function DashboardPage() {
 
                   </div>{/* end forms col */}
 
-                  {/* ── RIGHT: result panel ── */}
-                  <div className="xl:col-span-2">
+                  {/* ── RIGHT: result panel — visible sur mobile/tablette, remplacé par overlay sur desktop ── */}
+                  <div className="xl:hidden">
                     <div className="sticky top-6 max-h-[calc(100vh-3.5rem)] overflow-y-auto rounded-2xl">
                       <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl overflow-hidden">
                         <div className="px-4 py-3 border-b border-surface-border flex items-center justify-between">
@@ -1291,8 +1291,105 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  </div>{/* end xl grid */}
+                  </div>{/* end grid */}
                   </div>{/* end max-w-7xl */}
+
+                  {/* ── Overlay desktop (xl+) : affiché pendant la génération OU quand résultat prêt ── */}
+                  <AnimatePresence>
+                    {(isGenerating || resultUrl) && (
+                      <motion.div
+                        key="desktop-result-overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.22 }}
+                        className="hidden xl:flex fixed inset-0 z-[200] items-center justify-center p-10"
+                      >
+                        {/* Backdrop — clic ferme si résultat affiché */}
+                        <div
+                          className="absolute inset-0 bg-black/82 backdrop-blur-sm"
+                          onClick={resultUrl && !isGenerating ? () => { setResultUrl(null); setResultStyle(""); } : undefined}
+                        />
+
+                        {/* Carte résultat */}
+                        <motion.div
+                          initial={{ scale: 0.9, y: 28 }}
+                          animate={{ scale: 1, y: 0 }}
+                          exit={{ scale: 0.9, y: 28 }}
+                          transition={{ type: "spring", stiffness: 280, damping: 26 }}
+                          className="relative z-10 w-full max-w-2xl bg-surface border border-surface-border rounded-3xl overflow-hidden shadow-2xl"
+                        >
+                          {/* Header */}
+                          <div className="px-6 py-4 border-b border-surface-border flex items-center justify-between">
+                            <h3 className="font-bold text-xl">
+                              {isGenerating ? "Génération en cours…" : "Résultat"}
+                            </h3>
+                            {resultUrl && !isGenerating && (
+                              <button
+                                onClick={() => { setResultUrl(null); setResultStyle(""); }}
+                                className="w-8 h-8 rounded-full bg-surface-hover flex items-center justify-center text-white/40 hover:text-white transition-colors"
+                              >✕</button>
+                            )}
+                          </div>
+
+                          {/* Corps — résultat */}
+                          {resultUrl && !isGenerating ? (
+                            <div>
+                              <div className="relative bg-surface-hover" style={{ height: "60vh" }}>
+                                <Image src={resultUrl} alt={resultStyle || "Résultat"} fill className="object-contain" />
+                              </div>
+                              <div className="p-6 flex items-center gap-4">
+                                <p className="text-white/50 text-sm flex-1 truncate">{resultStyle}</p>
+                                <button
+                                  onClick={() => handleDownload(resultUrl, Date.now().toString())}
+                                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent-violet hover:bg-accent-violet/80 text-white font-semibold transition-all text-sm whitespace-nowrap"
+                                >
+                                  <Download className="w-4 h-4" />Télécharger
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            /* Corps — chargement */
+                            <div className="flex flex-col items-center justify-center gap-6 py-16 px-8">
+                              <div className="relative w-24 h-24">
+                                <motion.div
+                                  animate={{ rotate: 360 }}
+                                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                                  className="absolute inset-0 rounded-full border-4 border-accent-violet/20 border-t-accent-violet"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <Sparkles className="w-8 h-8 text-accent-violet/60" />
+                                </div>
+                              </div>
+                              <div className="text-center space-y-1.5">
+                                <p className="text-white/85 text-2xl font-black">Génération IA</p>
+                                <p className="text-white/40 text-sm">Votre image est en cours de création…</p>
+                              </div>
+                              <div className="w-80 space-y-2">
+                                <div className="h-2.5 bg-surface-hover rounded-full overflow-hidden">
+                                  <motion.div
+                                    className="h-full bg-gradient-violet-neon rounded-full"
+                                    animate={{ width: `${genProgress}%` }}
+                                    transition={{ ease: "easeOut", duration: 0.4 }}
+                                  />
+                                </div>
+                                <p className="text-center text-accent-violet font-bold text-xl">{Math.round(genProgress)}%</p>
+                              </div>
+                              <motion.button
+                                onClick={handleCancel}
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                className="flex items-center gap-2 px-6 py-3 rounded-xl border border-red-500/40 text-red-400 hover:bg-red-500/10 font-semibold transition-all"
+                              >
+                                <StopCircle className="w-4 h-4" />
+                                Arrêter la génération
+                              </motion.button>
+                            </div>
+                          )}
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               )}
 

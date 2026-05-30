@@ -17,7 +17,7 @@ const MODELS = {
 
 type Img2ImgModelSpec = {
   spec:       string;
-  buildInput: (prompt: string, negPrompt: string, imageUrl: string, strength: number, resolution?: string, celebRefB64?: string, allCelebRefs?: string[]) => Record<string, unknown>;
+  buildInput: (prompt: string, negPrompt: string, imageUrl: string, strength: number, resolution?: string, celebRefB64?: string, allCelebRefs?: string[], outputFormat?: string, allowFallback?: boolean) => Record<string, unknown>;
 };
 
 const NEG = "blurry, low quality, cartoon, anime, illustration, distorted, ugly, deformed, nsfw, different person, extra limbs";
@@ -27,17 +27,17 @@ export const STYLE_MODELS: Img2ImgModelSpec[] = [
     spec: "google/nano-banana-pro",
     // Correct API schema: image_input is an array of URIs, no strength param.
     // Passing image + strength was silently ignored — photo was never used.
-    buildInput: (prompt, _neg, imageUrl, _strength, resolution = "2K", _primary?: string, allRefs?: string[]) => ({
+    buildInput: (prompt, _neg, imageUrl, _strength, resolution = "1K", _primary?: string, allRefs?: string[], outputFormat?: string, allowFallback?: boolean) => ({
       prompt,
-      // user's photo first, then all celebrity reference images (up to 3)
+      // user's photo first, then all celebrity reference images (up to tier limit)
       image_input:          allRefs && allRefs.length > 0
         ? [imageUrl, ...allRefs]
         : [imageUrl],
       aspect_ratio:         "match_input_image",
       resolution,
-      output_format:        "jpg",
+      output_format:        outputFormat ?? "jpg",
       safety_filter_level:  "block_only_high",
-      allow_fallback_model: true,
+      allow_fallback_model: allowFallback ?? true,
     }),
   },
 ];
@@ -52,12 +52,17 @@ export const ZIMAGE_DIMS: Record<string, { width: number; height: number }> = {
   auto:      { width: 832,  height: 1152 },
 };
 
-// ─── Quality settings ─────────────────────────────────────────────────────────
+// ─── Quality settings per subscription tier ───────────────────────────────────
+//
+// resolution     → output resolution (faster + cheaper at 1K)
+// format         → jpg for lossy compression, png lossless for ultra
+// maxRefImages   → max celeb reference photos passed to the model
+// allowFallback  → Replicate may route to a faster/cheaper model variant
 const QUALITY_SETTINGS = {
-  free:      { quality: 80,  format: "jpg" as const },
-  essentiel: { quality: 85,  format: "jpg" as const },
-  pro:       { quality: 95,  format: "jpg" as const },
-  ultra:     { quality: 100, format: "png" as const },
+  free:      { format: "jpg" as const, resolution: "1K", maxRefImages: 0, allowFallback: true  },
+  essentiel: { format: "jpg" as const, resolution: "1K", maxRefImages: 1, allowFallback: true  },
+  pro:       { format: "jpg" as const, resolution: "2K", maxRefImages: 2, allowFallback: false },
+  ultra:     { format: "png" as const, resolution: "4K", maxRefImages: 3, allowFallback: false },
 } as const;
 
 // ─── Render style descriptors ─────────────────────────────────────────────────
@@ -549,18 +554,14 @@ export type AsyncJobConfig = {
   sourceB64?:         string;
   modelIndex?:        number;
   resolution?:        string;
+  outputFormat?:      string;
+  allowFallback?:     boolean;
   celebRefImageUrl?:  string;
   celebRefImageUrls?: string[];
   celebRefCount?:     number;
   celebName?:         string;
   celebGender?:       string;
 };
-
-function tierToResolution(tier: keyof typeof QUALITY_SETTINGS): string {
-  if (tier === "ultra") return "4K";
-  if (tier === "pro")   return "2K";
-  return "1K";
-}
 
 async function createPred(
   spec:  string,
@@ -584,13 +585,20 @@ export function buildAsyncJobConfig(
   }
 
   // ── nano-banana-pro (style / scene transformation) ───────────────────────
+  const qs       = QUALITY_SETTINGS[tier];
+  const maxRefs  = qs.maxRefImages;
+
+  // Clip celeb reference images to the tier's allowed maximum
+  const clippedRefUrls  = (input.celebRefImageUrls ?? []).slice(0, maxRefs);
+  const clippedRefCount = Math.min(input.celebRefCount ?? 0, maxRefs);
+
   const { positive, negative } = buildStylePrompt(
     input.customPrompt ?? "",
     input.stylePrompt  ?? "",
     input.renderStyle,
     input.transformIntensity,
     input.preserveOutfit ?? false,
-    input.celebRefCount,
+    clippedRefCount,
   );
 
   return {
@@ -601,10 +609,12 @@ export function buildAsyncJobConfig(
     inputImageUrl:      input.inputImageUrl,
     strength:           intensityToStrength(input.transformIntensity),
     modelIndex:         0,
-    resolution:         tierToResolution(tier),
-    celebRefImageUrl:   input.celebRefImageUrl,
-    celebRefImageUrls:  input.celebRefImageUrls,
-    celebRefCount:      input.celebRefCount,
+    resolution:         qs.resolution,
+    outputFormat:       qs.format,
+    allowFallback:      qs.allowFallback,
+    celebRefImageUrl:   clippedRefUrls[0],
+    celebRefImageUrls:  clippedRefUrls,
+    celebRefCount:      clippedRefCount,
   };
 }
 
@@ -651,13 +661,15 @@ export async function startAsyncJob(
   const p = await createPred(
     model.spec,
     model.buildInput(
-      config.prompt    ?? "",
-      config.negPrompt ?? NEG,
+      config.prompt       ?? "",
+      config.negPrompt    ?? NEG,
       imageData,
-      config.strength  ?? 0.62,
+      config.strength     ?? 0.62,
       config.resolution,
-      celebRefB64s[0],   // primary ref (backward-compat param)
-      celebRefB64s,      // all refs for multi-image support
+      celebRefB64s[0],
+      celebRefB64s,
+      config.outputFormat,
+      config.allowFallback,
     ),
   );
   return p.id;

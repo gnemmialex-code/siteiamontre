@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import {
   Sparkles, Zap, Shield, Star, ArrowRight, Play,
   ChevronDown, Quote, ImageIcon, Film, Send, Paperclip, X,
+  Lock, EyeOff, UserCheck, Trash2,
 } from "lucide-react";
 
 // ─── DONNÉES ────────────────────────────────────────────────────────────────
@@ -751,6 +752,83 @@ export default function HomePage() {
               <Sparkles className="w-4 h-4" />
               Créer ma transformation
             </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ══ VOS IMAGES VOUS APPARTIENNENT ════════════════════════════════ */}
+      <section className="py-24 px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="relative rounded-3xl border border-surface-border bg-surface/60 backdrop-blur-sm overflow-hidden px-6 sm:px-12 py-12"
+          >
+            {/* Glow discret en arrière-plan */}
+            <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-96 h-40 bg-accent-violet/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Header */}
+            <div className="relative text-center mb-10">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-accent-violet/10 border border-accent-violet/25 mb-5">
+                <Shield className="w-7 h-7 text-accent-violet" />
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-black mb-3">
+                Vos photos vous appartiennent.{" "}
+                <span className="gradient-text">À 100%.</span>
+              </h2>
+              <p className="text-white/50 text-lg max-w-2xl mx-auto leading-relaxed">
+                AstraCrea ne collecte, ne conserve et ne revend jamais vos images. Chaque transformation IA est exclusivement celle que <em>vous</em> avez demandée — rien de plus.
+              </p>
+            </div>
+
+            {/* 4 garanties */}
+            <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {[
+                {
+                  icon: <Trash2 className="w-5 h-5" />,
+                  title: "Photo supprimée après traitement",
+                  desc: "Votre photo originale est automatiquement effacée de nos serveurs dès la génération terminée. Elle n'est jamais stockée.",
+                },
+                {
+                  icon: <EyeOff className="w-5 h-5" />,
+                  title: "Zéro revente, zéro partage",
+                  desc: "Nous ne partageons jamais vos images avec des tiers, plateformes publicitaires ou bases de données externes.",
+                },
+                {
+                  icon: <Lock className="w-5 h-5" />,
+                  title: "L'IA fait uniquement ce que vous demandez",
+                  desc: "Chaque action de l'IA est strictement limitée à votre requête. Aucune modification non sollicitée n'est effectuée sur vos photos.",
+                },
+                {
+                  icon: <UserCheck className="w-5 h-5" />,
+                  title: "Vous restez l'auteur à 100%",
+                  desc: "Les images générées vous appartiennent entièrement. AstraCrea ne détient aucun droit sur vos créations.",
+                },
+              ].map((item, i) => (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.08 }}
+                  className="flex items-start gap-4 p-5 rounded-2xl bg-surface-hover border border-surface-border"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-accent-violet/10 border border-accent-violet/20 flex items-center justify-center text-accent-violet flex-shrink-0 mt-0.5">
+                    {item.icon}
+                  </div>
+                  <div>
+                    <p className="font-bold text-white mb-1">{item.title}</p>
+                    <p className="text-white/45 text-sm leading-relaxed">{item.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Ligne de confiance en bas */}
+            <p className="relative text-center text-white/30 text-xs mt-8">
+              🔒 Vos données sont chiffrées en transit (TLS 1.3) et au repos. Conforme RGPD.
+            </p>
           </motion.div>
         </div>
       </section>

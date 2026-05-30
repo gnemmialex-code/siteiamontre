@@ -14,9 +14,18 @@ import { getCelebRefImages } from "@/lib/celebrity-refs";
 
 export const maxDuration = 60;
 
-const MAX_FILE_SIZE    = 15 * 1024 * 1024;
-const CREDITS_PER_IMAGE = 100;
-const BUCKET           = "celebswap-images";
+const MAX_FILE_SIZE = 15 * 1024 * 1024;
+const BUCKET        = "celebswap-images";
+
+// Crédits déduits par génération selon le tier.
+// Essentiel = qualité 1K, moins de crédits consommés.
+// Ultra = qualité 4K PNG, coûte plus de crédits.
+const CREDITS_PER_TIER: Record<string, number> = {
+  free:      100,
+  essentiel: 50,
+  pro:       100,
+  ultra:     150,
+};
 
 function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -79,22 +88,24 @@ export async function POST(req: NextRequest) {
 
   const mode = (formData.get("mode") as string) ?? "style";
 
-  // ── Vérification des crédits + lecture du plan ─────────────────────────────
+  // ── Lecture du plan + vérification des crédits ────────────────────────────
   let qualityTier: "free" | "essentiel" | "pro" | "ultra" = "free";
+  let creditsRequired = CREDITS_PER_TIER["free"]!;
 
   if (userId) {
+    const planId = await getUserPlanId(userId);
+    qualityTier      = planToTier(planId);
+    creditsRequired  = CREDITS_PER_TIER[qualityTier] ?? 100;
+
     const { data: creditData } = await supabase
       .from("users")
       .select("credits")
       .eq("id", userId)
       .single();
 
-    if (!creditData || creditData.credits < CREDITS_PER_IMAGE) {
+    if (!creditData || creditData.credits < creditsRequired) {
       return NextResponse.json({ error: "Crédits insuffisants" }, { status: 402 });
     }
-
-    const planId = await getUserPlanId(userId);
-    qualityTier = planToTier(planId);
   }
 
   // ── Restrictions par plan ──────────────────────────────────────────────────
@@ -204,7 +215,7 @@ export async function POST(req: NextRequest) {
 
     // ── Déduire les crédits + sauvegarder le job ────────────────────────────
     if (userId) {
-      await supabase.rpc("decrement_credits", { user_id: userId, amount: CREDITS_PER_IMAGE });
+      await supabase.rpc("decrement_credits", { user_id: userId, amount: creditsRequired });
 
       const { error: insertError } = await supabase.from("generations").insert({
         id:               generationId,

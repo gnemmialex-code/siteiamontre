@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Check, Zap, Loader2, Sparkles, Crown, Infinity } from "lucide-react";
+import { Check, Zap, Loader2, Sparkles, Crown, Infinity, ShieldCheck, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -41,6 +42,7 @@ const PLANS = [
     icon: <Sparkles className="w-5 h-5" />,
     credits: "10 250",
     creditsRaw: 10250,
+    bonusCredits: 1000,
     priceMonthly: 19.90,
     color: "border-accent-violet",
     badge: "Populaire",
@@ -94,6 +96,25 @@ const PLANS = [
   },
 ];
 
+const CREDIT_PACKS = [
+  {
+    id:       "pack_800",
+    credits:  800,
+    price:    9.90,
+    badge:    null,
+    tagline:  "Idéal pour quelques générations supplémentaires",
+    perImage: "~8 images",
+  },
+  {
+    id:       "pack_2000",
+    credits:  2000,
+    price:    19.98,
+    badge:    "Meilleur rapport",
+    tagline:  "Le plus économique — 25% moins cher par crédit",
+    perImage: "~20 images",
+  },
+];
+
 const FAQ = [
   {
     q: "Combien vaut un crédit ?",
@@ -126,8 +147,37 @@ function formatPrice(price: number) {
 }
 
 export default function PricingPage() {
+  const router = useRouter();
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [loadingPack, setLoadingPack] = useState<string | null>(null);
+
+  const handleTopup = async (packId: string) => {
+    setLoadingPack(packId);
+    try {
+      const res = await fetch("/api/stripe/create-topup-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packId }),
+      });
+      const data = await res.json();
+
+      if (res.status === 401) {
+        toast("Connectez-vous pour acheter des crédits", { icon: "🔒" });
+        router.push("/login?redirect=/pricing");
+        return;
+      }
+      if (!res.ok || !data.url) {
+        toast.error(data.error ?? "Erreur lors du paiement");
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      toast.error("Erreur de connexion");
+    } finally {
+      setLoadingPack(null);
+    }
+  };
 
   const handleSubscribe = async (plan: typeof PLANS[0]) => {
     setLoadingPlan(plan.id);
@@ -138,11 +188,17 @@ export default function PricingPage() {
         body: JSON.stringify({ planId: plan.id, billing }),
       });
       const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        toast.error("Erreur lors de la création de la session de paiement");
+
+      if (res.status === 401) {
+        toast("Connectez-vous pour souscrire à un plan", { icon: "🔒" });
+        router.push("/login?redirect=/pricing");
+        return;
       }
+      if (!res.ok || !data.url) {
+        toast.error(data.error ?? "Erreur lors de la création de la session de paiement");
+        return;
+      }
+      window.location.href = data.url;
     } catch {
       toast.error("Erreur de connexion");
     } finally {
@@ -252,7 +308,7 @@ export default function PricingPage() {
                 </div>
 
                 {/* Crédits */}
-                <div className="text-center mb-4 py-4 bg-surface-hover rounded-xl">
+                <div className="text-center mb-4 py-4 bg-surface-hover rounded-xl relative overflow-hidden">
                   {plan.creditsRaw === null ? (
                     <div className="flex items-center justify-center gap-2">
                       <Infinity className="w-8 h-8 text-accent-violet" />
@@ -262,6 +318,14 @@ export default function PricingPage() {
                     <span className="text-4xl font-black gradient-text">{plan.credits}</span>
                   )}
                   <p className="text-white/50 text-sm mt-1">crédits / mois</p>
+
+                  {/* Badge bonus — uniquement si le plan a des crédits offerts */}
+                  {"bonusCredits" in plan && plan.bonusCredits && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-bold">
+                      <span>🎁</span>
+                      + {plan.bonusCredits.toLocaleString("fr-FR")} crédits offerts
+                    </div>
+                  )}
                 </div>
 
                 {/* Highlights — qualité / vitesse / file */}
@@ -308,10 +372,162 @@ export default function PricingPage() {
                     </>
                   )}
                 </button>
+
+                {/* Garantie sous le bouton */}
+                <p className="flex items-center justify-center gap-1.5 mt-3 text-green-400/80 text-xs font-medium">
+                  <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
+                  Satisfait ou remboursé sous 48h
+                </p>
               </motion.div>
             );
           })}
         </div>
+
+        {/* ── Recharge de crédits ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-12"
+        >
+          {/* Titre de section */}
+          <div className="text-center mb-7">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent-violet/10 border border-accent-violet/25 text-accent-violet text-sm font-semibold mb-4">
+              <Plus className="w-3.5 h-3.5" />
+              Recharge de crédits
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black mb-2">
+              Besoin de plus de crédits ?
+            </h2>
+            <p className="text-white/50 max-w-md mx-auto text-sm">
+              Rechargez à la demande sans changer votre abonnement. Les crédits s&apos;ajoutent instantanément à votre solde.
+            </p>
+          </div>
+
+          {/* Cards packs */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl mx-auto">
+            {CREDIT_PACKS.map((pack, i) => (
+              <motion.div
+                key={pack.id}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.08 }}
+                className={`relative card flex flex-col gap-4 border-2 ${
+                  pack.badge ? "border-accent-violet shadow-violet" : "border-surface-border"
+                }`}
+              >
+                {pack.badge && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent-violet text-white text-xs px-4 py-1 rounded-full font-bold whitespace-nowrap">
+                    {pack.badge}
+                  </div>
+                )}
+
+                {/* Crédits & prix */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-3xl font-black gradient-text">
+                      {pack.credits.toLocaleString("fr-FR")}
+                    </p>
+                    <p className="text-white/45 text-sm">crédits</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-black">
+                      {pack.price.toFixed(2).replace(".", ",")}€
+                    </p>
+                    <p className="text-white/35 text-xs">paiement unique</p>
+                  </div>
+                </div>
+
+                {/* Infos */}
+                <div className="space-y-1.5 text-sm text-white/55">
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-accent-violet flex-shrink-0" />
+                    <span>{pack.perImage} générées</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-accent-violet flex-shrink-0" />
+                    <span>Ajout immédiat à votre solde</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-accent-violet flex-shrink-0" />
+                    <span className="text-white/40 text-xs italic">{pack.tagline}</span>
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <button
+                  onClick={() => handleTopup(pack.id)}
+                  disabled={!!loadingPack}
+                  className={`w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
+                    pack.badge ? "btn-primary" : "btn-secondary"
+                  }`}
+                >
+                  {loadingPack === pack.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      Acheter {pack.credits.toLocaleString("fr-FR")} crédits
+                    </>
+                  )}
+                </button>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Note abonnement requis */}
+          <p className="text-center text-white/30 text-xs mt-4">
+            Un compte AstraCrea est requis. Les crédits achetés ne sont pas remboursables.
+          </p>
+        </motion.div>
+
+        {/* ── Bannière Satisfait ou remboursé ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-12"
+        >
+          <div className="relative overflow-hidden rounded-2xl border border-green-500/30 bg-green-500/5 px-6 py-8 text-center">
+            {/* Glow décoratif */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-64 h-32 bg-green-500/15 rounded-full blur-3xl" />
+            </div>
+
+            <div className="relative z-10 flex flex-col items-center gap-3">
+              {/* Icône */}
+              <div className="w-14 h-14 rounded-2xl bg-green-500/15 border border-green-500/30 flex items-center justify-center">
+                <ShieldCheck className="w-7 h-7 text-green-400" />
+              </div>
+
+              {/* Titre */}
+              <h2 className="text-2xl sm:text-3xl font-black text-white">
+                Satisfait ou <span className="text-green-400">remboursé</span>
+              </h2>
+
+              {/* Sous-titre */}
+              <p className="text-white/60 text-base max-w-md">
+                Pas convaincu par vos premières générations ? Contactez-nous dans les{" "}
+                <strong className="text-white/85">48 heures</strong> suivant votre souscription et nous vous remboursons intégralement — sans question.
+              </p>
+
+              {/* Pills de garantie */}
+              <div className="flex flex-wrap justify-center gap-3 mt-1">
+                {[
+                  "Remboursement en 48h",
+                  "Sans justificatif",
+                  "100% intégral",
+                ].map((label) => (
+                  <span key={label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/25 text-green-400 text-sm font-medium">
+                    <Check className="w-3.5 h-3.5 flex-shrink-0" />
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Explication crédits */}
         <motion.div
