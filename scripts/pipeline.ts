@@ -7,7 +7,7 @@ const replicate = new Replicate({
 
 const MODELS = {
   faceSwap:   "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
-  photoMaker: "tencentarc/photomaker",
+  photoMaker: "tencentarc/photomaker:ddfc2b08d209f9fa8c1eca692712918bd449f695dabb4a958da31802a9570fe4",
 } as const;
 
 // ─── Créer mode: img2img fallback chain ──────────────────────────────────────
