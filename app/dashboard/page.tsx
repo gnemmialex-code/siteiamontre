@@ -846,14 +846,14 @@ export default function DashboardPage() {
                   </div>
 
                   {/* ── Forms — compacts, centrés, glass ── */}
-                  <div className="max-w-7xl xl:max-w-none xl:px-4 mx-auto pb-10">
+                  <div className="max-w-4xl mx-auto pb-10 px-2">
                   <div className="grid grid-cols-1 gap-6">
                   {/* ── LEFT: forms — full width on desktop ── */}
                   <div className="space-y-4">
 
                   {/* ── CRÉER (Style IA + Image IA fusionnés) ── */}
                   {genType === "create" && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 xl:gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                       {/* Col gauche — upload */}
                       <div className="lg:col-span-1">
                         <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
@@ -871,7 +871,7 @@ export default function DashboardPage() {
                       </div>
 
                       {/* Col droite — style + options + prompt + generate */}
-                      <div className="lg:col-span-2 xl:col-span-3 space-y-4">
+                      <div className="lg:col-span-2 space-y-4">
 
 
                         {/* Style Celebrity — collapsible */}
