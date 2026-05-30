@@ -85,6 +85,7 @@ export interface PipelineInput {
   preserveOutfit?:    boolean;
   celebRefImageUrl?:  string;
   celebRefImageUrls?: string[];
+  celebRefCount?:     number;   // how many ref images are actually loaded
 }
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
@@ -274,6 +275,7 @@ function buildStylePrompt(
   renderStyle?:    string,
   intensity?:      string,
   preserveOutfit?: boolean,
+  celebRefCount?:  number,
 ): { positive: string; negative: string } {
   const translated = translateToEnglish(customPrompt.trim());
   const style      = stylePrompt.trim();
@@ -286,7 +288,8 @@ function buildStylePrompt(
     light:  "Subtly and minimally:",
     strong: "Boldly and dramatically:",
   };
-  const prefix = intensityPfx[intensity ?? ""] ?? "";
+  const prefix      = intensityPfx[intensity ?? ""] ?? "";
+  const hasRefImages = (celebRefCount ?? 0) > 0;
 
   // ── Detect celebrities in the full text ─────────────────────────────────
   const celebs = findAllCelebrities(customPrompt + " " + stylePrompt);
@@ -294,31 +297,45 @@ function buildStylePrompt(
   let editInstruction: string;
 
   if (celebs.length > 0) {
-    // ── CELEBRITY INSERTION MODE ─────────────────────────────────────────
-    // Build an explicit, prominent instruction so the model understands it
-    // must ADD a real identified person — not apply a style, not invent a face.
-    const celebNames     = celebs.map((c) => c.name).join(" and ");
-    const celebDataBlock = celebs.map((c) =>
-      `[${c.name.toUpperCase()}] ${c.visual_description}`,
-    ).join(" | ");
+    const celebNames = celebs.map((c) => c.name).join(" and ");
 
-    // Anything in the translated prompt that isn't just the celebrity name
-    // is treated as scene context (background, mood, etc.).
     const sceneExtra = [translated, style]
       .filter(Boolean)
       .map((s) => s.replace(new RegExp(celebs.map((c) => c.name).join("|"), "gi"), "").trim())
       .filter(Boolean)
       .join(", ");
 
-    editInstruction =
-      `TASK — ADD ${celebNames.toUpperCase()} TO THIS PHOTO: ` +
-      `Insert ${celebNames} as a new person standing naturally beside the original subject in this image. ` +
-      `VERIFIED CELEBRITY APPEARANCE DATA: ${celebDataBlock}. ` +
-      `Render ${celebNames} using their authentic, real, documented face, skin tone, hair, and body — ` +
-      `draw on all available training knowledge of this public figure to produce their true likeness. ` +
-      `Do NOT invent a generic face — use the real ${celebNames}. ` +
-      `${sceneExtra ? `Scene context: ${sceneExtra}. ` : ""}` +
-      `The original person in the photo remains 100% unchanged, pixel-perfect.`;
+    if (hasRefImages) {
+      // ── CELEBRITY INSERTION — IMAGE-GUIDED (reference photos provided) ──
+      // The reference images of the celebrity are passed as image_input[1..n].
+      // Tell the model explicitly to extract the face from those images.
+      const refNoun = celebRefCount === 1 ? "image" : "images";
+      editInstruction =
+        `IMPORTANT — REFERENCE ${refNoun.toUpperCase()} PROVIDED: ` +
+        `Image #1 is the user's photo. ` +
+        `Images #2 onwards are real reference photographs of ${celebNames} — ` +
+        `they show their actual face, hair color, skin tone, and body. ` +
+        `YOUR TASK: Add ${celebNames} to image #1 by placing them naturally beside the existing person. ` +
+        `CRITICAL FACE RULE: Copy ${celebNames}'s face EXACTLY from the reference ${refNoun} — ` +
+        `do NOT invent their appearance, do NOT use generic features. ` +
+        `The face, hair, skin tone, and body proportions in the output must match the reference ${refNoun} precisely. ` +
+        `${sceneExtra ? `Scene: ${sceneExtra}. ` : ""}` +
+        `The original person in image #1 stays 100% unchanged.`;
+    } else {
+      // ── CELEBRITY INSERTION — DESCRIPTION-GUIDED (no reference photos) ──
+      const celebDataBlock = celebs.map((c) =>
+        `[${c.name.toUpperCase()}] ${c.visual_description}`,
+      ).join(" | ");
+
+      editInstruction =
+        `TASK — ADD ${celebNames.toUpperCase()} TO THIS PHOTO: ` +
+        `Insert ${celebNames} as a new person standing naturally beside the original subject. ` +
+        `CELEBRITY APPEARANCE: ${celebDataBlock}. ` +
+        `Render ${celebNames} using their authentic, real, documented face — ` +
+        `draw on all training knowledge of this public figure. Do NOT invent a generic face. ` +
+        `${sceneExtra ? `Scene: ${sceneExtra}. ` : ""}` +
+        `The original person stays 100% unchanged.`;
+    }
   } else {
     // ── STANDARD STYLE / SCENE TRANSFORMATION ───────────────────────────
     const sceneDesc = [translated, style].filter(Boolean).join(", ")
@@ -510,8 +527,9 @@ export type AsyncJobConfig = {
   sourceB64?:         string;
   modelIndex?:        number;
   resolution?:        string;
-  celebRefImageUrl?:  string;    // legacy single-ref support
-  celebRefImageUrls?: string[];  // up to 3 reference images from Storage
+  celebRefImageUrl?:  string;
+  celebRefImageUrls?: string[];
+  celebRefCount?:     number;
 };
 
 function tierToResolution(tier: keyof typeof QUALITY_SETTINGS): string {
@@ -547,6 +565,7 @@ export function buildAsyncJobConfig(
     input.renderStyle,
     input.transformIntensity,
     input.preserveOutfit ?? false,
+    input.celebRefCount,
   );
 
   return {
@@ -560,6 +579,7 @@ export function buildAsyncJobConfig(
     resolution:         tierToResolution(tier),
     celebRefImageUrl:   input.celebRefImageUrl,
     celebRefImageUrls:  input.celebRefImageUrls,
+    celebRefCount:      input.celebRefCount,
   };
 }
 

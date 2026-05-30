@@ -190,6 +190,7 @@ export async function POST(req: NextRequest) {
         preserveOutfit,
         celebRefImageUrl,
         celebRefImageUrls,
+        celebRefCount:     celebRefImageUrls.length,
       };
 
       jobConfig    = buildAsyncJobConfig(pipelineInput, sourceB64);
