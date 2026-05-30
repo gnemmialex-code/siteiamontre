@@ -506,12 +506,19 @@ async function downloadImageAsBase64(url: string): Promise<string | null> {
         "Accept":     "image/webp,image/jpeg,image/png,image/*",
       },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`[downloadImageAsBase64] HTTP ${res.status} for ${url.slice(0, 120)}`);
+      return null;
+    }
     const buffer = Buffer.from(await res.arrayBuffer());
     const contentType = res.headers.get("content-type") ?? "image/jpeg";
-    if (!contentType.startsWith("image/")) return null;
+    if (!contentType.startsWith("image/")) {
+      console.warn(`[downloadImageAsBase64] Bad content-type "${contentType}" for ${url.slice(0, 120)}`);
+      return null;
+    }
     return `data:${contentType};base64,${buffer.toString("base64")}`;
-  } catch {
+  } catch (err) {
+    console.warn(`[downloadImageAsBase64] fetch error for ${url.slice(0, 120)}:`, err);
     return null;
   }
 }

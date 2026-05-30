@@ -40,11 +40,23 @@ export async function getCelebRefImages(
 
       console.log(`[CelebRefs] "${celebId}": found ${imageFiles.length} image(s) in Storage`);
 
-      for (const file of imageFiles) {
-        const { data } = admin.storage
-          .from(BUCKET)
-          .getPublicUrl(`${celebId}/${file.name}`);
-        if (data?.publicUrl) collected.push(data.publicUrl);
+      // Use signed URLs (60 s TTL) so they work for private buckets too
+      const paths = imageFiles.map((f) => `${celebId}/${f.name}`);
+      const { data: signed, error: signErr } = await admin.storage
+        .from(BUCKET)
+        .createSignedUrls(paths, 60);
+
+      if (signErr) {
+        console.warn(`[CelebRefs] createSignedUrls error for "${celebId}":`, signErr.message);
+        // Fall back to public URLs
+        for (const file of imageFiles) {
+          const { data } = admin.storage.from(BUCKET).getPublicUrl(`${celebId}/${file.name}`);
+          if (data?.publicUrl) collected.push(data.publicUrl);
+        }
+      } else {
+        for (const s of signed ?? []) {
+          if (s.signedUrl) collected.push(s.signedUrl);
+        }
       }
     } else {
       console.log(`[CelebRefs] "${celebId}": no files found in Storage`);
