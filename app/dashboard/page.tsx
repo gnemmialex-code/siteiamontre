@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 import {
   Sparkles, Download, Trash2, Zap, Plus, LogOut,
   Shuffle, Film, Crown, Settings, History,
-  ChevronRight, ChevronLeft, Check, Star, Replace, PlusCircle, AlertCircle, StopCircle, Lock,
+  ChevronRight, ChevronLeft, ChevronDown, Check, Star, Replace, PlusCircle, AlertCircle, StopCircle, Lock,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { resizeImageFile } from "@/lib/resize-image";
@@ -357,6 +357,9 @@ export default function DashboardPage() {
   const [accessory,     setAccessory]     = useState<string | null>(null);
   const [freePrompt,    setFreePrompt]    = useState("");
 
+
+  /* style celebrity panel */
+  const [styleExpanded, setStyleExpanded] = useState(false);
 
   /* generation precision options */
   const [renderStyle,   setRenderStyle]   = useState<string | null>(null);
@@ -871,79 +874,107 @@ export default function DashboardPage() {
                       <div className="lg:col-span-2 xl:col-span-3 space-y-4">
 
 
-                        {/* Style Celebrity — optionnel */}
-                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <h2 className="font-semibold text-sm flex items-center gap-2">
+                        {/* Style Celebrity — collapsible */}
+                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl overflow-hidden">
+                          {/* ── Header cliquable ── */}
+                          <button
+                            onClick={() => setStyleExpanded(v => !v)}
+                            className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-white/[0.03] transition-colors"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
                               <StepBadge n={2} />
-                              Style Celebrity
-                              <span className="text-white/30 text-[10px] font-normal">(optionnel)</span>
-                            </h2>
-                            {selectedStyle && (
-                              <span className="text-[10px] font-semibold text-accent-violet bg-accent-violet/10 border border-accent-violet/30 px-2 py-0.5 rounded-full">
-                                {selectedStyle.emoji} {selectedStyle.label}
-                              </span>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-5 sm:grid-cols-7 xl:grid-cols-9 gap-1.5">
-                            {STYLES.map(style => {
-                              const planTier   = userPlanTier(stats?.plan);
-                              const isLocked   =
-                                (style.tier === "pro"   && planTier === "essentiel") ||
-                                (style.tier === "elite" && planTier !== "elite");
-                              const isSelected = !isLocked && selectedStyle?.id === style.id;
-                              const tierLabel  = style.tier === "elite" ? "Elite" : style.tier === "pro" ? "Pro" : null;
-                              return (
-                                <button
-                                  key={style.id}
-                                  onClick={() => {
-                                    if (isLocked) {
-                                      toast(`Style ${tierLabel} — Passez à ${tierLabel} pour l'utiliser`, { icon: "🔒" });
-                                      return;
-                                    }
-                                    handleStyleSelect(style);
-                                  }}
-                                  title={style.label}
-                                  className={`relative rounded-lg border transition-all overflow-hidden ${
-                                    isLocked   ? "border-surface-border bg-surface opacity-50 cursor-not-allowed" :
-                                    isSelected ? "border-accent-violet ring-1 ring-accent-violet/50" :
-                                                 "border-surface-border bg-surface hover:border-accent-violet/40"
-                                  }`}
-                                >
-                                  {/* Image carrée */}
-                                  <div className="w-full aspect-square overflow-hidden bg-surface-hover relative">
-                                    {style.previewImg ? (
-                                      <>
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={style.previewImg} alt={style.label} className="w-full h-full object-cover"
-                                          onError={e=>{(e.currentTarget.parentElement as HTMLElement).style.display="none";}} />
-                                        {isSelected && <div className="absolute inset-0 bg-accent-violet/25" />}
-                                        {isLocked && <div className="absolute inset-0 bg-black/55 flex items-center justify-center"><Lock className="w-3 h-3 text-white/60" /></div>}
-                                      </>
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center text-base">{style.emoji}</div>
-                                    )}
-                                    {/* Badge tier */}
-                                    {tierLabel && (
-                                      <div className={`absolute top-0.5 left-0.5 text-[7px] font-black px-0.5 py-px rounded z-10 leading-tight ${
-                                        style.tier === "elite" ? "bg-amber-400/90 text-black" : "bg-accent-violet/90 text-white"
-                                      }`}>{tierLabel}</div>
-                                    )}
-                                    {/* Coche sélectionné */}
-                                    {isSelected && (
-                                      <div className="absolute top-0.5 right-0.5 w-3 h-3 bg-accent-violet rounded-full flex items-center justify-center z-10">
-                                        <span className="text-white text-[7px]">✓</span>
-                                      </div>
-                                    )}
+                              <span className="font-semibold text-sm whitespace-nowrap">Style Celebrity</span>
+                              <span className="text-white/30 text-[10px] font-normal hidden sm:inline">(optionnel)</span>
+                              {/* Badge style sélectionné — visible quand fermé */}
+                              {selectedStyle && !styleExpanded && (
+                                <span className="text-[10px] font-semibold text-accent-violet bg-accent-violet/10 border border-accent-violet/30 px-2 py-0.5 rounded-full truncate max-w-[120px]">
+                                  {selectedStyle.emoji} {selectedStyle.label}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                              {!selectedStyle && !styleExpanded && (
+                                <span className="text-white/30 text-xs hidden sm:inline">Choisir…</span>
+                              )}
+                              {selectedStyle && !styleExpanded && (
+                                <span className="text-accent-violet text-xs">Modifier</span>
+                              )}
+                              <ChevronDown className={`w-4 h-4 text-white/40 transition-transform duration-200 ${styleExpanded ? "rotate-180" : ""}`} />
+                            </div>
+                          </button>
+
+                          {/* ── Grille dépliable ── */}
+                          <AnimatePresence initial={false}>
+                            {styleExpanded && (
+                              <motion.div
+                                key="style-grid"
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.22, ease: "easeInOut" }}
+                                className="overflow-hidden"
+                              >
+                                <div className="px-3 pb-3 border-t border-surface-border/50 pt-2">
+                                  <div className="grid grid-cols-5 sm:grid-cols-7 xl:grid-cols-9 gap-1.5">
+                                    {STYLES.map(style => {
+                                      const planTier  = userPlanTier(stats?.plan);
+                                      const isLocked  =
+                                        (style.tier === "pro"   && planTier === "essentiel") ||
+                                        (style.tier === "elite" && planTier !== "elite");
+                                      const isSelected = !isLocked && selectedStyle?.id === style.id;
+                                      const tierLabel  = style.tier === "elite" ? "Elite" : style.tier === "pro" ? "Pro" : null;
+                                      return (
+                                        <button
+                                          key={style.id}
+                                          onClick={() => {
+                                            if (isLocked) {
+                                              toast(`Style ${tierLabel} — Passez à ${tierLabel} pour l'utiliser`, { icon: "🔒" });
+                                              return;
+                                            }
+                                            handleStyleSelect(style);
+                                            setStyleExpanded(false);
+                                          }}
+                                          title={style.label}
+                                          className={`relative rounded-lg border transition-all overflow-hidden ${
+                                            isLocked   ? "border-surface-border bg-surface opacity-50 cursor-not-allowed" :
+                                            isSelected ? "border-accent-violet ring-1 ring-accent-violet/50" :
+                                                         "border-surface-border bg-surface hover:border-accent-violet/40"
+                                          }`}
+                                        >
+                                          <div className="w-full aspect-square overflow-hidden bg-surface-hover relative">
+                                            {style.previewImg ? (
+                                              <>
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img src={style.previewImg} alt={style.label} className="w-full h-full object-cover"
+                                                  onError={e=>{(e.currentTarget.parentElement as HTMLElement).style.display="none";}} />
+                                                {isSelected && <div className="absolute inset-0 bg-accent-violet/25" />}
+                                                {isLocked && <div className="absolute inset-0 bg-black/55 flex items-center justify-center"><Lock className="w-3 h-3 text-white/60" /></div>}
+                                              </>
+                                            ) : (
+                                              <div className="w-full h-full flex items-center justify-center text-base">{style.emoji}</div>
+                                            )}
+                                            {tierLabel && (
+                                              <div className={`absolute top-0.5 left-0.5 text-[7px] font-black px-0.5 py-px rounded z-10 leading-tight ${
+                                                style.tier === "elite" ? "bg-amber-400/90 text-black" : "bg-accent-violet/90 text-white"
+                                              }`}>{tierLabel}</div>
+                                            )}
+                                            {isSelected && (
+                                              <div className="absolute top-0.5 right-0.5 w-3 h-3 bg-accent-violet rounded-full flex items-center justify-center z-10">
+                                                <span className="text-white text-[7px]">✓</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                          <p className={`text-[8px] font-semibold text-center leading-tight px-0.5 py-0.5 truncate ${isSelected ? "text-accent-violet bg-accent-violet/10" : "text-white/60"}`}>
+                                            {style.label}
+                                          </p>
+                                        </button>
+                                      );
+                                    })}
                                   </div>
-                                  {/* Label sous l'image */}
-                                  <p className={`text-[8px] font-semibold text-center leading-tight px-0.5 py-0.5 truncate ${isSelected ? "text-accent-violet bg-accent-violet/10" : "text-white/60"}`}>
-                                    {style.label}
-                                  </p>
-                                </button>
-                              );
-                            })}
-                          </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
 
                         {/* Personnalisation — visible uniquement si style sélectionné */}
@@ -980,26 +1011,25 @@ export default function DashboardPage() {
                         {/* Description libre + Options — côte à côte sur desktop */}
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                         {/* Description libre */}
-                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
-                          <h2 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-3">
+                          <h2 className="font-semibold text-sm mb-1.5 flex items-center gap-2">
                             <StepBadge n={selectedStyle ? 4 : 3} />
-                            Description libre
+                            Description
                             {selectedStyle
                               ? <span className="text-white/30 text-[10px] font-normal">(optionnel)</span>
-                              : <span className="text-red-400/50 text-[10px] font-normal">(requis sans style)</span>
+                              : <span className="text-red-400/50 text-[10px] font-normal">(requis)</span>
                             }
                           </h2>
                           <textarea
                             value={freePrompt}
                             onChange={e => setFreePrompt(e.target.value)}
                             placeholder={selectedStyle
-                              ? "Ajoutez des détails : fond de plage, lumière dorée, tenue de soirée…"
-                              : "Décrivez la transformation : tenue, ambiance, fond, lumière, style…"
+                              ? "Ajoutez des détails : fond de plage, lumière dorée…"
+                              : "Décrivez la transformation : tenue, ambiance, fond…"
                             }
-                            rows={3}
+                            rows={2}
                             className="w-full bg-surface border border-surface-border rounded-xl px-3 py-2 text-white text-sm placeholder-white/20 focus:outline-none focus:border-accent-violet/60 resize-none"
                           />
-                          <p className="text-white/25 text-[10px] mt-1.5">💡 Écrivez en français ou en anglais — ex : &quot;fond de plage au coucher du soleil, tenue de soirée noire&quot;</p>
                         </div>
 
                         {/* Options de génération */}
