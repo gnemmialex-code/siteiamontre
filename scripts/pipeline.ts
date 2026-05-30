@@ -6,7 +6,11 @@ const replicate = new Replicate({
 });
 
 const MODELS = {
-  faceSwap: "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
+  faceSwap:  "codeplugtech/face-swap:278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
+  // Face-to-face: injects a reference face into a target image.
+  // Used when a celebrity reference image is available — much more accurate
+  // than text description because it reads the actual face pixels.
+  faceToFace: "fofr/face-to-face:b1c17d148455c1fda435ababe9ab1e03bc0d917cc3cf4251916f22c45c83c7df",
 } as const;
 
 // ─── Créer mode: img2img fallback chain ──────────────────────────────────────
@@ -516,9 +520,10 @@ function extractUrl(output: unknown): string {
 //
 // Créer mode:    img2img model chain (photo is actual input)
 // SwapFace mode: face-swap
+// FaceToFace mode: inject celebrity face from reference image into user's photo
 
 export type AsyncJobConfig = {
-  mode:               "style" | "swapface";
+  mode:               "style" | "swapface" | "facetoface";
   qualityTier:        keyof typeof QUALITY_SETTINGS;
   prompt?:            string;
   negPrompt?:         string;
@@ -559,6 +564,22 @@ export function buildAsyncJobConfig(
     return { mode: "swapface", qualityTier: tier, sourceB64 };
   }
 
+  // ── If celebrity reference images are available, use the face-to-face model.
+  // This model actually reads the face pixels from the reference image and
+  // injects that face into the target photo — far more accurate than text desc.
+  if ((input.celebRefCount ?? 0) > 0 && input.celebRefImageUrl) {
+    console.log(`[Pipeline] Celebrity with refs detected — switching to face-to-face mode`);
+    return {
+      mode:              "facetoface",
+      qualityTier:       tier,
+      inputImageUrl:     input.inputImageUrl,   // user's photo (target)
+      celebRefImageUrl:  input.celebRefImageUrl, // celebrity face (source)
+      celebRefImageUrls: input.celebRefImageUrls,
+      celebRefCount:     input.celebRefCount,
+      prompt:            buildFaceToFacePrompt(input),
+    };
+  }
+
   const { positive, negative } = buildStylePrompt(
     input.customPrompt ?? "",
     input.stylePrompt  ?? "",
@@ -583,6 +604,14 @@ export function buildAsyncJobConfig(
   };
 }
 
+function buildFaceToFacePrompt(input: PipelineInput): string {
+  const translated = translateToEnglish((input.customPrompt ?? "").trim());
+  const style      = (input.stylePrompt ?? "").trim();
+  const scene      = [translated, style].filter(Boolean).join(", ");
+  return scene
+    || "photorealistic portrait, natural lighting, ultra HD, professional photography";
+}
+
 export async function startAsyncJob(
   config:     AsyncJobConfig,
   targetB64?: string,
@@ -591,6 +620,32 @@ export async function startAsyncJob(
     const p = await createPred(MODELS.faceSwap, {
       swap_image:  config.sourceB64!,
       input_image: targetB64!,
+    });
+    return p.id;
+  }
+
+  // ── FACE-TO-FACE: use celebrity reference photo as face source ──────────
+  // The model reads the actual face pixels from the reference image and
+  // renders that face into the user's photo. No text description needed.
+  if (config.mode === "facetoface") {
+    if (!config.inputImageUrl)    throw new Error("Image utilisateur manquante");
+    if (!config.celebRefImageUrl) throw new Error("Image de référence célébrité manquante");
+
+    const [targetB64Data, refB64] = await Promise.all([
+      loadImageAsBase64(config.inputImageUrl),
+      loadImageAsBase64(config.celebRefImageUrl),
+    ]);
+
+    console.log(`[Pipeline] face-to-face: injecting celebrity face into user photo`);
+    console.log(`[Pipeline] Prompt: "${(config.prompt ?? "").slice(0, 150)}"`);
+
+    const p = await createPred(MODELS.faceToFace, {
+      input_image:   targetB64Data,  // user's photo — scene/background kept
+      source_image:  refB64,         // celebrity reference — face extracted
+      prompt:        config.prompt ?? "photorealistic portrait, natural lighting",
+      negative_prompt: NEG,
+      face_strength: 1.0,            // maximum face fidelity from reference
+      output_format: "jpg",
     });
     return p.id;
   }
