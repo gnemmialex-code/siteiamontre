@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Check, Zap, Loader2, Sparkles, Crown, Infinity, ShieldCheck, Plus } from "lucide-react";
+import { Check, Zap, Loader2, Sparkles, Crown, Infinity as InfinityIcon, ShieldCheck, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -207,10 +207,46 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative overflow-x-hidden">
+      {/* ── Fond animé global ── */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <motion.div
+          className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-accent-violet/10 blur-[100px]"
+          animate={{ x: [0, 60, -20, 0], y: [0, 40, -15, 0], scale: [1, 1.2, 0.9, 1] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute top-1/3 -right-40 w-[420px] h-[420px] rounded-full bg-accent-neon/7 blur-[90px]"
+          animate={{ x: [0, -50, 20, 0], y: [0, 60, -20, 0], scale: [1, 1.3, 0.95, 1] }}
+          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        />
+        <motion.div
+          className="absolute bottom-0 left-1/3 w-[360px] h-[360px] rounded-full bg-accent-violet/8 blur-[80px]"
+          animate={{ x: [0, 40, -30, 0], y: [0, -40, 20, 0], scale: [1, 1.15, 0.92, 1] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+        />
+        {/* Particules flottantes */}
+        {[
+          { x: "10%",  y: "15%", r: 3, dur: 4.2, delay: 0   },
+          { x: "88%",  y: "8%",  r: 2, dur: 5.1, delay: 1.3 },
+          { x: "25%",  y: "60%", r: 4, dur: 3.8, delay: 0.6 },
+          { x: "75%",  y: "45%", r: 2, dur: 6.0, delay: 2.1 },
+          { x: "55%",  y: "80%", r: 3, dur: 4.6, delay: 0.9 },
+          { x: "40%",  y: "25%", r: 2, dur: 5.5, delay: 1.7 },
+        ].map((p, i) => (
+          <motion.div
+            key={i}
+            className="absolute rounded-full bg-accent-violet/60"
+            style={{ left: p.x, top: p.y, width: p.r * 2, height: p.r * 2 }}
+            animate={{ y: [0, -20, 0], opacity: [0.2, 0.8, 0.2] }}
+            transition={{ duration: p.dur, repeat: Infinity, ease: "easeInOut", delay: p.delay }}
+          />
+        ))}
+      </div>
+
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-24 pb-16">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-24 pb-16 relative z-10">
 
         {/* Header */}
         <motion.div
@@ -311,7 +347,7 @@ export default function PricingPage() {
                 <div className="text-center mb-4 py-4 bg-surface-hover rounded-xl relative overflow-hidden">
                   {plan.creditsRaw === null ? (
                     <div className="flex items-center justify-center gap-2">
-                      <Infinity className="w-8 h-8 text-accent-violet" />
+                      <InfinityIcon className="w-8 h-8 text-accent-violet" />
                       <span className="text-2xl font-black gradient-text">Illimité</span>
                     </div>
                   ) : (

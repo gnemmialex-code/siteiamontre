@@ -872,8 +872,8 @@ export default function DashboardPage() {
 
 
                         {/* Style Celebrity — optionnel */}
-                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
-                          <div className="flex items-center justify-between mb-3">
+                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-3">
+                          <div className="flex items-center justify-between mb-2">
                             <h2 className="font-semibold text-sm flex items-center gap-2">
                               <StepBadge n={2} />
                               Style Celebrity
@@ -885,7 +885,7 @@ export default function DashboardPage() {
                               </span>
                             )}
                           </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          <div className="grid grid-cols-5 sm:grid-cols-7 xl:grid-cols-9 gap-1.5">
                             {STYLES.map(style => {
                               const planTier   = userPlanTier(stats?.plan);
                               const isLocked   =
@@ -903,39 +903,43 @@ export default function DashboardPage() {
                                     }
                                     handleStyleSelect(style);
                                   }}
-                                  className={`relative rounded-xl border text-left transition-all overflow-hidden ${
+                                  title={style.label}
+                                  className={`relative rounded-lg border transition-all overflow-hidden ${
                                     isLocked   ? "border-surface-border bg-surface opacity-50 cursor-not-allowed" :
-                                    isSelected ? "border-accent-violet" :
+                                    isSelected ? "border-accent-violet ring-1 ring-accent-violet/50" :
                                                  "border-surface-border bg-surface hover:border-accent-violet/40"
                                   }`}
                                 >
-                                  {style.previewImg && (
-                                    <div className="w-full h-12 overflow-hidden bg-surface-hover relative">
-                                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                                      <img src={style.previewImg} alt={style.label} className="w-full h-full object-cover"
-                                        onError={e=>{(e.currentTarget.parentElement as HTMLElement).style.display="none";}} />
-                                      {isSelected && <div className="absolute inset-0 bg-accent-violet/20" />}
-                                      {isLocked && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><Lock className="w-4 h-4 text-white/60" /></div>}
-                                    </div>
-                                  )}
-                                  <div className={`px-2 py-1.5 ${isSelected ? "bg-accent-violet/10" : ""}`}>
-                                    {isSelected && (
-                                      <div className="absolute top-1 right-1 w-3.5 h-3.5 bg-accent-violet rounded-full flex items-center justify-center z-10">
-                                        <span className="text-white text-[8px]">✓</span>
-                                      </div>
+                                  {/* Image carrée */}
+                                  <div className="w-full aspect-square overflow-hidden bg-surface-hover relative">
+                                    {style.previewImg ? (
+                                      <>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={style.previewImg} alt={style.label} className="w-full h-full object-cover"
+                                          onError={e=>{(e.currentTarget.parentElement as HTMLElement).style.display="none";}} />
+                                        {isSelected && <div className="absolute inset-0 bg-accent-violet/25" />}
+                                        {isLocked && <div className="absolute inset-0 bg-black/55 flex items-center justify-center"><Lock className="w-3 h-3 text-white/60" /></div>}
+                                      </>
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-base">{style.emoji}</div>
                                     )}
+                                    {/* Badge tier */}
                                     {tierLabel && (
-                                      <div className={`absolute top-1 right-1 text-[8px] font-black px-1 py-0.5 rounded z-10 ${
-                                        style.tier === "elite"
-                                          ? "bg-amber-400/90 text-black"
-                                          : "bg-accent-violet/90 text-white"
-                                      }`}>
-                                        {tierLabel}
+                                      <div className={`absolute top-0.5 left-0.5 text-[7px] font-black px-0.5 py-px rounded z-10 leading-tight ${
+                                        style.tier === "elite" ? "bg-amber-400/90 text-black" : "bg-accent-violet/90 text-white"
+                                      }`}>{tierLabel}</div>
+                                    )}
+                                    {/* Coche sélectionné */}
+                                    {isSelected && (
+                                      <div className="absolute top-0.5 right-0.5 w-3 h-3 bg-accent-violet rounded-full flex items-center justify-center z-10">
+                                        <span className="text-white text-[7px]">✓</span>
                                       </div>
                                     )}
-                                    <span className="text-sm block">{style.emoji}</span>
-                                    <p className="font-semibold text-[10px] text-white leading-tight">{style.label}</p>
                                   </div>
+                                  {/* Label sous l'image */}
+                                  <p className={`text-[8px] font-semibold text-center leading-tight px-0.5 py-0.5 truncate ${isSelected ? "text-accent-violet bg-accent-violet/10" : "text-white/60"}`}>
+                                    {style.label}
+                                  </p>
                                 </button>
                               );
                             })}
@@ -973,6 +977,8 @@ export default function DashboardPage() {
                           )}
                         </AnimatePresence>
 
+                        {/* Description libre + Options — côte à côte sur desktop */}
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                         {/* Description libre */}
                         <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
                           <h2 className="font-semibold text-sm mb-2 flex items-center gap-2">
@@ -997,7 +1003,7 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Options de génération */}
-                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4 space-y-4">
+                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4 space-y-3">
                           <h2 className="font-semibold text-sm flex items-center gap-2">
                             <StepBadge n={selectedStyle ? 5 : 4} />
                             Options de génération
@@ -1063,6 +1069,7 @@ export default function DashboardPage() {
                             );
                           })()}
                         </div>
+                        </div>{/* end grid description+options */}
 
                         <GenerateCard
                           consent={consent}

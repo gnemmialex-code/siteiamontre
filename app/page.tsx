@@ -698,6 +698,44 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ══ SÉPARATEUR ANIMÉ HERO → AVIS ════════════════════════════════ */}
+      <div className="relative h-28 overflow-hidden pointer-events-none select-none">
+        {/* Ligne lumineuse */}
+        <motion.div
+          className="absolute top-1/2 left-0 right-0 h-px"
+          style={{ background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.9) 25%, rgba(57,255,20,0.5) 50%, rgba(139,92,246,0.9) 75%, transparent 100%)" }}
+          animate={{ opacity: [0.15, 1, 0.15], scaleX: [0.5, 1.05, 0.5] }}
+          transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Particules sur la ligne */}
+        {[
+          { x: "15%", size: 5, delay: 0,   col: "bg-accent-violet" },
+          { x: "30%", size: 3, delay: 0.7, col: "bg-accent-neon"   },
+          { x: "50%", size: 7, delay: 0.2, col: "bg-accent-violet" },
+          { x: "70%", size: 3, delay: 1.1, col: "bg-accent-neon"   },
+          { x: "85%", size: 5, delay: 0.5, col: "bg-accent-violet" },
+        ].map((p, i) => (
+          <motion.div
+            key={i}
+            className={`absolute top-1/2 -translate-y-1/2 rounded-full ${p.col}/80`}
+            style={{ left: p.x, width: p.size, height: p.size, boxShadow: `0 0 ${p.size * 3}px currentColor` }}
+            animate={{ y: [0, -14, 0], opacity: [0.2, 1, 0.2] }}
+            transition={{ duration: 2.4 + i * 0.25, repeat: Infinity, ease: "easeInOut", delay: p.delay }}
+          />
+        ))}
+        {/* Halo central */}
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-10 rounded-full bg-accent-violet/18 blur-2xl"
+          animate={{ scaleX: [0.7, 1.4, 0.7], opacity: [0.3, 0.9, 0.3] }}
+          transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-6 rounded-full bg-accent-neon/10 blur-xl"
+          animate={{ scaleX: [1.3, 0.7, 1.3], opacity: [0.2, 0.7, 0.2] }}
+          transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        />
+      </div>
+
       {/* ══ AVIS CLIENTS ══════════════════════════════════════════════════ */}
       <section className="py-20 overflow-hidden">
         <motion.div
@@ -724,8 +762,28 @@ export default function HomePage() {
       </section>
 
       {/* ══ GALERIE EXEMPLES ══════════════════════════════════════════════ */}
-      <section className="py-24 px-4 sm:px-6 bg-surface/20">
-        <div className="max-w-7xl mx-auto">
+      <section className="py-24 px-4 sm:px-6 relative overflow-hidden">
+        {/* Fond teinté */}
+        <div className="absolute inset-0 bg-surface/20 pointer-events-none" />
+        {/* Orbe violet haut-gauche */}
+        <motion.div
+          className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-accent-violet/12 blur-3xl pointer-events-none"
+          animate={{ x: [0, 50, 0], y: [0, 35, 0], scale: [1, 1.25, 1] }}
+          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Orbe neon bas-droite */}
+        <motion.div
+          className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full bg-accent-neon/8 blur-3xl pointer-events-none"
+          animate={{ x: [0, -40, 0], y: [0, -25, 0], scale: [1, 1.3, 1] }}
+          transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        />
+        {/* Orbe violet centre-haut */}
+        <motion.div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 rounded-full bg-accent-violet/8 blur-2xl pointer-events-none"
+          animate={{ scaleX: [0.8, 1.4, 0.8], opacity: [0.4, 0.9, 0.4] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        />
+        <div className="max-w-7xl mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -753,7 +811,7 @@ export default function HomePage() {
               Créer ma transformation
             </Link>
           </motion.div>
-        </div>
+        </div>{/* end max-w-7xl */}
       </section>
 
       {/* ══ VOS IMAGES VOUS APPARTIENNENT ════════════════════════════════ */}
