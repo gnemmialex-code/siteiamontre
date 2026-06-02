@@ -24,7 +24,16 @@
       "Bash(git push *)",
       "WebSearch",
       "WebFetch(domain:replicate.com)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\alexi\\\\Documents\\\\FlutterProjects\\\\testsiteiacelebité\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(findstr replicate *)",
+      "Bash(npx vercel *)",
+      "WebFetch(domain:api.replicate.com)",
+      "Bash(git rm *)",
+      "Bash(dir \"C:\\\\Users\\\\alexi\\\\Documents\\\\FlutterProjects\\\\testsiteiacelebité\\\\public\\\\styles\")",
+      "Bash(findstr /i arm)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\alexi\\\\Documents\\\\FlutterProjects\\\\testsiteiacelebité\\\\public\\\\styles\" | Where-Object { $_.Name -match \"arm\" })"
     ]
   }
 }
