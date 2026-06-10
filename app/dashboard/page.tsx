@@ -10,6 +10,7 @@ import {
   Sparkles, Download, Trash2, Zap, Plus, LogOut,
   Shuffle, Film, Crown, Settings, History,
   ChevronRight, ChevronLeft, ChevronDown, Check, Star, Replace, PlusCircle, AlertCircle, StopCircle, Lock,
+  Gift, Flame, Copy, LogIn, UserPlus, Users, Loader2, ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { resizeImageFile } from "@/lib/resize-image";
@@ -211,7 +212,7 @@ function DashOptionChips({ title, options, selected, onSelect, lockedPlan, onLoc
 }
 
 /* ─── Types ─────────────────────────────────────────────── */
-type NavView = "create" | "history" | "subscription" | "settings";
+type NavView = "create" | "history" | "referral" | "snaprouge" | "subscription" | "settings";
 type GenType = "create" | "swapface" | "video";
 type ObjectOption = "addObject" | "fullGeneration" | "replaceObject";
 
@@ -230,14 +231,23 @@ interface UserStats {
   video_generations: number;
   member_since: string;
   plan?: string;
+  snap_rouge?: boolean;
+}
+
+interface ReferralInfo {
+  code: string;
+  referrals: number;
+  credits_earned: number;
 }
 
 /* ─── Constants ─────────────────────────────────────────── */
 const NAV_ITEMS = [
-  { id: "create"       as NavView, label: "Créer",        icon: Sparkles, desc: "Nouvelle génération" },
-  { id: "history"      as NavView, label: "Historique",   icon: History,  desc: "Mes créations"       },
-  { id: "subscription" as NavView, label: "Abonnement",   icon: Crown,    desc: "Formules & crédits"  },
-  { id: "settings"     as NavView, label: "Paramètres",   icon: Settings, desc: "Mon compte"          },
+  { id: "create"       as NavView, label: "Créer",        icon: Sparkles, desc: "Nouvelle génération"   },
+  { id: "history"      as NavView, label: "Historique",   icon: History,  desc: "Mes créations"         },
+  { id: "referral"     as NavView, label: "Parrainage",   icon: Gift,     desc: "Gagnez des crédits"    },
+  { id: "snaprouge"    as NavView, label: "Snap Rouge",   icon: Flame,    desc: "La technique secrète"  },
+  { id: "subscription" as NavView, label: "Abonnement",   icon: Crown,    desc: "Formules & crédits"    },
+  { id: "settings"     as NavView, label: "Paramètres",   icon: Settings, desc: "Mon compte"            },
 ];
 
 const GEN_TABS: { id: GenType; label: string; icon: React.ElementType }[] = [
@@ -258,14 +268,14 @@ const PLANS_DATA = [
     color: "border-accent-violet", badgeBg: "bg-accent-violet/20", badgeText: "text-accent-violet",
     badge: "Populaire",
     highlights: [{ k: "Qualité", v: "Ultra 4K" }, { k: "Vitesse", v: "~20-30s" }, { k: "Vidéo", v: "5s" }],
-    features: ["Photo + Vidéo jusqu'à 5s", "Qualité Ultra 4K", "13 styles dont 5 exclusifs Pro", "Historique 100 images", "Support prioritaire 24h"],
+    features: ["Photo + Vidéo jusqu'à 5s", "Qualité Ultra 4K", "🔥 Technique Snap Rouge incluse", "13 styles dont 5 exclusifs Pro", "Historique 100 images", "Support prioritaire 24h"],
   },
   {
     id: "elite",      name: "Elite",      icon: Crown, price: "39,90€", credits: "Illimité",
     color: "border-amber-400/50", badgeBg: "bg-amber-400/20", badgeText: "text-amber-400",
     badge: "Elite",
     highlights: [{ k: "Qualité", v: "8K Photo" }, { k: "Vitesse", v: "~10-15s" }, { k: "Vidéo", v: "30s 4K" }],
-    features: ["Photo + Vidéo 4K 30s", "Qualité 8K Photoréaliste", "Tous les styles + 3 exclusifs Elite", "Historique illimité", "Manager dédié + API illimitée"],
+    features: ["Photo + Vidéo 4K 30s", "Qualité 8K Photoréaliste", "🔥 Technique Snap Rouge incluse", "Tous les styles + 3 exclusifs Elite", "Historique illimité", "Manager dédié + API illimitée"],
   },
 ];
 
@@ -347,6 +357,18 @@ export default function DashboardPage() {
   const [loading,     setLoading]     = useState(true);
   const [userEmail,   setUserEmail]   = useState<string | null>(null);
 
+  /* auth / mode aperçu */
+  const [isAuthed,     setIsAuthed]     = useState<boolean | null>(null);
+  const [showAuthGate, setShowAuthGate] = useState(false);
+
+  /* parrainage */
+  const [referral,        setReferral]        = useState<ReferralInfo | null>(null);
+  const [referralLoading, setReferralLoading] = useState(false);
+  const [copiedField,     setCopiedField]     = useState<"code" | "link" | null>(null);
+
+  /* snap rouge */
+  const [snapLoading, setSnapLoading] = useState(false);
+
   /* generation state – create (style + image fusionnés) */
   const [styleFile,     setStyleFile]     = useState<File | null>(null);
   const [stylePreview,  setStylePreview]  = useState<string | null>(null);
@@ -403,9 +425,80 @@ export default function DashboardPage() {
   const activePredRef = useRef<{ jobId?: string; predId?: string }>({});
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null));
+    // Vue initiale + retours de paiement via l'URL (?view=snaprouge, ?payment=snap_success)
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get("view");
+    if (view && NAV_ITEMS.some(n => n.id === view)) setNavView(view as NavView);
+    if (params.get("payment") === "snap_success") {
+      toast.success("🔥 Paiement reçu ! Votre accès Snap Rouge s'active dans quelques secondes…", { duration: 6000 });
+      setTimeout(() => fetchStats(), 4000);
+    }
+
+    supabase.auth.getUser().then(async ({ data }) => {
+      setUserEmail(data.user?.email ?? null);
+      setIsAuthed(!!data.user);
+
+      // Applique le code parrain mémorisé lors de l'inscription (?ref=CODE)
+      if (data.user) {
+        const refCode = localStorage.getItem("astracrea_ref");
+        if (refCode) {
+          localStorage.removeItem("astracrea_ref");
+          try {
+            const res = await fetch("/api/referral", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ code: refCode }),
+            });
+            const d = await res.json();
+            if (res.ok && d.ok) {
+              toast.success("🎁 Parrainage appliqué — +100 crédits bonus !", { duration: 6000 });
+              fetchStats();
+            }
+          } catch { /* silent */ }
+        }
+      }
+    });
     Promise.all([fetchGenerations(), fetchStats()]).finally(() => setLoading(false));
   }, []);
+
+  /* Charge les infos de parrainage à l'ouverture de l'onglet */
+  useEffect(() => {
+    if (navView !== "referral" || !isAuthed || referral || referralLoading) return;
+    setReferralLoading(true);
+    fetch("/api/referral")
+      .then(res => res.json().then(d => ({ ok: res.ok, d })))
+      .then(({ ok, d }) => {
+        if (ok && d.code) setReferral({ code: d.code, referrals: d.referrals ?? 0, credits_earned: d.credits_earned ?? 0 });
+        else if (d.error) toast.error(d.error);
+      })
+      .catch(() => toast.error("Impossible de charger le parrainage"))
+      .finally(() => setReferralLoading(false));
+  }, [navView, isAuthed, referral, referralLoading]);
+
+  const handleCopy = async (text: string, field: "code" | "link") => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      toast.success(field === "code" ? "Code copié !" : "Lien copié !");
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch { toast.error("Impossible de copier"); }
+  };
+
+  const handleSnapPurchase = async () => {
+    if (!isAuthed) { setShowAuthGate(true); return; }
+    setSnapLoading(true);
+    try {
+      const res = await fetch("/api/stripe/create-snap-rouge-session", { method: "POST" });
+      const data = await res.json();
+      if (res.status === 401) { setShowAuthGate(true); return; }
+      if (!res.ok || !data.url) { toast.error(data.error ?? "Erreur lors du paiement"); return; }
+      window.location.href = data.url;
+    } catch {
+      toast.error("Erreur de connexion");
+    } finally {
+      setSnapLoading(false);
+    }
+  };
 
   const fetchGenerations = async () => {
     try {
@@ -534,6 +627,7 @@ export default function DashboardPage() {
   };
 
   const handleGenerate = async () => {
+    if (isAuthed === false) { setShowAuthGate(true); return; }
     setError(null);
     if (!consent) { setError("Veuillez accepter les conditions."); return; }
 
@@ -677,7 +771,34 @@ export default function DashboardPage() {
           <span className="font-black text-lg tracking-tight">Astra<span className="gradient-text">Crea</span></span>
         </Link>
 
-        {/* User info */}
+        {/* User info — mode aperçu si non connecté */}
+        {isAuthed === false ? (
+          <div className="px-4 py-4 border-b border-surface-border space-y-2.5">
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-surface-hover border border-accent-violet/20">
+              <div className="w-10 h-10 rounded-xl bg-surface flex items-center justify-center text-white/40 font-black text-base flex-shrink-0 border border-surface-border">
+                ?
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-sm truncate">Mode aperçu</p>
+                <p className="text-white/35 text-xs truncate">Non connecté</p>
+              </div>
+            </div>
+            <Link
+              href="/login"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl btn-primary text-sm font-bold"
+            >
+              <LogIn className="w-4 h-4" />
+              Se connecter
+            </Link>
+            <Link
+              href="/register"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-accent-violet/40 text-accent-violet hover:bg-accent-violet/10 transition-all text-sm font-bold"
+            >
+              <UserPlus className="w-4 h-4" />
+              Créer un compte — 100 crédits offerts
+            </Link>
+          </div>
+        ) : (
         <div className="px-4 py-4 border-b border-surface-border">
           <div className="flex items-center gap-3 p-3 rounded-2xl bg-surface-hover">
             <div className="w-10 h-10 rounded-xl bg-gradient-violet-neon flex items-center justify-center text-white font-black text-base flex-shrink-0">
@@ -703,6 +824,7 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+        )}
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
@@ -720,7 +842,7 @@ export default function DashboardPage() {
         {/* Bottom */}
         <div className="p-4 border-t border-surface-border space-y-3">
           {/* Credits bar */}
-          {(() => {
+          {isAuthed !== false && (() => {
             const tier      = userPlanTier(stats?.plan);
             const maxCr     = PLAN_CREDITS_MAX[tier] ?? 2500;
             const isElite   = tier === "elite";
@@ -756,15 +878,21 @@ export default function DashboardPage() {
             </Link>
           )}
 
-          <motion.button
-            onClick={handleLogout}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-white/40 hover:text-red-400 border border-surface-border hover:border-red-500/30 transition-all text-sm"
-          >
-            <LogOut className="w-4 h-4" />
-            Déconnexion
-          </motion.button>
+          {isAuthed === false ? (
+            <p className="text-white/30 text-xs text-center leading-relaxed px-1">
+              🔒 Mode aperçu — connectez-vous pour générer vos images
+            </p>
+          ) : (
+            <motion.button
+              onClick={handleLogout}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-white/40 hover:text-red-400 border border-surface-border hover:border-red-500/30 transition-all text-sm"
+            >
+              <LogOut className="w-4 h-4" />
+              Déconnexion
+            </motion.button>
+          )}
         </div>
 
       </aside>
@@ -790,6 +918,34 @@ export default function DashboardPage() {
         {/* ── Scrollable content ── */}
         <div className="flex-1 overflow-y-auto relative z-10">
           <div className="px-6 lg:px-8">
+
+            {/* ── Bannière mode aperçu (non connecté) ── */}
+            {isAuthed === false && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 bg-accent-violet/10 border border-accent-violet/30 rounded-2xl px-5 py-4 backdrop-blur-xl"
+              >
+                <div className="flex items-center gap-3 text-center sm:text-left">
+                  <Lock className="w-5 h-5 text-accent-violet flex-shrink-0 hidden sm:block" />
+                  <div>
+                    <p className="font-bold text-sm text-white">Vous explorez le Dashboard en mode aperçu</p>
+                    <p className="text-white/50 text-xs mt-0.5">Connectez-vous ou créez un compte pour générer vos images — 100 crédits offerts à l&apos;inscription</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Link href="/login" className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-accent-violet/40 text-accent-violet hover:bg-accent-violet/10 text-sm font-bold transition-all whitespace-nowrap">
+                    <LogIn className="w-4 h-4" />
+                    Connexion
+                  </Link>
+                  <Link href="/register" className="btn-primary flex items-center gap-1.5 px-4 py-2 text-sm whitespace-nowrap">
+                    <UserPlus className="w-4 h-4" />
+                    Créer un compte
+                  </Link>
+                </div>
+              </motion.div>
+            )}
+
             <AnimatePresence mode="wait">
 
               {/* ══ CREATE VIEW ══ */}
@@ -1525,6 +1681,226 @@ export default function DashboardPage() {
                 </motion.div>
               )}
 
+              {/* ══ REFERRAL VIEW ══ */}
+              {navView === "referral" && (
+                <motion.div key="referral" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>
+                  <div className="mb-7 pt-8">
+                    <h1 className="text-3xl font-black mb-1 flex items-center gap-3">
+                      <Gift className="w-7 h-7 text-accent-violet" />
+                      Parrainage
+                    </h1>
+                    <p className="text-white/40">Invitez vos amis et gagnez des crédits gratuits</p>
+                  </div>
+
+                  <div className="max-w-3xl space-y-5">
+
+                    {/* Comment ça marche */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="card border-accent-violet/25 bg-accent-violet/5">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-10 h-10 rounded-xl bg-accent-violet/15 flex items-center justify-center text-accent-violet">
+                            <Users className="w-5 h-5" />
+                          </div>
+                          <p className="text-2xl font-black text-accent-violet">+200</p>
+                        </div>
+                        <p className="font-bold text-white text-sm mb-1">crédits pour vous</p>
+                        <p className="text-white/45 text-xs leading-relaxed">À chaque ami qui s&apos;inscrit avec votre lien de parrainage</p>
+                      </div>
+                      <div className="card border-green-500/25 bg-green-500/5">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-10 h-10 rounded-xl bg-green-500/15 flex items-center justify-center text-green-400">
+                            <Gift className="w-5 h-5" />
+                          </div>
+                          <p className="text-2xl font-black text-green-400">+100</p>
+                        </div>
+                        <p className="font-bold text-white text-sm mb-1">crédits pour votre ami</p>
+                        <p className="text-white/45 text-xs leading-relaxed">En plus des 100 crédits de bienvenue, soit 200 crédits au total</p>
+                      </div>
+                    </div>
+
+                    {isAuthed === false ? (
+                      /* Invité — incite à se connecter */
+                      <div className="card text-center py-12">
+                        <Lock className="w-10 h-10 text-white/20 mx-auto mb-4" />
+                        <p className="font-bold text-white mb-2">Connectez-vous pour obtenir votre code parrain</p>
+                        <p className="text-white/40 text-sm mb-6">Chaque compte dispose d&apos;un code personnalisé unique à partager</p>
+                        <div className="flex items-center justify-center gap-3">
+                          <Link href="/login" className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-accent-violet/40 text-accent-violet hover:bg-accent-violet/10 text-sm font-bold transition-all">
+                            <LogIn className="w-4 h-4" />Se connecter
+                          </Link>
+                          <Link href="/register" className="btn-primary flex items-center gap-1.5 px-5 py-2.5 text-sm">
+                            <UserPlus className="w-4 h-4" />Créer un compte
+                          </Link>
+                        </div>
+                      </div>
+                    ) : referralLoading || !referral ? (
+                      <div className="card flex items-center justify-center py-16">
+                        <Loader2 className="w-7 h-7 text-accent-violet animate-spin" />
+                      </div>
+                    ) : (
+                      <>
+                        {/* Code + lien */}
+                        <div className="card space-y-4">
+                          <h2 className="font-bold flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-accent-violet" />
+                            Votre code personnalisé
+                          </h2>
+
+                          {/* Code */}
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-surface-hover border border-accent-violet/30 rounded-xl px-4 py-3 font-mono font-black text-xl tracking-[0.25em] text-accent-violet text-center select-all">
+                              {referral.code}
+                            </div>
+                            <button
+                              onClick={() => handleCopy(referral.code, "code")}
+                              className="flex items-center gap-1.5 px-4 py-3 rounded-xl border border-surface-border text-white/60 hover:text-white hover:border-accent-violet/40 text-sm font-semibold transition-all flex-shrink-0"
+                            >
+                              {copiedField === "code" ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                              {copiedField === "code" ? "Copié" : "Copier"}
+                            </button>
+                          </div>
+
+                          {/* Lien de partage */}
+                          <div>
+                            <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1.5">Votre lien de parrainage</p>
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 bg-surface-hover border border-surface-border rounded-xl px-4 py-3 text-white/70 text-sm truncate select-all">
+                                {`${typeof window !== "undefined" ? window.location.origin : ""}/register?ref=${referral.code}`}
+                              </div>
+                              <button
+                                onClick={() => handleCopy(`${window.location.origin}/register?ref=${referral.code}`, "link")}
+                                className="btn-primary flex items-center gap-1.5 px-4 py-3 text-sm flex-shrink-0"
+                              >
+                                {copiedField === "link" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                {copiedField === "link" ? "Copié !" : "Copier le lien"}
+                              </button>
+                            </div>
+                            <p className="text-white/30 text-xs mt-2">
+                              💡 Partagez ce lien : dès qu&apos;un ami crée son compte avec, vous recevez automatiquement vos 200 crédits.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="card text-center">
+                            <p className="text-3xl font-black gradient-text">{referral.referrals}</p>
+                            <p className="text-white/40 text-sm mt-1">Filleul{referral.referrals !== 1 ? "s" : ""} inscrit{referral.referrals !== 1 ? "s" : ""}</p>
+                          </div>
+                          <div className="card text-center">
+                            <p className="text-3xl font-black text-green-400">+{referral.credits_earned}</p>
+                            <p className="text-white/40 text-sm mt-1">Crédits gagnés</p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ══ SNAP ROUGE VIEW ══ */}
+              {navView === "snaprouge" && (
+                <motion.div key="snaprouge" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>
+                  <div className="mb-7 pt-8">
+                    <h1 className="text-3xl font-black mb-1 flex items-center gap-3">
+                      <Flame className="w-7 h-7 text-red-500" />
+                      Snap Rouge
+                    </h1>
+                    <p className="text-white/40">La technique secrète pour envoyer vos créations en vrai Snap</p>
+                  </div>
+
+                  <div className="max-w-3xl space-y-5">
+
+                    {/* Présentation */}
+                    <div className="card border-red-500/25 relative overflow-hidden">
+                      <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-red-500/10 blur-3xl pointer-events-none" />
+                      <div className="relative">
+                        <h2 className="text-xl font-black mb-3">
+                          Envoyez vos photos IA comme de <span className="text-red-500">vrais Snaps</span> 🔥
+                        </h2>
+                        <p className="text-white/55 text-sm leading-relaxed mb-4">
+                          Sur Snapchat, une photo envoyée depuis la galerie apparaît en <strong className="text-white/80">Snap violet</strong> —
+                          tout le monde voit que ce n&apos;est pas une photo prise sur le moment. Avec la technique Snap Rouge,
+                          vos transformations AstraCrea partent en <strong className="text-red-400">Snap Rouge</strong>,
+                          exactement comme une photo prise en direct avec l&apos;appareil photo. Effet garanti auprès de vos amis.
+                        </p>
+                        <ul className="space-y-2 mb-2">
+                          {[
+                            "Guide vidéo complet, étape par étape",
+                            "Fonctionne sur iPhone et Android",
+                            "Accès à vie — payez une seule fois",
+                            "Mises à jour de la technique incluses",
+                          ].map(f => (
+                            <li key={f} className="flex items-start gap-2 text-sm text-white/60">
+                              <Check className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />{f}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Accès / paiement */}
+                    {stats?.snap_rouge ? (
+                      /* ── Accès débloqué ── */
+                      <div className="card border-green-500/30 bg-green-500/5 text-center py-8">
+                        <div className="w-14 h-14 rounded-2xl bg-green-500/15 border border-green-500/30 flex items-center justify-center mx-auto mb-4">
+                          <Check className="w-7 h-7 text-green-400" />
+                        </div>
+                        <p className="font-black text-lg mb-1">Accès débloqué !</p>
+                        <p className="text-white/45 text-sm mb-6">Vous avez accès à la technique complète Snap Rouge</p>
+                        <Link
+                          href="/snap-rouge"
+                          className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold transition-all shadow-lg shadow-red-500/25"
+                        >
+                          <Flame className="w-5 h-5" />
+                          Accéder à la technique
+                          <ExternalLink className="w-4 h-4" />
+                        </Link>
+                      </div>
+                    ) : (
+                      /* ── Pas encore d'accès ── */
+                      <div className="card border-red-500/25 text-center py-8">
+                        <div className="w-14 h-14 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center mx-auto mb-4">
+                          <Lock className="w-7 h-7 text-red-400" />
+                        </div>
+                        <p className="font-black text-lg mb-1">Débloquez la technique</p>
+                        <p className="text-white/45 text-sm mb-6">Paiement unique — accès à vie immédiat</p>
+
+                        <motion.button
+                          onClick={handleSnapPurchase}
+                          disabled={snapLoading}
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                          className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold transition-all shadow-lg shadow-red-500/25 disabled:opacity-60"
+                        >
+                          {snapLoading ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Flame className="w-5 h-5" />
+                          )}
+                          Débloquer pour 4,90€
+                        </motion.button>
+
+                        <div className="mt-6 pt-5 border-t border-surface-border max-w-sm mx-auto">
+                          <p className="text-white/40 text-xs mb-3">
+                            ✨ Ou inclus <strong className="text-white/70">gratuitement</strong> avec les abonnements{" "}
+                            <span className="text-accent-violet font-bold">Pro</span> et{" "}
+                            <span className="text-amber-400 font-bold">Elite</span>
+                          </p>
+                          <button
+                            onClick={() => setNavView("subscription")}
+                            className="text-accent-violet text-sm font-semibold hover:underline"
+                          >
+                            Voir les abonnements →
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                </motion.div>
+              )}
+
               {/* ══ SUBSCRIPTION VIEW ══ */}
               {navView === "subscription" && (
                 <motion.div key="subscription" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>
@@ -1660,6 +2036,55 @@ export default function DashboardPage() {
       {upgradeTarget && (
         <PlanUpgradeModal target={upgradeTarget} onClose={() => setUpgradeTarget(null)} />
       )}
+      <AnimatePresence>
+        {showAuthGate && <AuthGateModal onClose={() => setShowAuthGate(false)} />}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ─── Auth gate modal (mode aperçu) ──────────────────────── */
+function AuthGateModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <motion.div
+        className="relative bg-surface border border-surface-border rounded-2xl p-7 max-w-sm w-full shadow-2xl text-center"
+        initial={{ scale: 0.92, opacity: 0, y: 16 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.92, opacity: 0, y: 16 }}
+        transition={{ duration: 0.18 }}
+        onClick={e => e.stopPropagation()}
+      >
+        <button onClick={onClose} className="absolute top-4 right-4 text-white/30 hover:text-white text-xl leading-none transition-colors">✕</button>
+
+        <div className="w-14 h-14 rounded-2xl bg-accent-violet/15 border border-accent-violet/30 flex items-center justify-center mx-auto mb-4">
+          <Lock className="w-7 h-7 text-accent-violet" />
+        </div>
+        <h3 className="font-black text-xl mb-2">Créez un compte pour générer</h3>
+        <p className="text-white/45 text-sm mb-2 leading-relaxed">
+          Vous êtes en mode aperçu. Inscrivez-vous gratuitement pour lancer votre première génération.
+        </p>
+        <div className="inline-flex items-center gap-1.5 bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-bold px-3 py-1.5 rounded-full mb-6">
+          <Zap className="w-3.5 h-3.5" />
+          100 crédits offerts = 1 image gratuite
+        </div>
+
+        <Link
+          href="/register"
+          className="btn-primary w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold mb-2"
+        >
+          <UserPlus className="w-4 h-4" />
+          Créer mon compte gratuit
+        </Link>
+        <Link
+          href="/login"
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-accent-violet/40 text-accent-violet hover:bg-accent-violet/10 text-sm font-bold transition-all"
+        >
+          <LogIn className="w-4 h-4" />
+          J&apos;ai déjà un compte
+        </Link>
+      </motion.div>
     </div>
   );
 }

@@ -15,29 +15,43 @@ export async function GET() {
   // Single query with plan_id — admin bypasses RLS
   const { data: userData, error } = await admin
     .from("users")
-    .select("credits, created_at, plan_id")
+    .select("credits, created_at, plan_id, snap_rouge_access")
     .eq("id", user.id)
     .single();
 
-  // Fallback if plan_id column doesn't exist yet
+  // Fallback if plan_id / snap_rouge_access columns don't exist yet
   let credits = 0;
   let createdAt = "";
   let planId = "plan_essentiel";
+  let snapRouge = false;
 
   if (!error && userData) {
     credits   = userData.credits ?? 0;
     createdAt = userData.created_at ?? "";
     planId    = (userData as Record<string, unknown>).plan_id as string ?? "plan_essentiel";
+    snapRouge = !!(userData as Record<string, unknown>).snap_rouge_access;
   } else {
-    // plan_id column might not exist — retry without it
-    const { data: basic } = await admin
+    // snap_rouge_access column might not exist — retry with plan_id only
+    const { data: withPlan, error: planErr } = await admin
       .from("users")
-      .select("credits, created_at")
+      .select("credits, created_at, plan_id")
       .eq("id", user.id)
       .single();
-    if (basic) {
-      credits   = basic.credits ?? 0;
-      createdAt = basic.created_at ?? "";
+    if (!planErr && withPlan) {
+      credits   = withPlan.credits ?? 0;
+      createdAt = withPlan.created_at ?? "";
+      planId    = (withPlan as Record<string, unknown>).plan_id as string ?? "plan_essentiel";
+    } else {
+      // plan_id column might not exist either — minimal select
+      const { data: basic } = await admin
+        .from("users")
+        .select("credits, created_at")
+        .eq("id", user.id)
+        .single();
+      if (basic) {
+        credits   = basic.credits ?? 0;
+        createdAt = basic.created_at ?? "";
+      }
     }
   }
 
@@ -55,9 +69,13 @@ export async function GET() {
   const swap  = swapCount  ?? 0;
   const video = videoCount ?? 0;
 
+  const p = planId.toLowerCase();
+  const snapAccess = snapRouge || p.includes("pro") || p.includes("ultra") || p.includes("elite");
+
   return NextResponse.json({
     credits,
     plan:                 planId,
+    snap_rouge:           snapAccess,
     authenticated:        true,
     total_generations:    total,
     image_generations:    total - swap - video,

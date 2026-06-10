@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 import {
   Sparkles, Zap, Shield, Star, ArrowRight, Play,
   ChevronDown, Quote, ImageIcon, Film, Send, Paperclip, X,
-  Lock, EyeOff, UserCheck, Trash2,
+  Lock, EyeOff, UserCheck, Trash2, Flame, Monitor, Smartphone, Check,
 } from "lucide-react";
 
 // ─── DONNÉES ────────────────────────────────────────────────────────────────
@@ -56,6 +56,14 @@ const EXAMPLES_VIDEOS = [
   { title: "En maillot de bain", youtubeId: null, localSrc: "/videos/maillot.mp4" },
   { title: "Présentation de l'outfit",     youtubeId: null, localSrc: "/videos/outfit.mp4" },
 ];
+
+// ─── VIDÉOS DÉMO (section sous le hero) ─────────────────────────────────────
+// Les deux versions de la démo, dans /public/videos/.
+// Le visiteur choisit son affichage : Version PC (horizontal) ou Version mobile (vertical).
+const DEMO_VIDEOS = {
+  horizontal: "/videos/tuto-astra-horizontal.mp4",
+  vertical:   "/videos/tuto-astra-vertical.mp4",
+};
 
 const FAQ_ITEMS = [
   {
@@ -354,6 +362,245 @@ function ExamplesGallery() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// ─── SECTION VIDÉO DÉMO ─────────────────────────────────────────────────────
+
+function DemoVideoSection() {
+  const [mode, setMode] = useState<"horizontal" | "vertical">("horizontal");
+  const isVertical = mode === "vertical";
+
+  return (
+    <section id="demo" className="py-24 px-4 sm:px-6 relative overflow-hidden">
+      {/* Orbes décoratifs */}
+      <motion.div
+        className="absolute -top-20 left-1/4 w-80 h-80 rounded-full bg-accent-violet/12 blur-3xl pointer-events-none"
+        animate={{ x: [0, 40, 0], y: [0, 25, 0], scale: [1, 1.2, 1] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute -bottom-20 right-1/4 w-72 h-72 rounded-full bg-accent-neon/8 blur-3xl pointer-events-none"
+        animate={{ x: [0, -35, 0], y: [0, -20, 0], scale: [1, 1.25, 1] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+      />
+
+      <div className="max-w-5xl mx-auto relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-10"
+        >
+          <span className="inline-flex items-center gap-2 bg-accent-violet/10 border border-accent-violet/30 text-accent-violet text-sm font-semibold px-4 py-2 rounded-full mb-6">
+            <Play className="w-4 h-4 fill-current" />
+            Démonstration
+          </span>
+          <h2 className="text-4xl sm:text-5xl font-bold mb-4">
+            Voyez la magie <span className="gradient-text">en action</span>
+          </h2>
+          <p className="text-white/50 text-lg max-w-xl mx-auto">
+            De la photo originale au résultat final : découvrez AstraCrea en vidéo
+          </p>
+        </motion.div>
+
+        {/* Sélecteur Version PC / Version mobile */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="flex justify-center mb-8"
+        >
+          <div className="inline-flex items-center gap-1 bg-surface border border-surface-border rounded-2xl p-1">
+            {([
+              { id: "horizontal" as const, label: "Version PC",     icon: <Monitor className="w-4 h-4" /> },
+              { id: "vertical"   as const, label: "Version mobile", icon: <Smartphone className="w-4 h-4" /> },
+            ]).map(opt => (
+              <button
+                key={opt.id}
+                onClick={() => setMode(opt.id)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                  mode === opt.id
+                    ? "bg-accent-violet text-white shadow-violet"
+                    : "text-white/50 hover:text-white"
+                }`}
+              >
+                {opt.icon}
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30, scale: 0.97 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={mode}
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.25 }}
+              className={`mx-auto ${isVertical ? "max-w-sm" : "max-w-4xl"}`}
+            >
+              <div className="relative rounded-3xl overflow-hidden border border-surface-border bg-surface shadow-violet">
+                {/* Liseré dégradé */}
+                <div className="absolute inset-0 rounded-3xl pointer-events-none z-10" style={{ boxShadow: "inset 0 0 0 1px rgba(138,43,226,0.25)" }} />
+                <div className="relative bg-surface-hover" style={{ aspectRatio: isVertical ? "9/16" : "16/9" }}>
+                  <video
+                    src={DEMO_VIDEOS[mode]}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="w-full h-full object-cover absolute inset-0"
+                  />
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// ─── SECTION TUTO SNAP ROUGE ────────────────────────────────────────────────
+
+function SnapRougeTutoSection() {
+  return (
+    <section className="py-24 px-4 sm:px-6 relative overflow-hidden">
+      {/* Ambiance rouge */}
+      <motion.div
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full bg-red-500/8 blur-[100px] pointer-events-none"
+        animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-accent-violet/8 blur-3xl pointer-events-none" />
+
+      <div className="max-w-6xl mx-auto relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-12"
+        >
+          <span className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-semibold px-4 py-2 rounded-full mb-6">
+            <Flame className="w-4 h-4" />
+            Tuto Snapchat
+          </span>
+          <h2 className="text-4xl sm:text-5xl font-bold mb-4">
+            Envoyer un <span className="text-red-500">Snap Rouge</span> 🔥
+          </h2>
+          <p className="text-white/50 text-lg max-w-2xl mx-auto">
+            Envoyez vos créations IA comme de vrais Snaps pris sur le moment —
+            la technique complète en vidéo vous attend dans votre Dashboard.
+          </p>
+        </motion.div>
+
+        {/* Snap violet vs Snap Rouge */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto mb-10">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="rounded-2xl border border-surface-border bg-surface p-6"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <span className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-xl">💜</span>
+              <p className="font-black text-lg text-white/70">Snap violet</p>
+            </div>
+            <p className="text-white/45 text-sm leading-relaxed">
+              Une photo envoyée depuis la galerie apparaît en <strong className="text-white/70">violet</strong> :
+              tout le monde voit immédiatement que ce n&apos;est pas une photo prise sur le moment.
+              L&apos;effet de surprise est ruiné.
+            </p>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="rounded-2xl border border-red-500/40 bg-red-500/5 p-6 relative overflow-hidden"
+          >
+            <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-red-500/15 blur-2xl pointer-events-none" />
+            <div className="flex items-center gap-3 mb-3 relative">
+              <span className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-xl">🔴</span>
+              <p className="font-black text-lg text-red-400">Snap Rouge</p>
+            </div>
+            <p className="text-white/55 text-sm leading-relaxed relative">
+              Avec notre technique, votre création IA part en <strong className="text-red-400">Snap Rouge</strong> —
+              exactement comme une photo prise en direct avec l&apos;appareil photo.
+              Effet garanti auprès de vos amis. 🔥
+            </p>
+          </motion.div>
+        </div>
+
+        {/* Étapes */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto mb-10">
+          {[
+            { step: "01", title: "Créez votre photo IA", desc: "Générez votre transformation sur AstraCrea et téléchargez-la en haute qualité" },
+            { step: "02", title: "Débloquez la technique", desc: "Guide vidéo complet, étape par étape — iPhone et Android" },
+            { step: "03", title: "Envoyez en Snap Rouge", desc: "Votre photo part comme un vrai Snap pris sur le moment" },
+          ].map((item, i) => (
+            <motion.div
+              key={item.step}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className="rounded-2xl border border-surface-border bg-surface p-5 relative overflow-hidden"
+            >
+              <span className="text-5xl font-black text-red-500/15 absolute top-3 right-4">{item.step}</span>
+              <h3 className="font-bold text-white mb-2 relative">{item.title}</h3>
+              <p className="text-white/45 text-sm leading-relaxed relative">{item.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Ce que vous obtenez */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto mb-12"
+        >
+          {[
+            "Vidéo exclusive de la technique",
+            "Fonctionne sur iPhone et Android",
+            "Accès à vie — payez une seule fois",
+          ].map(label => (
+            <span key={label} className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/25 text-red-400 text-sm font-medium">
+              <Check className="w-4 h-4 flex-shrink-0" />
+              {label}
+            </span>
+          ))}
+        </motion.div>
+
+        {/* CTA vers le Dashboard */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center"
+        >
+          <Link
+            href="/dashboard?view=snaprouge"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-lg transition-all shadow-lg shadow-red-500/25 hover:scale-[1.03] active:scale-[0.97]"
+          >
+            <Flame className="w-5 h-5" />
+            Débloquer la technique complète
+            <ArrowRight className="w-5 h-5" />
+          </Link>
+          <p className="text-white/30 text-sm mt-4">
+            Inclus avec les abonnements <span className="text-accent-violet font-semibold">Pro</span> et{" "}
+            <span className="text-amber-400 font-semibold">Elite</span>, ou en accès unique
+          </p>
+        </motion.div>
+      </div>
+    </section>
   );
 }
 
@@ -665,20 +912,21 @@ export default function HomePage() {
                 transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
               />
               <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} className="relative">
-                <Link href="/upload" className="btn-primary text-lg px-8 py-4 flex items-center gap-2 group">
+                <Link href="/dashboard" className="btn-primary text-lg px-8 py-4 flex items-center gap-2 group">
                   Essayer gratuitement
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </motion.div>
             </div>
-            <motion.button
-              className="btn-secondary flex items-center gap-2 text-lg px-8 py-4"
-              whileHover={{ scale: 1.04, borderColor: "rgba(138,43,226,0.6)" }}
+            <motion.div
+              whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
             >
-              <Play className="w-5 h-5 fill-current" />
-              Voir la démo
-            </motion.button>
+              <a href="#demo" className="btn-secondary flex items-center gap-2 text-lg px-8 py-4">
+                <Play className="w-5 h-5 fill-current" />
+                Voir la démo
+              </a>
+            </motion.div>
           </motion.div>
 
           {/* Stats */}
@@ -697,6 +945,9 @@ export default function HomePage() {
           </motion.div>
         </div>
       </section>
+
+      {/* ══ VIDÉO DÉMO ═══════════════════════════════════════════════════ */}
+      <DemoVideoSection />
 
       {/* ══ SÉPARATEUR ANIMÉ HERO → AVIS ════════════════════════════════ */}
       <div className="relative h-28 overflow-hidden pointer-events-none select-none">
@@ -1094,6 +1345,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ══ TUTO SNAP ROUGE ══════════════════════════════════════════════ */}
+      <SnapRougeTutoSection />
+
       {/* ══ CTA FINAL ════════════════════════════════════════════════════ */}
       <section className="py-32 px-4 sm:px-6 relative overflow-hidden">
         {/* Fond de base */}
@@ -1195,7 +1449,7 @@ export default function HomePage() {
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="relative"
             >
-              <Link href="/upload" className="btn-primary text-xl px-10 py-5 inline-flex items-center gap-2 group">
+              <Link href="/dashboard" className="btn-primary text-xl px-10 py-5 inline-flex items-center gap-2 group">
                 Commencer gratuitement
                 <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
               </Link>

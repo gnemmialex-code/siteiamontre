@@ -29,8 +29,8 @@ export default async function proxy(req: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
   const isAuthenticated = !!session?.user;
 
-  // Protect /dashboard and /admin
-  if (!isAuthenticated && (pathname.startsWith("/dashboard") || pathname.startsWith("/admin"))) {
+  // Protect /admin only — /dashboard reste accessible en mode aperçu (les actions y sont bloquées côté UI)
+  if (!isAuthenticated && pathname.startsWith("/admin")) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

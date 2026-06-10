@@ -36,6 +36,36 @@ export async function POST(req: NextRequest) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
 
+    // ── Achat unique Snap Rouge → débloque l'accès à vie ──
+    if (session.metadata?.product === "snap_rouge") {
+      const snapUserId = session.metadata?.user_id;
+      if (!snapUserId) {
+        console.error("Missing user_id in snap_rouge session:", session.id);
+        return NextResponse.json({ error: "Metadata manquante" }, { status: 400 });
+      }
+
+      const { error: snapError } = await supabaseAdmin
+        .from("users")
+        .update({ snap_rouge_access: true, updated_at: new Date().toISOString() })
+        .eq("id", snapUserId);
+
+      if (snapError) {
+        console.error("Error unlocking Snap Rouge:", snapError);
+        return NextResponse.json({ error: "Erreur de déblocage Snap Rouge" }, { status: 500 });
+      }
+
+      await supabaseAdmin.from("credit_transactions").insert({
+        user_id:           snapUserId,
+        amount:            0,
+        type:              "purchase",
+        pack_id:           "snap_rouge",
+        stripe_session_id: session.id,
+      });
+
+      console.log(`✅ Snap Rouge unlocked for user ${snapUserId}`);
+      return NextResponse.json({ received: true });
+    }
+
     const userId  = session.metadata?.user_id;
     const credits = parseInt(session.metadata?.credits ?? "0", 10);
     const packId  = session.metadata?.pack_id;

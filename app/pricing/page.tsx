@@ -55,6 +55,7 @@ const PLANS = [
     features: [
       "Photo + Vidéo jusqu'à 5 secondes",
       "Qualité Ultra 4K (upscale x4)",
+      "🔥 Technique Snap Rouge incluse",
       "20+ styles + 5 styles exclusifs Pro",
       "Vitesse prioritaire (~20-30 secondes)",
       "File d'attente accélérée",
@@ -83,6 +84,7 @@ const PLANS = [
     features: [
       "Photo + Vidéo 4K jusqu'à 30 secondes",
       "Qualité Ultra 8K — Photoréalisme maximum",
+      "🔥 Technique Snap Rouge incluse",
       "Tous les styles + styles exclusifs Elite",
       "Vitesse ultra (~10-15 secondes)",
       "Priorité absolue — jamais d'attente",

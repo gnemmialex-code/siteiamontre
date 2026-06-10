@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["sharp"],
+  // Embarque la vidéo privée Snap Rouge dans le bundle serveur (Vercel)
+  outputFileTracingIncludes: {
+    "/api/snap-rouge/video": ["./private-videos/**"],
+  },
   images: {
     remotePatterns: [
       {

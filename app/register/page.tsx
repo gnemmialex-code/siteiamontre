@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Sparkles, Mail, Lock, Eye, EyeOff, Zap } from "lucide-react";
+import { Sparkles, Mail, Lock, Eye, EyeOff, Zap, Gift } from "lucide-react";
 import toast from "react-hot-toast";
 import Input from "../components/Input";
 import { supabase } from "@/lib/supabase";
@@ -31,6 +31,20 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [refCode, setRefCode] = useState<string | null>(null);
+
+  // Capture le code parrain (?ref=CODE) — appliqué automatiquement à la 1re connexion
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref) {
+      const code = ref.trim().toUpperCase();
+      localStorage.setItem("astracrea_ref", code);
+      setRefCode(code);
+    } else {
+      const stored = localStorage.getItem("astracrea_ref");
+      if (stored) setRefCode(stored);
+    }
+  }, []);
 
   const validate = () => {
     const errs: Record<string, string> = {};
@@ -113,6 +127,12 @@ export default function RegisterPage() {
             <Zap className="w-3.5 h-3.5" />
             100 crédits offerts = 1 image gratuite
           </div>
+          {refCode && (
+            <div className="mt-3 inline-flex items-center gap-1.5 bg-accent-violet/10 border border-accent-violet/30 text-accent-violet text-sm px-3 py-1.5 rounded-full">
+              <Gift className="w-3.5 h-3.5" />
+              Code parrain <strong>{refCode}</strong> — +100 crédits bonus
+            </div>
+          )}
         </div>
 
         <div className="card">

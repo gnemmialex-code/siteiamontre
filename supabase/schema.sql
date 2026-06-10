@@ -12,12 +12,19 @@ CREATE TABLE IF NOT EXISTS public.users (
   email TEXT NOT NULL UNIQUE,
   credits INTEGER NOT NULL DEFAULT 100,
   plan_id TEXT NOT NULL DEFAULT 'plan_essentiel',
+  referral_code TEXT UNIQUE,
+  referred_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  snap_rouge_access BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE INDEX IF NOT EXISTS users_referral_code_idx ON public.users(referral_code);
+CREATE INDEX IF NOT EXISTS users_referred_by_idx   ON public.users(referred_by);
+
 -- Migration: add plan_id to existing installations
 -- ALTER TABLE public.users ADD COLUMN IF NOT EXISTS plan_id TEXT NOT NULL DEFAULT 'plan_essentiel';
+-- Migration parrainage + Snap Rouge : voir supabase/migration-parrainage-snap-rouge.sql
 
 -- ============================================================
 -- TABLE: generations
@@ -41,7 +48,7 @@ CREATE TABLE IF NOT EXISTS public.credit_transactions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   amount INTEGER NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('purchase', 'use', 'bonus')),
+  type TEXT NOT NULL CHECK (type IN ('purchase', 'use', 'bonus', 'referral')),
   pack_id TEXT,
   stripe_session_id TEXT UNIQUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -90,14 +97,70 @@ CREATE POLICY "Users can view own transactions"
 -- FUNCTIONS
 -- ============================================================
 
+-- Unique referral code generator (8 chars)
+CREATE OR REPLACE FUNCTION public.generate_referral_code()
+RETURNS TEXT AS $$
+DECLARE
+  v_code TEXT;
+BEGIN
+  LOOP
+    v_code := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 8));
+    EXIT WHEN NOT EXISTS (SELECT 1 FROM public.users WHERE referral_code = v_code);
+  END LOOP;
+  RETURN v_code;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Auto-create user record on signup with 100 free credits (= 1 image)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.users (id, email, credits)
-  VALUES (NEW.id, NEW.email, 100)
+  INSERT INTO public.users (id, email, credits, referral_code)
+  VALUES (NEW.id, NEW.email, 100, public.generate_referral_code())
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Apply a referral code: referee +100 credits, referrer +200 credits
+CREATE OR REPLACE FUNCTION public.apply_referral(p_user_id UUID, p_code TEXT)
+RETURNS JSONB AS $$
+DECLARE
+  v_user     public.users%ROWTYPE;
+  v_referrer public.users%ROWTYPE;
+BEGIN
+  SELECT * INTO v_user FROM public.users WHERE id = p_user_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'Utilisateur introuvable');
+  END IF;
+  IF v_user.referred_by IS NOT NULL THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'Un code de parrainage a déjà été utilisé sur ce compte');
+  END IF;
+  IF v_user.created_at < NOW() - INTERVAL '7 days' THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'Le parrainage est réservé aux nouveaux comptes (moins de 7 jours)');
+  END IF;
+
+  SELECT * INTO v_referrer FROM public.users WHERE referral_code = upper(trim(p_code));
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'Code de parrainage invalide');
+  END IF;
+  IF v_referrer.id = p_user_id THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'Vous ne pouvez pas utiliser votre propre code');
+  END IF;
+
+  UPDATE public.users
+  SET referred_by = v_referrer.id, credits = credits + 100, updated_at = NOW()
+  WHERE id = p_user_id;
+
+  UPDATE public.users
+  SET credits = credits + 200, updated_at = NOW()
+  WHERE id = v_referrer.id;
+
+  INSERT INTO public.credit_transactions (user_id, amount, type)
+  VALUES (p_user_id, 100, 'referral'),
+         (v_referrer.id, 200, 'referral');
+
+  RETURN jsonb_build_object('ok', true, 'referrer_id', v_referrer.id);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

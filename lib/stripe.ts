@@ -20,6 +20,12 @@ export const STRIPE_CREDIT_PACKS: Record<string, { credits: number; priceId: str
   },
 };
 
+// Accès à vie à la technique Snap Rouge — paiement unique (inclus dans Pro & Elite)
+export const SNAP_ROUGE_PRODUCT = {
+  name:        "Technique Snap Rouge — Accès à vie",
+  amountCents: 490, // 4,90 € — modifiable ici
+};
+
 export const STRIPE_PLANS: Record<string, { credits: number | null; monthly: string; yearly: string; name: string }> = {
   plan_essentiel: {
     credits: 2500,
