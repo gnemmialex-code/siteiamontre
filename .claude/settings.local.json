@@ -33,7 +33,9 @@
       "Bash(git rm *)",
       "Bash(dir \"C:\\\\Users\\\\alexi\\\\Documents\\\\FlutterProjects\\\\testsiteiacelebité\\\\public\\\\styles\")",
       "Bash(findstr /i arm)",
-      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\alexi\\\\Documents\\\\FlutterProjects\\\\testsiteiacelebité\\\\public\\\\styles\" | Where-Object { $_.Name -match \"arm\" })"
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\alexi\\\\Documents\\\\FlutterProjects\\\\testsiteiacelebité\\\\public\\\\styles\" | Where-Object { $_.Name -match \"arm\" })",
+      "Bash(vercel --prod --archive=tgz)",
+      "Bash(vercel inspect *)"
     ]
   }
 }

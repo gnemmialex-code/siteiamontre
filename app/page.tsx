@@ -369,7 +369,6 @@ function ExamplesGallery() {
 
 function DemoVideoSection() {
   const [mode, setMode] = useState<"horizontal" | "vertical">("horizontal");
-  const isVertical = mode === "vertical";
 
   return (
     <section id="demo" className="py-24 px-4 sm:px-6 relative overflow-hidden">
@@ -438,30 +437,35 @@ function DemoVideoSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={mode}
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.97 }}
-              transition={{ duration: 0.25 }}
-              className={`mx-auto ${isVertical ? "max-w-sm" : "max-w-4xl"}`}
+          {/* Les deux vidéos restent montées en permanence : lecture auto en boucle
+              dès le chargement, impossible à mettre en pause ou télécharger.
+              Le sélecteur ne fait que basculer l'affichage. */}
+          {(["horizontal", "vertical"] as const).map(m => (
+            <div
+              key={m}
+              className={`mx-auto ${m === "vertical" ? "max-w-sm" : "max-w-4xl"} ${mode === m ? "block" : "hidden"}`}
             >
-              <div className="relative rounded-3xl overflow-hidden border border-surface-border bg-surface shadow-violet">
+              <div className="relative rounded-3xl overflow-hidden border border-surface-border bg-surface shadow-violet select-none">
                 {/* Liseré dégradé */}
                 <div className="absolute inset-0 rounded-3xl pointer-events-none z-10" style={{ boxShadow: "inset 0 0 0 1px rgba(138,43,226,0.25)" }} />
-                <div className="relative bg-surface-hover" style={{ aspectRatio: isVertical ? "9/16" : "16/9" }}>
+                <div className="relative bg-surface-hover" style={{ aspectRatio: m === "vertical" ? "9/16" : "16/9" }}>
                   <video
-                    src={DEMO_VIDEOS[mode]}
-                    controls
+                    src={DEMO_VIDEOS[m]}
+                    autoPlay
+                    loop
+                    muted
                     playsInline
-                    preload="metadata"
-                    className="w-full h-full object-cover absolute inset-0"
+                    preload="auto"
+                    disablePictureInPicture
+                    controlsList="nodownload noplaybackrate"
+                    onContextMenu={e => e.preventDefault()}
+                    onPause={e => { e.currentTarget.play().catch(() => {}); }}
+                    className="w-full h-full object-cover absolute inset-0 pointer-events-none"
                   />
                 </div>
               </div>
-            </motion.div>
-          </AnimatePresence>
+            </div>
+          ))}
         </motion.div>
       </div>
     </section>
