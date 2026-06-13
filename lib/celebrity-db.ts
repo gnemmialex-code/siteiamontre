@@ -1909,6 +1909,714 @@ export const CELEBRITY_DB: Celebrity[] = [
     visual_description:
       "American WoW streamer. Male, ~1.75m, normal. Brown hair (sometimes unkempt medium-length), brown eyes. Minimal geek casual.",
   },
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // ACTEURS CINÉMA FRANÇAIS
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id: "jean-dujardin",
+    name: "Jean Dujardin",
+    aliases: ["jean dujardin"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French Oscar-winning actor. Male, ~1.81m, athletic slim. Brown hair, brown eyes, warm smile. Charming old Hollywood look: suit, occasional mustache. Symmetrical face, dimples.",
+  },
+  {
+    id: "jean-reno",
+    name: "Jean Reno",
+    aliases: ["jean reno"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French-Spanish actor (The Professional). Male, ~1.87m, tall imposing build. Graying dark hair, brown eyes, square jaw. Serious face, strong brow. Often in dark coat or suit.",
+  },
+  {
+    id: "omar-sy",
+    name: "Omar Sy",
+    aliases: ["omar sy"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French actor (Intouchables, Lupin). Male, ~1.90m, very tall, athletic build. Black skin, brown eyes, bright wide smile. Shaved or very short hair. Charismatic elegant casual style.",
+  },
+  {
+    id: "dany-boon",
+    name: "Dany Boon",
+    aliases: ["dany boon"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French comedian and director (Bienvenue chez les Ch'tis). Male, ~1.80m, slim. Brown hair, blue eyes, wide grin. Ch'ti accent persona. Simple casual.",
+  },
+  {
+    id: "kad-merad",
+    name: "Kad Merad",
+    aliases: ["kad merad"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French comedian and actor. Male, ~1.78m, normal build. Brown hair, brown eyes, beard. Expressive round face. Casual-chic.",
+  },
+  {
+    id: "guillaume-canet",
+    name: "Guillaume Canet",
+    aliases: ["guillaume canet"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French actor and director. Male, ~1.79m, slim athletic. Brown hair, green eyes, stubble. Parisian chic: leather jacket, jeans. Intense look.",
+  },
+  {
+    id: "gilles-lellouche",
+    name: "Gilles Lellouche",
+    aliases: ["gilles lellouche"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French actor (Le Grand Bain). Male, ~1.75m, stocky build. Brown hair, brown eyes, three-day beard. Casual: jeans, t-shirt. Warm expressive face.",
+  },
+  {
+    id: "francois-civil",
+    name: "François Civil",
+    aliases: ["francois civil", "françois civil"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French actor (Le Bureau des Légendes). Male, ~1.77m, slim. Brown hair, brown eyes, beard. Smart-casual: jacket over t-shirt. Intense focused expression.",
+  },
+  {
+    id: "jonathan-cohen",
+    name: "Jonathan Cohen",
+    aliases: ["jonathan cohen"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French comedian and actor (Validé). Male, ~1.78m, normal build. Brown curly hair, brown eyes, beard. Young relaxed look: sweatshirt, cap. Warm smile.",
+  },
+  {
+    id: "tarek-boudali",
+    name: "Tarek Boudali",
+    aliases: ["tarek boudali"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French comedian and actor (Alibi.com). Male, ~1.78m, slim. Brown hair, brown eyes. Casual everyday look. Friendly expressive face.",
+  },
+  {
+    id: "philippe-lacheau",
+    name: "Philippe Lacheau",
+    aliases: ["philippe lacheau"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French director and actor (Babysitting). Male, ~1.79m, slim. Brown hair, brown eyes. Casual modern style. Mischievous smile.",
+  },
+  {
+    id: "pierre-niney",
+    name: "Pierre Niney",
+    aliases: ["pierre niney"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French César-winning actor (Yves Saint Laurent). Male, ~1.76m, slim elegant. Brown hair, light eyes, refined features. Classic chic: suit or blazer. Very fine delicate face.",
+  },
+  {
+    id: "daniel-auteuil",
+    name: "Daniel Auteuil",
+    aliases: ["daniel auteuil"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French iconic actor (Jean de Florette, Manon des Sources). Male, ~1.73m, normal build. White/graying hair, blue eyes. Thoughtful intellectual face. Smart-casual or suit.",
+  },
+  {
+    id: "andre-dussollier",
+    name: "André Dussollier",
+    aliases: ["andre dussollier", "andré dussollier"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French César-winning actor. Male, ~1.79m, slim. White hair, blue eyes, refined face. Intellectual elegant look: blazer.",
+  },
+  {
+    id: "clovis-cornillac",
+    name: "Clovis Cornillac",
+    aliases: ["clovis cornillac"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French actor and director. Male, ~1.75m, athletic build. Brown hair, brown eyes, beard. Rugged look: often in period costume or casual leather jacket.",
+  },
+  {
+    id: "edouard-baer",
+    name: "Edouard Baer",
+    aliases: ["edouard baer", "édouard baer"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French actor and humorist. Male, ~1.80m, slim lanky. Brown hair, blue eyes, often unshaven. Bohemian dandy look: long scarf, vintage coat.",
+  },
+  {
+    id: "gerard-depardieu",
+    name: "Gérard Depardieu",
+    aliases: ["gerard depardieu", "gérard depardieu"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French iconic actor. Male, ~1.79m, heavy large build. White hair, blue eyes, large nose. Imposing broad face. Casual or period costumes.",
+  },
+  {
+    id: "alban-lennoir",
+    name: "Alban Lenoir",
+    aliases: ["alban lennoir", "alban lenoir"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French actor (Balle Perdue). Male, ~1.80m, very muscular athletic build. Brown hair, brown eyes, beard. Tattoos on arms. Action-movie look: tank top, tactical clothes.",
+  },
+  {
+    id: "patrick-bruel",
+    name: "Patrick Bruel",
+    aliases: ["patrick bruel"],
+    gender: "male",
+    category: "fr_actor",
+    nationality: "fr",
+    visual_description:
+      "French singer and actor. Male, ~1.74m, slim. Brown hair, brown eyes, often stubble. Parisian casual-chic. Sensitive expressive face.",
+  },
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // ACTEURS CINÉMA HOLLYWOOD
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id: "brad-pitt",
+    name: "Brad Pitt",
+    aliases: ["brad pitt"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American A-list actor. Male, ~1.80m, lean athletic. Blonde hair, blue eyes, chiseled jaw. Timeless handsome look. Often stylish casual or suited.",
+  },
+  {
+    id: "ryan-gosling",
+    name: "Ryan Gosling",
+    aliases: ["ryan gosling"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "ca",
+    visual_description:
+      "Canadian actor (Drive, La La Land, Barbie). Male, ~1.84m, muscular lean. Dirty blonde hair, blue-gray eyes, strong jaw, slight stubble. Effortlessly cool style.",
+  },
+  {
+    id: "tom-cruise",
+    name: "Tom Cruise",
+    aliases: ["tom cruise"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American action star (Mission Impossible, Top Gun). Male, ~1.70m, compact very athletic. Brown hair, brown eyes, symmetrical smile. Always immaculate: suit or action gear.",
+  },
+  {
+    id: "keanu-reeves",
+    name: "Keanu Reeves",
+    aliases: ["keanu reeves"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "ca",
+    visual_description:
+      "Canadian actor (The Matrix, John Wick). Male, ~1.86m, lean athletic. Long black hair, dark eyes, beard. Stoic calm face. Black tactical clothing or casual.",
+  },
+  {
+    id: "leonardo-dicaprio",
+    name: "Leonardo DiCaprio",
+    aliases: ["leonardo dicaprio", "leo dicaprio", "leo"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American Oscar-winning actor. Male, ~1.83m, slim. Blonde-brown hair, blue eyes. Handsome face, slight beard in recent years. Smart-casual or suited.",
+  },
+  {
+    id: "johnny-depp",
+    name: "Johnny Depp",
+    aliases: ["johnny depp"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor (Jack Sparrow, Edward Scissorhands). Male, ~1.78m, slim. Dark brown hair, dark eyes, often extensive beard and mustache. Bohemian style: rings, scarves, hat.",
+  },
+  {
+    id: "will-smith",
+    name: "Will Smith",
+    aliases: ["will smith", "fresh prince"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor and rapper. Male, ~1.88m, athletic muscular. Black skin, brown eyes, shaved head or close fade. Wide smile. Streetwear or suited.",
+  },
+  {
+    id: "denzel-washington",
+    name: "Denzel Washington",
+    aliases: ["denzel washington", "denzel"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American Oscar-winning actor. Male, ~1.85m, athletic. Black skin, brown eyes, short hair. Commanding powerful presence. Often suited or in action roles.",
+  },
+  {
+    id: "morgan-freeman",
+    name: "Morgan Freeman",
+    aliases: ["morgan freeman"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American legendary actor. Male, ~1.88m, tall slim. Gray hair and beard, brown eyes, freckled skin. Wise distinguished face. Elegant suit or casual.",
+  },
+  {
+    id: "samuel-l-jackson",
+    name: "Samuel L. Jackson",
+    aliases: ["samuel l jackson", "samuel jackson", "sam jackson"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American iconic actor (Pulp Fiction, Marvel Nick Fury). Male, ~1.82m, athletic slim. Black skin, brown eyes. Shaved head or very short gray hair. Often in suit or tactical gear. Intense stare.",
+  },
+  {
+    id: "robert-de-niro",
+    name: "Robert De Niro",
+    aliases: ["robert de niro", "de niro"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American legendary actor (Taxi Driver, The Godfather Part II). Male, ~1.77m, normal build. Brown/gray hair, brown eyes, intense gaze. Angular face. Suited or casual.",
+  },
+  {
+    id: "al-pacino",
+    name: "Al Pacino",
+    aliases: ["al pacino"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American legendary actor (Scarface, The Godfather). Male, ~1.70m, slim. Dark brown/gray hair, dark eyes, olive Italian-American skin. Intense passionate face. Suited or open-collar shirt.",
+  },
+  {
+    id: "robert-downey-jr",
+    name: "Robert Downey Jr.",
+    aliases: ["robert downey jr", "rdj", "iron man"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor (Iron Man, Sherlock Holmes). Male, ~1.74m, lean muscular. Dark brown hair, brown eyes, neat goatee. Sharp wit in his expression. Smart-casual or suit.",
+  },
+  {
+    id: "chris-evans",
+    name: "Chris Evans",
+    aliases: ["chris evans", "captain america"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor (Captain America). Male, ~1.83m, very muscular. Brown hair, blue eyes, square jaw, beard. Classic American handsome look. Casual or suited.",
+  },
+  {
+    id: "chris-hemsworth",
+    name: "Chris Hemsworth",
+    aliases: ["chris hemsworth", "thor"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "au",
+    visual_description:
+      "Australian actor (Thor). Male, ~1.90m, extremely muscular. Blonde hair, blue eyes, full beard. Viking-god physique. Casual or action gear.",
+  },
+  {
+    id: "chris-pratt",
+    name: "Chris Pratt",
+    aliases: ["chris pratt", "star-lord"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor (Guardians of the Galaxy, Jurassic World). Male, ~1.88m, muscular tall. Brown hair, blue eyes, beard. Boy-next-door handsome. Casual or action gear.",
+  },
+  {
+    id: "chris-pine",
+    name: "Chris Pine",
+    aliases: ["chris pine"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor (Wonder Woman, Star Trek). Male, ~1.83m, lean athletic. Brown hair, vivid blue eyes, beard. Classic Hollywood handsome. Smart-casual or suited.",
+  },
+  {
+    id: "dwayne-johnson",
+    name: "Dwayne Johnson",
+    aliases: ["the rock", "dwayne johnson"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor and wrestler (The Rock). Male, ~1.96m, massive extremely muscular. Black skin, brown eyes, shaved head. Tattoo sleeve on left arm. Huge physique in t-shirt or suit.",
+  },
+  {
+    id: "jason-statham",
+    name: "Jason Statham",
+    aliases: ["jason statham"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "uk",
+    visual_description:
+      "British action star (Transporter, Fast & Furious). Male, ~1.77m, very muscular compact. Shaved head, blue eyes, stubble. Tough rugged face. Black t-shirt or suit.",
+  },
+  {
+    id: "vin-diesel",
+    name: "Vin Diesel",
+    aliases: ["vin diesel"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor (Fast & Furious). Male, ~1.82m, massive muscular. Shaved head, brown eyes, olive mixed-race skin. Imposing square face. Black sleeveless shirt or suit.",
+  },
+  {
+    id: "tom-hardy",
+    name: "Tom Hardy",
+    aliases: ["tom hardy"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "uk",
+    visual_description:
+      "British actor (Bane, Venom, Mad Max). Male, ~1.75m, compact extremely muscular. Brown hair, blue eyes, heavy jaw. Intense brooding expression. Often in black or tactical outfit.",
+  },
+  {
+    id: "liam-neeson",
+    name: "Liam Neeson",
+    aliases: ["liam neeson"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "uk",
+    visual_description:
+      "Irish-American action actor (Taken). Male, ~1.93m, very tall lean. Gray hair, blue eyes, craggy lined face. Serious imposing presence. Overcoat or suit.",
+  },
+  {
+    id: "sylvester-stallone",
+    name: "Sylvester Stallone",
+    aliases: ["sylvester stallone", "stallone", "rocky", "rambo"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American action legend (Rocky, Rambo). Male, ~1.77m, extremely muscular. Brown/gray hair, brown eyes, drooping lower face. Iconic strong jaw. Often in action gear or suit.",
+  },
+  {
+    id: "arnold-schwarzenegger",
+    name: "Arnold Schwarzenegger",
+    aliases: ["arnold schwarzenegger", "arnie", "terminator"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "Austrian-American actor and bodybuilder (Terminator). Male, ~1.88m, massive iconic muscular body. Brown/gray hair, blue eyes, square Austrian jaw. Strong accent. Action gear or suit.",
+  },
+  {
+    id: "mark-wahlberg",
+    name: "Mark Wahlberg",
+    aliases: ["mark wahlberg", "marky mark"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor (Transformers, The Departed). Male, ~1.73m, very muscular compact. Brown hair, blue eyes, square jaw. Boston tough-guy look. Casual or suited.",
+  },
+  {
+    id: "matt-damon",
+    name: "Matt Damon",
+    aliases: ["matt damon"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor (Jason Bourne, Good Will Hunting). Male, ~1.78m, lean athletic. Brown hair, blue eyes. Clean-cut all-American face. Smart-casual or action gear.",
+  },
+  {
+    id: "ben-affleck",
+    name: "Ben Affleck",
+    aliases: ["ben affleck", "batman"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor and director (Batman, Gone Girl). Male, ~1.89m, tall muscular. Dark brown hair, brown eyes, square jaw, beard. Serious face. Suited or casual.",
+  },
+  {
+    id: "george-clooney",
+    name: "George Clooney",
+    aliases: ["george clooney"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor (Ocean's Eleven). Male, ~1.80m, slim athletic. Silver-gray hair, brown eyes. Classic distinguished handsome. Suit or casual chic.",
+  },
+  {
+    id: "harrison-ford",
+    name: "Harrison Ford",
+    aliases: ["harrison ford", "han solo", "indiana jones"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American legendary actor (Star Wars, Indiana Jones). Male, ~1.85m, lean. Gray hair, brown eyes, chin scar. Grizzled adventure look. Leather jacket or suit.",
+  },
+  {
+    id: "ryan-reynolds",
+    name: "Ryan Reynolds",
+    aliases: ["ryan reynolds", "deadpool"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "ca",
+    visual_description:
+      "Canadian actor (Deadpool, Free Guy). Male, ~1.87m, tall lean muscular. Brown hair, blue-green eyes, sharp jaw, stubble. Witty charming face. Smart-casual or suited.",
+  },
+  {
+    id: "jake-gyllenhaal",
+    name: "Jake Gyllenhaal",
+    aliases: ["jake gyllenhaal"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor (Nightcrawler, Spider-Man). Male, ~1.83m, lean muscular. Brown hair, intense blue eyes, beard. Piercing gaze. Casual or suited.",
+  },
+  {
+    id: "joaquin-phoenix",
+    name: "Joaquin Phoenix",
+    aliases: ["joaquin phoenix", "joker"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American Oscar-winning actor (Joker, Her). Male, ~1.73m, slim. Dark wavy hair, green eyes, distinctive upper lip scar. Intense raw expression. Simple dark clothing.",
+  },
+  {
+    id: "cillian-murphy",
+    name: "Cillian Murphy",
+    aliases: ["cillian murphy", "peaky blinders"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "ie",
+    visual_description:
+      "Irish actor (Peaky Blinders, Oppenheimer). Male, ~1.78m, slim. Brown hair, piercing icy blue eyes, sharp cheekbones. Striking intense face. Period or casual.",
+  },
+  {
+    id: "christian-bale",
+    name: "Christian Bale",
+    aliases: ["christian bale", "batman bale"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "uk",
+    visual_description:
+      "British actor (Batman, The Dark Knight). Male, ~1.83m, extremely variable physique (from skeletal to muscular). Brown hair, blue eyes. Intense method-actor expression.",
+  },
+  {
+    id: "daniel-craig",
+    name: "Daniel Craig",
+    aliases: ["daniel craig", "james bond"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "uk",
+    visual_description:
+      "British actor (James Bond). Male, ~1.78m, compact very muscular. Blonde hair, blue eyes, square rugged jaw. Stoic tough expression. Suit or action gear.",
+  },
+  {
+    id: "hugh-jackman",
+    name: "Hugh Jackman",
+    aliases: ["hugh jackman", "wolverine"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "au",
+    visual_description:
+      "Australian actor (Wolverine, Logan). Male, ~1.88m, extremely muscular. Brown hair, brown eyes, distinctive mutton chop sideburns for Wolverine. Intense animal look or elegant theatrical.",
+  },
+  {
+    id: "benedict-cumberbatch",
+    name: "Benedict Cumberbatch",
+    aliases: ["benedict cumberbatch", "sherlock", "doctor strange"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "uk",
+    visual_description:
+      "British actor (Sherlock, Doctor Strange). Male, ~1.84m, slim. Brown hair, blue-green eyes, distinctive angular features, strong nose. Aristocratic British face. Suited or academic.",
+  },
+  {
+    id: "tom-hiddleston",
+    name: "Tom Hiddleston",
+    aliases: ["tom hiddleston", "loki"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "uk",
+    visual_description:
+      "British actor (Loki). Male, ~1.88m, tall slim. Light brown hair, blue eyes, sharp patrician features. Charming sharp smile. Elegant suited or Nordic costume.",
+  },
+  {
+    id: "jeremy-renner",
+    name: "Jeremy Renner",
+    aliases: ["jeremy renner", "hawkeye"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor (Hawkeye, The Hurt Locker). Male, ~1.75m, very muscular compact. Brown hair, hazel eyes, beard. Rugged intense look. Tactical or casual.",
+  },
+  {
+    id: "idris-elba",
+    name: "Idris Elba",
+    aliases: ["idris elba"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "uk",
+    visual_description:
+      "British actor (Luther, The Wire). Male, ~1.89m, very tall muscular. Black skin, brown eyes, bald or very short hair, beard. Commanding imposing presence. Suit or casual.",
+  },
+  {
+    id: "michael-b-jordan",
+    name: "Michael B. Jordan",
+    aliases: ["michael b jordan", "michael b. jordan", "creed"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor (Creed, Black Panther). Male, ~1.80m, extremely muscular athletic. Black skin, brown eyes, neat beard. Handsome confident face. Streetwear or suited.",
+  },
+  {
+    id: "gary-oldman",
+    name: "Gary Oldman",
+    aliases: ["gary oldman"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "uk",
+    visual_description:
+      "British character actor (Léon, The Dark Knight, Darkest Hour). Male, ~1.75m, slim. Brown/gray hair, blue eyes. Versatile chameleon face. Suited or in character.",
+  },
+  {
+    id: "colin-farrell",
+    name: "Colin Farrell",
+    aliases: ["colin farrell"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "ie",
+    visual_description:
+      "Irish actor. Male, ~1.73m, lean athletic. Dark brown hair, dark blue eyes, heavy eyebrows, beard. Rugged Irish look. Casual or suited.",
+  },
+  {
+    id: "adam-driver",
+    name: "Adam Driver",
+    aliases: ["adam driver", "kylo ren"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor (Marriage Story, Star Wars Kylo Ren). Male, ~1.90m, very tall lean. Dark hair, dark eyes, unusually angular face with large nose. Distinctive striking look. Simple dark clothing.",
+  },
+  {
+    id: "timothee-chalamet",
+    name: "Timothée Chalamet",
+    aliases: ["timothee chalamet", "timothée chalamet"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "fr",
+    visual_description:
+      "French-American actor (Dune, Call Me By Your Name). Male, ~1.79m, very slim. Brown curly hair, brown eyes. Youthful delicate features. Avant-garde high-fashion or casual.",
+  },
+  {
+    id: "robert-pattinson",
+    name: "Robert Pattinson",
+    aliases: ["robert pattinson", "batman pattinson", "twilight"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "uk",
+    visual_description:
+      "British actor (The Batman, Twilight). Male, ~1.85m, lean. Brown hair, dark blue eyes, sharp cheekbones. Brooding intense look. Dark aesthetic clothing or suited.",
+  },
+  {
+    id: "andrew-garfield",
+    name: "Andrew Garfield",
+    aliases: ["andrew garfield", "andrew garfiled", "spider-man garfield"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "uk",
+    visual_description:
+      "British-American actor (Spider-Man, Silence). Male, ~1.79m, slim. Brown hair, brown eyes, boyish face. Earnest warm expression. Casual or suited.",
+  },
+  {
+    id: "tobey-maguire",
+    name: "Tobey Maguire",
+    aliases: ["tobey maguire", "spider-man maguire"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American actor (Spider-Man, The Great Gatsby). Male, ~1.75m, slim. Brown hair, blue eyes, baby face. Gentle boyish look. Casual.",
+  },
+  {
+    id: "daniel-radcliffe",
+    name: "Daniel Radcliffe",
+    aliases: ["daniel radcliffe", "harry potter"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "uk",
+    visual_description:
+      "British actor (Harry Potter). Male, ~1.65m, small slim. Dark hair, blue eyes. Young boyish face. Casual.",
+  },
+  {
+    id: "jackie-chan",
+    name: "Jackie Chan",
+    aliases: ["jackie chan"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "hk",
+    visual_description:
+      "Hong Kong martial arts actor. Male, ~1.74m, muscular compact. Black/gray hair, brown eyes, East Asian features. Round jovial face. Martial arts gear or casual.",
+  },
+  {
+    id: "willem-dafoe",
+    name: "Willem Dafoe",
+    aliases: ["willem dafoe", "green goblin"],
+    gender: "male",
+    category: "int_actor",
+    nationality: "us",
+    visual_description:
+      "American character actor (Platoon, Spider-Man Green Goblin). Male, ~1.71m, wiry. Brown hair, deep-set intense eyes. Distinctive gaunt angular face. Unsettling expressive gaze.",
+  },
 ];
 
 // ─── Detection helpers ──────────────────────────────────────────────────────
