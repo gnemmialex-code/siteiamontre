@@ -23,34 +23,53 @@ export async function getCelebRefImages(
   const collected: string[] = [];
 
   // 1. Pull from Supabase Storage — celebrity-refs/{celebId}/*.jpg
+  // Tries the exact celebId first, then alternate formats (dashes ↔ underscores)
+  // to handle folder naming mismatches between the DB and the Storage bucket.
   try {
     const admin = createSupabaseAdmin();
-    const { data: files, error } = await admin.storage
-      .from(BUCKET)
-      .list(celebId, { limit: 20, sortBy: { column: "name", order: "asc" } });
 
-    if (error) {
-      console.warn(`[CelebRefs] Storage list error for "${celebId}":`, error.message);
+    const folderCandidates: string[] = [celebId];
+    const withUnderscores = celebId.replace(/-/g, "_");
+    const withDashes      = celebId.replace(/_/g, "-");
+    if (withUnderscores !== celebId) folderCandidates.push(withUnderscores);
+    if (withDashes      !== celebId) folderCandidates.push(withDashes);
+
+    let resolvedFolder: string | null = null;
+    let resolvedFiles: { name: string }[] = [];
+
+    for (const folder of folderCandidates) {
+      const { data: files, error } = await admin.storage
+        .from(BUCKET)
+        .list(folder, { limit: 20, sortBy: { column: "name", order: "asc" } });
+
+      if (error) {
+        console.warn(`[CelebRefs] Storage list error for folder "${folder}":`, error.message);
+        continue;
+      }
+
+      const imageFiles = (files ?? []).filter((f) => f.name && isImageFile(f.name));
+      if (imageFiles.length > 0) {
+        resolvedFolder = folder;
+        resolvedFiles  = imageFiles;
+        break;
+      }
     }
 
-    if (files && files.length > 0) {
-      const imageFiles = files
-        .filter((f) => f.name && isImageFile(f.name))  // skip .emptyFolderPlaceholder etc.
-        .slice(0, MAX_REFS);
+    if (resolvedFolder && resolvedFiles.length > 0) {
+      const imageFiles = resolvedFiles.slice(0, MAX_REFS);
+      console.log(`[CelebRefs] "${celebId}" → folder "${resolvedFolder}": found ${imageFiles.length} image(s)`);
 
-      console.log(`[CelebRefs] "${celebId}": found ${imageFiles.length} image(s) in Storage`);
-
-      // Use signed URLs (60 s TTL) so they work for private buckets too
-      const paths = imageFiles.map((f) => `${celebId}/${f.name}`);
+      // Use signed URLs (1 hour TTL) — long enough to survive Replicate retries
+      const paths = imageFiles.map((f) => `${resolvedFolder}/${f.name}`);
       const { data: signed, error: signErr } = await admin.storage
         .from(BUCKET)
-        .createSignedUrls(paths, 60);
+        .createSignedUrls(paths, 3600);
 
       if (signErr) {
-        console.warn(`[CelebRefs] createSignedUrls error for "${celebId}":`, signErr.message);
+        console.warn(`[CelebRefs] createSignedUrls error for "${resolvedFolder}":`, signErr.message);
         // Fall back to public URLs
         for (const file of imageFiles) {
-          const { data } = admin.storage.from(BUCKET).getPublicUrl(`${celebId}/${file.name}`);
+          const { data } = admin.storage.from(BUCKET).getPublicUrl(`${resolvedFolder}/${file.name}`);
           if (data?.publicUrl) collected.push(data.publicUrl);
         }
       } else {
@@ -59,7 +78,7 @@ export async function getCelebRefImages(
         }
       }
     } else {
-      console.log(`[CelebRefs] "${celebId}": no files found in Storage`);
+      console.log(`[CelebRefs] "${celebId}": no images found in Storage (tried: ${folderCandidates.join(", ")})`);
     }
   } catch (err) {
     console.warn(`[CelebRefs] Storage unreachable for "${celebId}":`, err);

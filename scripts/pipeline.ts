@@ -251,14 +251,21 @@ const HIDDEN_SYSTEM_CONTEXT =
   "ENVIRONMENTAL CONTACT — if the subject stands on a surface, ensure correct ground shadow, contact shadow, and perspective consistency; " +
   "ATMOSPHERE — apply consistent atmospheric haze, light diffusion, or particle effects (snow, rain, dust) that affect both scene and subject uniformly. " +
 
-  // ── PHASE 5: quality preservation ────────────────────────────────────────
-  "PHASE 5 · ORIGINAL QUALITY RESPECT: " +
+  // ── PHASE 5: quality and framing preservation ────────────────────────────
+  "PHASE 5 · ORIGINAL QUALITY AND FRAMING RESPECT: " +
   "Unless the user explicitly requests 'improve quality', 'enhance', 'HD', '4K', or similar upgrade instructions, " +
   "match the original photograph's technical characteristics: " +
   "replicate the native sharpness level (do not over-sharpen); " +
   "preserve the original grain or noise signature if present (film grain, sensor noise); " +
   "maintain the original aspect ratio and compositional framing of the subject; " +
   "do not artificially increase contrast or saturate colors beyond the scene's natural requirements. " +
+  "OUTPUT FRAMING — NON-NEGOTIABLE: The compositional framing of the original person must not change. " +
+  "Do not crop the image. Do not zoom in or out. Do not pan or shift the frame. " +
+  "Do not reframe, rotate, or resize the canvas. " +
+  "The subject must remain in the same position within the frame as in the input photo, at the same scale. " +
+  "If a new person is added beside the original subject, they must fit into the existing frame naturally " +
+  "without displacing, scaling down, or repositioning the original subject. " +
+  "The output image dimensions and aspect ratio must exactly match the input image. " +
 
   // ── PHASE 6: final output standard ────────────────────────────────────────
   "PHASE 6 · FINAL OUTPUT STANDARD: " +
@@ -318,13 +325,19 @@ function buildStylePrompt(
       // Nano-banana-pro (Gemini-based) can visually analyse multiple images.
       // The prompt tells it: study the reference photos, then reproduce that
       // person's appearance accurately in the scene.
+      // The text description is also provided as a cross-check to catch cases
+      // where the reference photos alone are insufficient.
       const n = celebRefCount!;
       const imgWord = n === 1 ? "image" : "images";
+      const celebDescBlock = celebs
+        .map((c) => `[${c.name.toUpperCase()}] ${c.visual_description}`)
+        .join(" | ");
 
       editInstruction =
         `You are given ${n + 1} images. ` +
-        `Image 1 is the main photo (the user). ` +
-        `${n === 1 ? "Image 2 is" : `Images 2 to ${n + 1} are`} real reference ${imgWord} of ${celebNames}. ` +
+        `Image 1 is the MAIN PHOTO — this is the user's photo and must remain 100% unchanged. ` +
+        `${n === 1 ? "Image 2 is" : `Images 2 to ${n + 1} are`} real reference ${imgWord} of ${celebNames} — ` +
+        `these are provided ONLY as visual identity references for rendering ${celebNames} accurately. ` +
 
         `STEP 1 — VISUAL ANALYSIS: Study the reference ${imgWord} of ${celebNames} carefully. ` +
         `Identify and memorise: ` +
@@ -338,11 +351,18 @@ function buildStylePrompt(
         `STEP 2 — GENERATION: Add ${celebNames} to image 1 as a new person standing naturally beside the existing subject. ` +
         `Reproduce ${celebNames}'s appearance EXACTLY as observed in the reference ${imgWord} — ` +
         `same face, same skin tone, same hair, same body. ` +
-        `Do NOT invent generic features. Do NOT guess from text descriptions. ` +
-        `Use only what you see in the reference ${imgWord}. ` +
+        `Do NOT invent generic features. ` +
+        `Use what you see in the reference ${imgWord} as primary truth. ` +
+
+        `STEP 3 — IDENTITY CROSS-CHECK: Verify that the rendered ${celebNames} also matches ` +
+        `their documented known appearance: ${celebDescBlock}. ` +
+        `The rendered person must be consistent with both the reference photos and this description. ` +
+        `If there is any conflict, trust the reference photos. ` +
+        `Never render a generic or placeholder face — always the real person. ` +
 
         `${sceneExtra ? `Scene context: ${sceneExtra}. ` : ""}` +
-        `The original person in image 1 stays 100% unchanged, pixel-perfect.`;
+        `The original person in image 1 stays 100% unchanged, pixel-perfect. ` +
+        `Do not alter, resize, reposition, or redraw the person from image 1 in any way.`;
 
     } else {
       // ── CELEBRITY INSERTION — DESCRIPTION-GUIDED (no reference photos) ──
@@ -353,11 +373,13 @@ function buildStylePrompt(
       editInstruction =
         `TASK — ADD ${celebNames.toUpperCase()} TO THIS PHOTO: ` +
         `Insert ${celebNames} as a new person standing naturally beside the original subject. ` +
-        `CELEBRITY APPEARANCE: ${celebDataBlock}. ` +
+        `CELEBRITY APPEARANCE (use this as your rendering specification): ${celebDataBlock}. ` +
         `Render ${celebNames} using their authentic, real, documented face — ` +
-        `draw on all training knowledge of this public figure. Do NOT invent a generic face. ` +
+        `draw on all training knowledge of this public figure combined with the description above. ` +
+        `Do NOT invent a generic face. Do NOT use a placeholder. Render the real person. ` +
         `${sceneExtra ? `Scene: ${sceneExtra}. ` : ""}` +
-        `The original person stays 100% unchanged.`;
+        `The original person in this photo stays 100% unchanged — ` +
+        `do not alter, resize, reposition, or redraw them in any way.`;
     }
   } else {
     // ── STANDARD STYLE / SCENE TRANSFORMATION ───────────────────────────
