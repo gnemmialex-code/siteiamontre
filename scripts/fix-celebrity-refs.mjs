@@ -100,6 +100,64 @@ const RENAMES = {
   // Dossiers avec format partiellement correct mais à corriger
   "jason-statam": "jason-statham",         // typo
   "leonardo_dicaprio": "leonardo-dicaprio", // underscores → tirets
+
+  // ── MONTRES DE LUXE — renommage display name → kebab-case id ──────────────
+  // Cartier
+  "Ballon Bleu":          "ballon-bleu",
+  "Panthere":             "panthere",
+  "Santos":               "santos",
+  "Tank":                 "tank",
+  // IWC
+  "Big Pilot":            "big-pilot",
+  "Portugieser Chrono":   "portugieser-chrono",
+  // TAG Heuer
+  "Carrera":              "carrera",
+  "Monaco":               "monaco",
+  // Tudor
+  "Black Bay 58":         "black-bay-58",
+  // Omega
+  "Speedmaster Moonwatch":  "speedmaster-moonwatch",
+  "Seamaster Diver 300M":   "seamaster-diver-300m",
+  "Seamaster Planet Ocean": "seamaster-planet-ocean",
+  "Constellation":          "constellation",
+  "De Ville Tresor":        "de-ville-tresor",
+  // Rolex
+  "Air-King":             "air-king",
+  "Cosmograph Daytona":   "cosmograph-daytona",
+  "Datejust 41":          "datejust-41",
+  "Day-Date President":   "day-date-president",
+  "Explorer II":          "explorer-ii",
+  "GMT-Master II Batman": "gmt-master-ii-batman",
+  "GMT-Master II Pepsi":  "gmt-master-ii-pepsi",
+  "Milgauss":             "milgauss",
+  "Oyster Perpetual":     "oyster-perpetual",
+  "Sea-Dweller":          "sea-dweller",
+  "Submariner Date":      "submariner-date",
+  "Submariner Hulk":      "submariner-hulk",
+  "Yacht-Master 40":      "yacht-master-40",
+  // Audemars Piguet
+  "Code 11.59 Chrono":    "code-1159-chrono",
+  "Royal Oak Jumbo":      "royal-oak-jumbo",
+  "Royal Oak":            "royal-oak",
+  // Hublot
+  "Big Bang Unico":       "big-bang-unico",
+  "Big Bang":             "big-bang",
+  "Classic Fusion":       "classic-fusion",
+  "Spirit of Big Bang":   "spirit-of-big-bang",
+  // Patek Philippe
+  "Aquanaut":                    "aquanaut",
+  "Calatrava":                   "calatrava",
+  "Nautilus Chrono":             "nautilus-chrono",
+  "Nautilus":                    "nautilus",
+  "Quantieme Perpetuel Chrono":  "quantieme-perpetuel-chrono",
+  "Twenty 4":                    "twenty-4",
+  // Richard Mille
+  "MP-05 LaFerrari":       "mp-05-laferrari",
+  "RM 011 Felipe Massa":   "rm-011-felipe-massa",
+  "RM 027 Tourbillon Nadal": "rm-027-tourbillon-nadal",
+  "RM 035 Rafael Nadal":   "rm-035-rafael-nadal",
+  "RM 055 Bubba Watson":   "rm-055-bubba-watson",
+  "RM 67-01 Extra Flat":   "rm-67-01-extra-flat",
 };
 
 let renamed = 0;
