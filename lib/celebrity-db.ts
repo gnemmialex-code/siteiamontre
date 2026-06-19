@@ -3104,6 +3104,507 @@ export const CELEBRITY_DB: Celebrity[] = [
     visual_description:
       "Omega De Ville Trésor ref 428.53.40.21.09.001. 40mm rose gold or steel, cushion-shaped case, silver or lacquered dial with Roman numerals, hand-wound co-axial movement, alligator leather strap. Omega's most elegant dress watch — slim, refined, vintage-inspired.",
   },
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // MONTRES DE LUXE — AJOUTS (variantes Storage celebrity-refs)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  // AUDEMARS PIGUET
+  {
+    id: "royal-oak-concept",
+    name: "Royal Oak Concept",
+    aliases: ["royal oak concept","audemars piguet royal oak concept"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Audemars Piguet Royal Oak Concept. Avant-garde sports watch, large ~44mm octagonal tonneau-influenced case in titanium, ceramic or carbon, exposed skeletonized tourbillon movement, openworked dial with 'AP' bridge, rubber strap. Futuristic and ultra-technical.",
+  },
+  {
+    id: "royal-oak-frosted-gold",
+    name: "Royal Oak Frosted Gold",
+    aliases: ["royal oak frosted gold","audemars piguet royal oak frosted gold"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Audemars Piguet Royal Oak Frosted Gold ref 15454. 37 or 41mm 18k gold with hammered Florentine 'frosted' finish giving a sparkling diamond-dust texture, signature octagonal bezel with eight hexagonal screws, blue or silver 'Grande Tapisserie' dial, integrated gold bracelet.",
+  },
+  {
+    id: "royal-oak-offshore-diver",
+    name: "Royal Oak Offshore Diver",
+    aliases: ["royal oak offshore diver","audemars piguet royal oak offshore diver"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Audemars Piguet Royal Oak Offshore Diver ref 15720. 42mm steel, oversized octagonal bezel, inner rotating diver's bezel set by a crown at 10, 'Méga Tapisserie' dial (blue, black or colored), rubber strap. Robust sporty diver, 300m.",
+  },
+  {
+    id: "royal-oak-perpetual-calendar",
+    name: "Royal Oak Perpetual Calendar",
+    aliases: ["royal oak perpetual calendar","audemars piguet royal oak perpetual calendar"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Audemars Piguet Royal Oak Perpetual Calendar ref 26574. 41mm steel or gold, octagonal bezel with eight screws, blue 'Grande Tapisserie' dial with sub-dials for day, date, month, moonphase, leap-year and week, integrated bracelet. Grand complication in iconic Royal Oak form.",
+  },
+  // CARTIER
+  {
+    id: "baignoire",
+    name: "Baignoire",
+    aliases: ["baignoire","cartier baignoire"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "fr",
+    visual_description:
+      "Cartier Baignoire. Elongated oval 'bathtub'-shaped case in 18k gold, slim elegant dress watch, white lacquer dial with black Roman numerals, blue sword hands, leather strap. A 1912 design icon, pure curved minimalism.",
+  },
+  {
+    id: "ballon-bleu-or-rose",
+    name: "Ballon Bleu Or Rose",
+    aliases: ["ballon bleu or rose","cartier ballon bleu or rose"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "fr",
+    visual_description:
+      "Cartier Ballon Bleu in rose gold. Round domed case with a blue sapphire cabochon crown protected by an arc of metal, silver guilloché dial, Roman numerals, blue steel sword hands, rose-gold bracelet or strap. Soft balloon-like profile.",
+  },
+  {
+    id: "cle-de-cartier",
+    name: "Clé de Cartier",
+    aliases: ["clé de cartier","cartier clé de cartier"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "fr",
+    visual_description:
+      "Cartier Clé de Cartier. Rounded case with a distinctive key-shaped winding crown set with a blue sapphire, silver flinqué dial, Roman numerals, blue sword hands, sleek polished case. Modern elegant unisex line.",
+  },
+  {
+    id: "pasha-chronograph",
+    name: "Pasha Chronograph",
+    aliases: ["pasha chronograph","cartier pasha chronograph"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "fr",
+    visual_description:
+      "Cartier Pasha de Cartier Chronograph. Round case with a prominent fluted screw-down crown cover on a chain, clous-de-Paris detailing, white dial with Arabic numerals and chronograph counters, steel bracelet. Bold distinctive design.",
+  },
+  {
+    id: "ronde-louis-cartier",
+    name: "Ronde Louis Cartier",
+    aliases: ["ronde louis cartier","cartier ronde louis cartier"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "fr",
+    visual_description:
+      "Cartier Ronde Louis Cartier. Slim round dress watch in 18k gold or steel, pure round case, white dial with black Roman numerals, railway minute track, blue sword hands, beaded crown with sapphire, leather strap. Understated elegance.",
+  },
+  {
+    id: "santos-skeleton-noire",
+    name: "Santos Skeleton Noire",
+    aliases: ["santos skeleton noire","cartier santos skeleton noire"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "fr",
+    visual_description:
+      "Cartier Santos de Cartier Skeleton 'Noire'. Square case with rounded corners, exposed skeletonized movement whose bridges form Roman numerals, black ADLC-coated steel, visible gears, integrated bracelet with SmartLink. Stealthy industrial-chic.",
+  },
+  {
+    id: "santos-dumont",
+    name: "Santos-Dumont",
+    aliases: ["santos-dumont","cartier santos-dumont","cartier santos dumont"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "fr",
+    visual_description:
+      "Cartier Santos-Dumont. Flat slim square case, thin bezel with eight exposed screws, white or champagne dial, black Roman numerals, blue sword hands, leather strap. The original 1904 aviator's watch, refined and very thin.",
+  },
+  {
+    id: "tank-americaine-xl",
+    name: "Tank Américaine XL",
+    aliases: ["tank américaine xl","cartier tank américaine xl"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "fr",
+    visual_description:
+      "Cartier Tank Américaine XL. Elongated curved rectangular case in 18k gold or steel, vertical brancards, silver dial with black Roman numerals, secret signature, blue sword hands, leather strap. Larger, curvier Tank variant.",
+  },
+  {
+    id: "tank-cintree",
+    name: "Tank Cintrée",
+    aliases: ["tank cintrée","cartier tank cintrée"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "fr",
+    visual_description:
+      "Cartier Tank Cintrée. Long narrow curved rectangular case hugging the wrist, 18k gold, silvered dial with elongated Roman numerals, blue sword hands, leather strap. The most elegant and rare elongated Tank, a 1921 design.",
+  },
+  {
+    id: "tank-francaise",
+    name: "Tank Française",
+    aliases: ["tank française","cartier tank française"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "fr",
+    visual_description:
+      "Cartier Tank Française. Rectangular case with rounded brancards integrated into a links bracelet, steel or gold, silver dial with black Roman numerals, secret signature, blue sword hands. Sporty-chic integrated-bracelet Tank.",
+  },
+  // HUBLOT
+  {
+    id: "big-bang-ferrari",
+    name: "Big Bang Ferrari",
+    aliases: ["big bang ferrari","hublot big bang ferrari"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Hublot Big Bang Ferrari. 45mm round case in titanium, King Gold or carbon, prominent exposed H-screws on the bezel, skeletonized dial with Ferrari-inspired flange, integrated chronograph, rubber strap. Bold sports-car aesthetic.",
+  },
+  {
+    id: "big-bang-integral-ceramic",
+    name: "Big Bang Integral Ceramic",
+    aliases: ["big bang integral ceramic","hublot big bang integral ceramic"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Hublot Big Bang Integral in ceramic. 42mm fully-ceramic case and integrated ceramic bracelet (black, blue or grey), signature porthole bezel with H-shaped titanium screws, skeletonized chronograph dial. Monochrome integrated-bracelet evolution.",
+  },
+  {
+    id: "big-bang-king-power",
+    name: "Big Bang King Power",
+    aliases: ["big bang king power","hublot big bang king power"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Hublot Big Bang King Power. Oversized ~48mm bold case, thick bezel with six H-screws, carbon, ceramic or titanium, deeply skeletonized chronograph dial, rubber strap. Massive aggressive limited-edition chronograph.",
+  },
+  {
+    id: "big-bang-meca-10",
+    name: "Big Bang Meca-10",
+    aliases: ["big bang meca-10","hublot big bang meca-10","hublot big bang meca 10"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Hublot Big Bang Meca-10. 45mm case in titanium, ceramic or Magic Gold, exposed rack-and-pinion manual movement inspired by Meccano toys, 10-day power-reserve indicator, skeletonized architectural dial, rubber strap.",
+  },
+  {
+    id: "big-bang-tourbillon",
+    name: "Big Bang Tourbillon",
+    aliases: ["big bang tourbillon","hublot big bang tourbillon"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Hublot Big Bang Tourbillon. 44mm case, sapphire or skeletonized dial revealing a flying tourbillon at 6, signature porthole bezel with H-screws, titanium, ceramic or sapphire, rubber strap. High-complication Big Bang.",
+  },
+  {
+    id: "classic-fusion-blue-titanium",
+    name: "Classic Fusion Blue Titanium",
+    aliases: ["classic fusion blue titanium","hublot classic fusion blue titanium"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Hublot Classic Fusion Titanium with blue dial. Slim 42-45mm round titanium case, polished porthole bezel with six H-screws, sunburst blue dial, applied indices, rubber strap. The most elegant, understated Hublot.",
+  },
+  {
+    id: "classic-fusion-orlinski",
+    name: "Classic Fusion Orlinski",
+    aliases: ["classic fusion orlinski","hublot classic fusion orlinski"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Hublot Classic Fusion Orlinski. Faceted sculpted angular case and bezel designed by artist Richard Orlinski, mirror-polished ceramic or titanium (often colorful), faceted dial, rubber strap. Sculptural art-object watch.",
+  },
+  {
+    id: "mp-07",
+    name: "MP-07",
+    aliases: ["mp-07","hublot mp-07","hublot mp 07"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Hublot MP-07. Horizontal tonneau case under sapphire crystal, exposed elongated movement with 40-day power reserve, vertically displayed tourbillon and time, futuristic technical architecture, rubber strap. Avant-garde Masterpiece.",
+  },
+  {
+    id: "mp-09-tourbillon-bi-axis",
+    name: "MP-09 Tourbillon Bi-Axis",
+    aliases: ["mp-09 tourbillon bi-axis","hublot mp-09 tourbillon bi-axis","hublot mp 09 tourbillon bi axis"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Hublot MP-09 Tourbillon Bi-Axis. Tall domed sapphire crystal over a dramatic bi-axial tourbillon, titanium or King Gold case, openworked dial, exposed complex movement, rubber strap. Spectacular kinetic Masterpiece.",
+  },
+  {
+    id: "spirit-of-big-bang-sapphire",
+    name: "Spirit of Big Bang Sapphire",
+    aliases: ["spirit of big bang sapphire","hublot spirit of big bang sapphire"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Hublot Spirit of Big Bang Sapphire. Tonneau (barrel) case machined entirely from transparent sapphire crystal, skeletonized chronograph movement fully visible floating inside, clear or tinted, rubber strap. Transparent see-through marvel.",
+  },
+  // PATEK PHILIPPE
+  {
+    id: "aquanaut-chronograph-5968a",
+    name: "Aquanaut Chronograph 5968A",
+    aliases: ["aquanaut chronograph 5968a","patek philippe aquanaut chronograph 5968a"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Patek Philippe Aquanaut Chronograph ref 5968A. 42.2mm steel, rounded-octagonal case, embossed black or 'tropical' colored dial with relief grid pattern, flyback chronograph, orange accents, integrated composite 'Tropical' rubber strap.",
+  },
+  {
+    id: "calatrava-pilot-5524",
+    name: "Calatrava Pilot 5524",
+    aliases: ["calatrava pilot 5524","patek philippe calatrava pilot 5524"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Patek Philippe Calatrava Pilot Travel Time ref 5524. 42mm white or rose gold, vintage aviator style, blue lacquered dial with luminous Arabic numerals and syringe hands, dual time-zone pushers, day/night and date indicators, calfskin strap.",
+  },
+  {
+    id: "golden-ellipse",
+    name: "Golden Ellipse",
+    aliases: ["golden ellipse","patek philippe golden ellipse"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Patek Philippe Golden Ellipse ref 5738. Elliptical case based on the golden ratio, 18k gold, ebony-black blue-gold sunburst dial, slim gold baton markers and hands, leather strap. A pure 1968 minimalist icon.",
+  },
+  {
+    id: "grandmaster-chime",
+    name: "Grandmaster Chime",
+    aliases: ["grandmaster chime","patek philippe grandmaster chime"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Patek Philippe Grandmaster Chime ref 6300. Massive reversible double-face gold case, 20 complications including grande and petite sonnerie and minute repeater, two dials (time on one, calendar on the other). Patek's most complicated wristwatch.",
+  },
+  {
+    id: "world-time-5230",
+    name: "World Time 5230",
+    aliases: ["world time 5230","patek philippe world time 5230"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Patek Philippe World Time ref 5230. 38.5mm gold, hand-guilloché central dial, rotating 24-hour and city rings covering 24 time zones, blue or rose-gold tones, leather strap. The reference elegant world-timer.",
+  },
+  // RICHARD MILLE
+  {
+    id: "rm-016",
+    name: "RM 016",
+    aliases: ["rm 016","richard mille rm 016"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Richard Mille RM 016. Ultra-thin rectangular tonneau case in titanium, gold or carbon, skeletonized automatic movement with variable-geometry rotor, exposed baseplate, rubber strap. Flat technical everyday RM.",
+  },
+  {
+    id: "rm-030",
+    name: "RM 030",
+    aliases: ["rm 030","richard mille rm 030"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Richard Mille RM 030. Tonneau case in titanium, gold or NTPT carbon, skeletonized automatic movement with a declutchable rotor (engage/disengage indicator), date, exposed grade-5 titanium baseplate, rubber strap.",
+  },
+  {
+    id: "rm-037",
+    name: "RM 037",
+    aliases: ["rm 037","richard mille rm 037"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Richard Mille RM 037. Feminine tonneau case, often diamond-set, in Carbon TPT, gold or colorful Quartz TPT, skeletonized automatic movement, signature push-button crown, rubber strap. Ladies' RM.",
+  },
+  {
+    id: "rm-07-02-pink-lady",
+    name: "RM 07-02 Pink Lady",
+    aliases: ["rm 07-02 pink lady","richard mille rm 07-02 pink lady","richard mille rm 07 02 pink lady"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Richard Mille RM 07-02 'Pink Lady Sapphire'. Tonneau case carved from solid pink sapphire crystal, translucent rose tint, skeletonized automatic movement floating inside, gem-set, rubber strap. Spectacular translucent ladies' piece.",
+  },
+  {
+    id: "rm-11-05-gmt",
+    name: "RM 11-05 GMT",
+    aliases: ["rm 11-05 gmt","richard mille rm 11-05 gmt","richard mille rm 11 05 gmt"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Richard Mille RM 11-05 GMT Flyback Chronograph. Tonneau case in grey Cermet and titanium, skeletonized flyback chronograph with GMT, annual calendar and 60-minute countdown, rubber strap. Racing-inspired automatic chronograph.",
+  },
+  {
+    id: "rm-33-02",
+    name: "RM 33-02",
+    aliases: ["rm 33-02","richard mille rm 33-02","richard mille rm 33 02"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Richard Mille RM 33-02 Automatic. Round (not tonneau) ultra-thin case in gold or Carbon TPT and titanium, extra-flat skeletonized automatic movement, off-centered crown, leather or rubber strap. RM's dressier round model.",
+  },
+  {
+    id: "rm-50-03-mclaren",
+    name: "RM 50-03 McLaren",
+    aliases: ["rm 50-03 mclaren","richard mille rm 50-03 mclaren","richard mille rm 50 03 mclaren"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Richard Mille RM 50-03 McLaren F1. Ultralight tonneau case in Graph TPT (graphene) and Carbon TPT, split-seconds tourbillon chronograph, exposed movement, McLaren orange accents, rubber strap. Record-light hypercar watch under 40g.",
+  },
+  {
+    id: "rm-52-05-pharrell",
+    name: "RM 52-05 Pharrell",
+    aliases: ["rm 52-05 pharrell","richard mille rm 52-05 pharrell","richard mille rm 52 05 pharrell"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Richard Mille RM 52-05 Tourbillon Pharrell Williams. Tonneau case, dial depicting an astronaut helmet against a Martian landscape in 3D, manual tourbillon, Cermet and titanium, rubber strap. Space-themed art collaboration.",
+  },
+  {
+    id: "rm-61-01-yohan-blake",
+    name: "RM 61-01 Yohan Blake",
+    aliases: ["rm 61-01 yohan blake","richard mille rm 61-01 yohan blake","richard mille rm 61 01 yohan blake"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Richard Mille RM 61-01 Yohan Blake. Tonneau case in green and black Quartz TPT and Carbon TPT, skeletonized automatic movement, sprinter-inspired green-and-yellow Jamaican accents, rubber strap. Athlete signature model.",
+  },
+  {
+    id: "rm-62-01",
+    name: "RM 62-01",
+    aliases: ["rm 62-01","richard mille rm 62-01","richard mille rm 62 01"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Richard Mille RM 62-01 Tourbillon Vibrating Alarm ACJ. Complex tonneau case, tourbillon with a silent vibrating alarm for travelers, UTC second time zone, titanium, exposed movement, rubber strap. Co-developed with Airbus Corporate Jets.",
+  },
+  // ROLEX
+  {
+    id: "cellini-moonphase",
+    name: "Cellini Moonphase",
+    aliases: ["cellini moonphase","rolex cellini moonphase"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Rolex Cellini Moonphase ref 50535. 39mm Everose gold, round dress case with double bezel, white lacquer dial, blue enamel moonphase disc at 6 with a meteorite full moon, date around the rim, leather strap. Rolex's most romantic dress watch.",
+  },
+  {
+    id: "datejust-36-palm",
+    name: "Datejust 36 Palm",
+    aliases: ["datejust 36 palm","rolex datejust 36 palm"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Rolex Datejust 36 'Palm' ref 126234. 36mm steel with white-gold fluted bezel, olive-green dial with a tropical palm-leaf motif, date at 3 with cyclops, Jubilee or Oyster bracelet. Playful 2021 motif dial.",
+  },
+  {
+    id: "day-date-40-platine-ice-blue",
+    name: "Day-Date 40 Platinum Ice Blue",
+    aliases: ["day-date 40 platinum ice blue","rolex day-date 40 platinum ice blue","rolex day date 40 platinum ice blue"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Rolex Day-Date 40 ref 228206 in 950 platinum with ice-blue dial. 40mm platinum, smooth or fluted bezel, the platinum-exclusive ice-blue dial, day spelled at 12 and date at 3, President bracelet. The ultimate prestige Day-Date.",
+  },
+  {
+    id: "deepsea-james-cameron",
+    name: "Deepsea James Cameron",
+    aliases: ["deepsea james cameron","rolex deepsea james cameron"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Rolex Deepsea Sea-Dweller 'James Cameron' ref 126660. 44mm steel, D-blue gradient dial fading blue-to-black (Mariana Trench tribute), unidirectional black ceramic bezel, helium escape valve, Oyster bracelet. Water-resistant to 3900m.",
+  },
+  {
+    id: "explorer-i-36",
+    name: "Explorer I 36",
+    aliases: ["explorer i 36","rolex explorer i 36"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Rolex Explorer ref 124270. 36mm stainless steel, smooth bezel, matte black dial with luminous 3-6-9 Arabic numerals and baton markers, no date, Oyster bracelet. The pure tool-watch born from Everest 1953.",
+  },
+  {
+    id: "gmt-master-ii-root-beer",
+    name: "GMT-Master II Root Beer",
+    aliases: ["gmt-master ii root beer","rolex gmt-master ii root beer","rolex gmt master ii root beer"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Rolex GMT-Master II 'Root Beer' ref 126711CHNR. 40mm Everose Rolesor (steel and rose gold), brown and black ceramic bezel, black dial, rose-gold 24h hand, date at 3, Jubilee or Oyster bracelet. Warm two-tone pilot's GMT.",
+  },
+  {
+    id: "oyster-perpetual-41-turquoise",
+    name: "Oyster Perpetual 41 Turquoise",
+    aliases: ["oyster perpetual 41 turquoise","rolex oyster perpetual 41 turquoise"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Rolex Oyster Perpetual 41 ref 124300 with turquoise dial. 41mm steel, smooth polished bezel, vivid turquoise lacquer dial, no date, Oyster bracelet. The coveted candy-color OP.",
+  },
+  {
+    id: "pearlmaster",
+    name: "Pearlmaster",
+    aliases: ["pearlmaster","rolex pearlmaster"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Rolex Pearlmaster (Datejust Pearlmaster). 34-39mm 18k gold, often a gem-set diamond bezel, mother-of-pearl or pavé dial, date at 3, distinctive rounded five-piece-link Pearlmaster bracelet. Rolex's most jeweled line.",
+  },
+  {
+    id: "sea-dweller-deepsea-d-blue",
+    name: "Sea-Dweller Deepsea D-Blue",
+    aliases: ["sea-dweller deepsea d-blue","rolex sea-dweller deepsea d-blue","rolex sea dweller deepsea d blue"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Rolex Deepsea D-Blue ref 126660. 44mm steel, gradient blue-to-black 'D-blue' dial (Deepsea Challenge tribute), unidirectional black ceramic 60-minute bezel, helium escape valve at 9, Oyster bracelet. Professional saturation diver, 3900m.",
+  },
+  {
+    id: "yacht-master-ii",
+    name: "Yacht-Master II",
+    aliases: ["yacht-master ii","rolex yacht-master ii","rolex yacht master ii"],
+    gender: "group",
+    category: "luxury_watch",
+    nationality: "ch",
+    visual_description:
+      "Rolex Yacht-Master II ref 116680. 44mm steel, white dial, blue Cerachrom rotating bezel, prominent programmable regatta countdown chronograph (1-10 min) with red triangle and blue arc, Oyster bracelet. Large nautical regatta timer.",
+  },
 ];
 
 // ─── Detection helpers ──────────────────────────────────────────────────────
