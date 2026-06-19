@@ -13,6 +13,7 @@ import {
   Gift, Flame, Copy, LogIn, UserPlus, Users, Loader2, ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { isPaidPlan } from "@/lib/plan";
 import { resizeImageFile } from "@/lib/resize-image";
 import UploadBox from "../components/UploadBox";
 import VideoUploadBox from "../components/VideoUploadBox";
@@ -86,6 +87,32 @@ function planQualityBadge(plan?: string): { label: string; color: string } {
   if (plan?.includes("ultra")) return { label: "8K Elite ✨", color: "text-amber-400 border-amber-400/40 bg-amber-400/10" };
   if (plan?.includes("pro"))   return { label: "4K Pro ⚡",   color: "text-accent-violet border-accent-violet/40 bg-accent-violet/10" };
   return { label: "HD 1080p",                                  color: "text-white/40 border-surface-border bg-surface-hover" };
+}
+
+/* Cadenas + appel à l'action affichés par-dessus une image floutée (compte gratuit) */
+function LockedOverlay({ onUnlock, compact = false }: { onUnlock: () => void; compact?: boolean }) {
+  return (
+    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 text-center p-3 bg-black/30">
+      <div className={`rounded-2xl bg-accent-violet/20 border border-accent-violet/40 flex items-center justify-center ${compact ? "w-9 h-9" : "w-14 h-14"}`}>
+        <Lock className={compact ? "w-4 h-4 text-accent-violet" : "w-7 h-7 text-accent-violet"} />
+      </div>
+      {!compact && (
+        <>
+          <p className="text-white font-bold text-sm max-w-[260px]">Aperçu flouté</p>
+          <p className="text-white/70 text-xs max-w-[260px] leading-relaxed">
+            Passez à une formule pour révéler votre image en haute définition.
+          </p>
+        </>
+      )}
+      <button
+        onClick={(e) => { e.stopPropagation(); onUnlock(); }}
+        className={`btn-primary flex items-center justify-center gap-1.5 font-semibold ${compact ? "px-2.5 py-1 text-[11px]" : "px-4 py-2 text-sm mt-1"}`}
+      >
+        <Crown className={compact ? "w-3 h-3" : "w-4 h-4"} />
+        Débloquer
+      </button>
+    </div>
+  );
 }
 
 function userPlanTier(plan?: string): "essentiel" | "pro" | "elite" {
@@ -545,6 +572,8 @@ export default function DashboardPage() {
   };
 
   const handleDownload = async (url: string, id: string) => {
+    // Comptes gratuits : pas de téléchargement HD → renvoi vers les formules
+    if (!isPaidPlan(stats?.plan)) { goToSubscription(); return; }
     try {
       const blob      = await (await fetch(url)).blob();
       const objectUrl = URL.createObjectURL(blob);
@@ -754,6 +783,18 @@ export default function DashboardPage() {
     }
   };
 
+  /* Compte payant ? Sinon les résultats sont floutés (aperçu). */
+  const isPaid = isPaidPlan(stats?.plan);
+
+  /* Renvoie l'utilisateur vers les formules pour débloquer la HD */
+  const goToSubscription = () => {
+    setResultUrl(null);
+    setResultStyle("");
+    setNavView("subscription");
+    setSidebarOpen(false);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const userInitial = userEmail?.[0]?.toUpperCase() ?? "?";
 
   /* ── Render ────────────────────────────────────────────── */
@@ -819,7 +860,7 @@ export default function DashboardPage() {
                 userPlanTier(stats.plan) === "pro"   ? "text-accent-violet border-accent-violet/40 bg-accent-violet/10" :
                 "text-white/40 border-surface-border bg-surface"
               }`}>
-                {userPlanTier(stats.plan) === "elite" ? "ELITE" : userPlanTier(stats.plan) === "pro" ? "PRO" : "ESSEN."}
+                {userPlanTier(stats.plan) === "elite" ? "ELITE" : userPlanTier(stats.plan) === "pro" ? "PRO" : isPaid ? "ESSEN." : "GRATUIT"}
               </span>
             )}
           </div>
@@ -1427,18 +1468,29 @@ export default function DashboardPage() {
                         </div>
                         {resultUrl ? (
                           <div>
-                            <div className="relative aspect-square bg-surface-hover">
-                              <Image src={resultUrl} alt={resultStyle} fill className="object-contain" />
+                            <div className="relative aspect-square bg-surface-hover overflow-hidden">
+                              <Image src={resultUrl} alt={resultStyle} fill className={`object-contain ${isPaid ? "" : "blur-2xl scale-110"}`} />
+                              {!isPaid && <LockedOverlay onUnlock={goToSubscription} />}
                             </div>
                             <div className="p-4 space-y-3">
                               <p className="text-white/50 text-xs text-center">{resultStyle}</p>
-                              <button
-                                onClick={() => handleDownload(resultUrl, Date.now().toString())}
-                                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-accent-violet hover:bg-accent-violet/80 text-white text-sm font-semibold transition-all"
-                              >
-                                <Download className="w-4 h-4" />
-                                Télécharger
-                              </button>
+                              {isPaid ? (
+                                <button
+                                  onClick={() => handleDownload(resultUrl, Date.now().toString())}
+                                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-accent-violet hover:bg-accent-violet/80 text-white text-sm font-semibold transition-all"
+                                >
+                                  <Download className="w-4 h-4" />
+                                  Télécharger
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={goToSubscription}
+                                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-accent-violet hover:bg-accent-violet/80 text-white text-sm font-semibold transition-all"
+                                >
+                                  <Crown className="w-4 h-4" />
+                                  Débloquer en HD
+                                </button>
+                              )}
                             </div>
                           </div>
                         ) : (
@@ -1528,17 +1580,29 @@ export default function DashboardPage() {
                           {/* Corps — résultat */}
                           {resultUrl && !isGenerating ? (
                             <div>
-                              <div className="relative bg-surface-hover" style={{ height: "60vh" }}>
-                                <Image src={resultUrl} alt={resultStyle || "Résultat"} fill className="object-contain" />
+                              <div className="relative bg-surface-hover overflow-hidden" style={{ height: "60vh" }}>
+                                <Image src={resultUrl} alt={resultStyle || "Résultat"} fill className={`object-contain ${isPaid ? "" : "blur-2xl scale-110"}`} />
+                                {!isPaid && <LockedOverlay onUnlock={goToSubscription} />}
                               </div>
                               <div className="p-6 flex items-center gap-4">
-                                <p className="text-white/50 text-sm flex-1 truncate">{resultStyle}</p>
-                                <button
-                                  onClick={() => handleDownload(resultUrl, Date.now().toString())}
-                                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent-violet hover:bg-accent-violet/80 text-white font-semibold transition-all text-sm whitespace-nowrap"
-                                >
-                                  <Download className="w-4 h-4" />Télécharger
-                                </button>
+                                <p className="text-white/50 text-sm flex-1 truncate">
+                                  {isPaid ? resultStyle : "Aperçu flouté — débloquez la HD avec une formule"}
+                                </p>
+                                {isPaid ? (
+                                  <button
+                                    onClick={() => handleDownload(resultUrl, Date.now().toString())}
+                                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent-violet hover:bg-accent-violet/80 text-white font-semibold transition-all text-sm whitespace-nowrap"
+                                  >
+                                    <Download className="w-4 h-4" />Télécharger
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={goToSubscription}
+                                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent-violet hover:bg-accent-violet/80 text-white font-semibold transition-all text-sm whitespace-nowrap"
+                                  >
+                                    <Crown className="w-4 h-4" />Débloquer en HD
+                                  </button>
+                                )}
                               </div>
                             </div>
                           ) : (
@@ -1656,15 +1720,18 @@ export default function DashboardPage() {
                       {generations.map((gen,i)=>(
                         <motion.div key={gen.id} initial={{opacity:0,scale:0.9}} animate={{opacity:1,scale:1}} transition={{delay:i*0.04}}
                           className="group relative rounded-xl overflow-hidden border border-surface-border hover:border-accent-violet/40 transition-all">
-                          <div className="aspect-square relative">
-                            <Image src={gen.output_image_url} alt={gen.style} fill className="object-cover" />
+                          <div className="aspect-square relative overflow-hidden">
+                            <Image src={gen.output_image_url} alt={gen.style} fill className={`object-cover ${isPaid ? "" : "blur-xl scale-110"}`} />
+                            {!isPaid && <LockedOverlay onUnlock={goToSubscription} compact />}
                           </div>
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-all flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 gap-2">
-                            <Link href={`/result?id=${gen.id}`} className="w-8 h-8 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-white/20">
-                              <Sparkles className="w-3.5 h-3.5" />
-                            </Link>
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-all flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 gap-2 z-30">
+                            {isPaid && (
+                              <Link href={`/result?id=${gen.id}`} className="w-8 h-8 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-white/20">
+                                <Sparkles className="w-3.5 h-3.5" />
+                              </Link>
+                            )}
                             <button onClick={()=>handleDownload(gen.output_image_url,gen.id)} className="w-8 h-8 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-white/20">
-                              <Download className="w-3.5 h-3.5" />
+                              {isPaid ? <Download className="w-3.5 h-3.5" /> : <Crown className="w-3.5 h-3.5" />}
                             </button>
                             <button onClick={()=>handleDelete(gen.id)} disabled={deletingId===gen.id} className="w-8 h-8 bg-red-500/70 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-red-500 hover:bg-red-500 transition-colors disabled:opacity-50">
                               <Trash2 className="w-3.5 h-3.5" />

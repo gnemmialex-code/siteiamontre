@@ -68,16 +68,23 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
       });
       if (error) throw error;
-      toast.success("Compte créé ! Vérifiez votre email pour confirmer.");
-      router.push("/login");
+
+      // Confirmation email désactivée côté Supabase → l'utilisateur reçoit
+      // directement une session et est connecté immédiatement.
+      if (data.session) {
+        toast.success("Compte créé ! Bienvenue 🎉");
+        router.push("/dashboard");
+      } else {
+        // Sécurité : si la confirmation email est encore activée côté Supabase,
+        // on renvoie vers la connexion sans bloquer.
+        toast.success("Compte créé ! Vous pouvez vous connecter.");
+        router.push("/login");
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erreur lors de l'inscription";
       toast.error(msg);

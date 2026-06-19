@@ -11,7 +11,9 @@ CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL UNIQUE,
   credits INTEGER NOT NULL DEFAULT 100,
-  plan_id TEXT NOT NULL DEFAULT 'plan_essentiel',
+  -- 'free' = compte gratuit (résultats floutés). Les formules payantes
+  -- (plan_essentiel / plan_pro / plan_ultra) sont posées par le webhook Stripe.
+  plan_id TEXT NOT NULL DEFAULT 'free',
   referral_code TEXT UNIQUE,
   referred_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
   snap_rouge_access BOOLEAN NOT NULL DEFAULT FALSE,
@@ -115,8 +117,8 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.users (id, email, credits, referral_code)
-  VALUES (NEW.id, NEW.email, 100, public.generate_referral_code())
+  INSERT INTO public.users (id, email, credits, plan_id, referral_code)
+  VALUES (NEW.id, NEW.email, 100, 'free', public.generate_referral_code())
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;

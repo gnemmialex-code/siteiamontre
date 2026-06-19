@@ -9,6 +9,7 @@ import Loader from "../components/Loader";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { isPaidPlan } from "@/lib/plan";
 
 interface Generation {
   id: string;
@@ -27,6 +28,7 @@ function ResultContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [locked, setLocked] = useState(true); // floutage par défaut tant que le plan n'est pas confirmé
 
   useEffect(() => {
     if (!generationId) {
@@ -35,6 +37,11 @@ function ResultContent() {
       return;
     }
     fetchGeneration(generationId);
+    // Détermine si le compte est payant (sinon résultat flouté)
+    fetch("/api/credits")
+      .then((r) => r.json())
+      .then((d) => setLocked(!isPaidPlan(d.plan)))
+      .catch(() => setLocked(true));
   }, [generationId]);
 
   const fetchGeneration = async (id: string) => {
@@ -136,6 +143,7 @@ function ResultContent() {
             generatedAt={generation.created_at}
             onRegenerate={handleRegenerate}
             isRegenerating={isRegenerating}
+            locked={locked}
           />
         </motion.div>
 

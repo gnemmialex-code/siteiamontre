@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { Download, Share2, RefreshCw, Maximize2, Check } from "lucide-react";
+import Link from "next/link";
+import { Download, Share2, RefreshCw, Maximize2, Check, Lock, Crown } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface ResultCardProps {
@@ -13,6 +14,7 @@ interface ResultCardProps {
   generatedAt?: string;
   onRegenerate?: () => void;
   isRegenerating?: boolean;
+  locked?: boolean;
 }
 
 export default function ResultCard({
@@ -22,6 +24,7 @@ export default function ResultCard({
   generatedAt,
   onRegenerate,
   isRegenerating = false,
+  locked = false,
 }: ResultCardProps) {
   const [showOriginal, setShowOriginal] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -77,18 +80,37 @@ export default function ResultCard({
             src={showOriginal && inputUrl ? inputUrl : outputUrl}
             alt="Résultat AstraCrea"
             fill
-            className="object-cover transition-all duration-300"
+            className={`object-cover transition-all duration-300 ${locked && !showOriginal ? "blur-2xl scale-110" : ""}`}
           />
 
-          {/* Overlay controls */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <button
-              onClick={() => setIsFullscreen(true)}
-              className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-white/20 hover:bg-white/20 transition-colors"
-            >
-              <Maximize2 className="w-5 h-5" />
-            </button>
-          </div>
+          {/* Cadenas — compte gratuit */}
+          {locked && !showOriginal && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 text-center p-4 bg-black/30">
+              <div className="w-14 h-14 rounded-2xl bg-accent-violet/20 border border-accent-violet/40 flex items-center justify-center">
+                <Lock className="w-7 h-7 text-accent-violet" />
+              </div>
+              <p className="text-white font-bold text-sm">Aperçu flouté</p>
+              <p className="text-white/70 text-xs max-w-[240px] leading-relaxed">
+                Passez à une formule pour révéler votre image en haute définition.
+              </p>
+              <Link href="/pricing" className="btn-primary flex items-center gap-1.5 px-4 py-2 text-sm mt-1">
+                <Crown className="w-4 h-4" />
+                Débloquer en HD
+              </Link>
+            </div>
+          )}
+
+          {/* Overlay controls (zoom) — masqué si flouté */}
+          {!locked && (
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+              <button
+                onClick={() => setIsFullscreen(true)}
+                className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-white/20 hover:bg-white/20 transition-colors"
+              >
+                <Maximize2 className="w-5 h-5" />
+              </button>
+            </div>
+          )}
 
           {/* Style badge */}
           {style && (
@@ -140,19 +162,31 @@ export default function ResultCard({
 
         {/* Actions */}
         <div className="flex gap-2">
-          <button
-            onClick={handleDownload}
-            className="btn-primary flex-1 flex items-center justify-center gap-2 py-3"
-          >
-            <Download className="w-4 h-4" />
-            Télécharger
-          </button>
-          <button
-            onClick={handleShare}
-            className="btn-secondary px-4 py-3 flex items-center justify-center gap-2"
-          >
-            {copied ? <Check className="w-4 h-4 text-green-400" /> : <Share2 className="w-4 h-4" />}
-          </button>
+          {locked ? (
+            <Link
+              href="/pricing"
+              className="btn-primary flex-1 flex items-center justify-center gap-2 py-3"
+            >
+              <Crown className="w-4 h-4" />
+              Débloquer en HD
+            </Link>
+          ) : (
+            <>
+              <button
+                onClick={handleDownload}
+                className="btn-primary flex-1 flex items-center justify-center gap-2 py-3"
+              >
+                <Download className="w-4 h-4" />
+                Télécharger
+              </button>
+              <button
+                onClick={handleShare}
+                className="btn-secondary px-4 py-3 flex items-center justify-center gap-2"
+              >
+                {copied ? <Check className="w-4 h-4 text-green-400" /> : <Share2 className="w-4 h-4" />}
+              </button>
+            </>
+          )}
           {onRegenerate && (
             <button
               onClick={onRegenerate}

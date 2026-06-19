@@ -22,13 +22,13 @@ export async function GET() {
   // Fallback if plan_id / snap_rouge_access columns don't exist yet
   let credits = 0;
   let createdAt = "";
-  let planId = "plan_essentiel";
+  let planId = "free";
   let snapRouge = false;
 
   if (!error && userData) {
     credits   = userData.credits ?? 0;
     createdAt = userData.created_at ?? "";
-    planId    = (userData as Record<string, unknown>).plan_id as string ?? "plan_essentiel";
+    planId    = (userData as Record<string, unknown>).plan_id as string ?? "free";
     snapRouge = !!(userData as Record<string, unknown>).snap_rouge_access;
   } else {
     // snap_rouge_access column might not exist — retry with plan_id only
@@ -40,7 +40,7 @@ export async function GET() {
     if (!planErr && withPlan) {
       credits   = withPlan.credits ?? 0;
       createdAt = withPlan.created_at ?? "";
-      planId    = (withPlan as Record<string, unknown>).plan_id as string ?? "plan_essentiel";
+      planId    = (withPlan as Record<string, unknown>).plan_id as string ?? "free";
     } else {
       // plan_id column might not exist either — minimal select
       const { data: basic } = await admin
