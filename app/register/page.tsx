@@ -126,7 +126,7 @@ export default function RegisterPage() {
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <span className="font-black text-xl">
-              Astra<span className="gradient-text">Crea</span>
+              Astra<span className="gradient-text">Chrono</span>
             </span>
           </Link>
           <h1 className="text-3xl font-bold mb-2">Créer un compte</h1>

@@ -118,8 +118,8 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo2.png" alt="AstraCrea" className="h-14 w-auto rounded-xl" />
-            <span className="font-black text-2xl tracking-tight">Astra<span className="gradient-text">Crea</span></span>
+            <img src="/logo2.png" alt="AstraChrono" className="h-14 w-auto rounded-xl" />
+            <span className="font-black text-2xl tracking-tight">Astra<span className="gradient-text">Chrono</span></span>
           </Link>
           <h1 className="text-3xl font-bold mb-2">Connexion</h1>
           <p className="text-white/50">

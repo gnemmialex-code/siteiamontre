@@ -3,13 +3,13 @@ import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AstraCrea — Transformations IA Ultra HD",
+  title: "AstraChrono — Montres de Luxe IA Ultra HD",
   description:
-    "Transformez vos photos avec la technologie IA Ultra HD d'AstraCrea. Résultats 4K en quelques secondes.",
-  keywords: ["AstraCrea", "IA", "photo", "transformation", "ultra hd", "face swap"],
+    "Générez des montres de luxe ultra-réalistes avec la technologie IA Ultra HD d'AstraChrono. Tous les modèles en 4K en quelques secondes.",
+  keywords: ["AstraChrono", "IA", "montre", "montre de luxe", "ultra hd", "génération montre"],
   openGraph: {
-    title: "AstraCrea — Transformations IA Ultra HD",
-    description: "Transformez vos photos avec l'IA Ultra HD d'AstraCrea",
+    title: "AstraChrono — Montres de Luxe IA Ultra HD",
+    description: "Générez des montres de luxe ultra-réalistes avec l'IA Ultra HD d'AstraChrono",
     type: "website",
   },
 };

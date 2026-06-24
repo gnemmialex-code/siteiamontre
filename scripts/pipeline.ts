@@ -623,6 +623,14 @@ export function buildAsyncJobConfig(
     clippedRefCount,
   );
 
+  // ── Résolution cible Nano Banana Pro ──────────────────────────────────────
+  // Légère / Modérée  → 2K (résolution cible standard).
+  // Intense / Ultra   → résolution du plan (2K Pro, 4K Elite).
+  const intensity  = input.transformIntensity;
+  const resolution = (intensity === "light" || intensity === "moderate")
+    ? "2K"
+    : qs.resolution;
+
   return {
     mode:               "style",
     qualityTier:        tier,
@@ -631,7 +639,7 @@ export function buildAsyncJobConfig(
     inputImageUrl:      input.inputImageUrl,
     strength:           intensityToStrength(input.transformIntensity),
     modelIndex:         0,
-    resolution:         qs.resolution,
+    resolution,
     outputFormat:       qs.format,
     allowFallback:      qs.allowFallback,
     celebRefImageUrl:   clippedRefUrls[0],

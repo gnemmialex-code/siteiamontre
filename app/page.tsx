@@ -27,9 +27,9 @@ const REVIEWS = [
   { name: "Soph!_mtbl", city: "Paris", stars: 5, text: "Incroyable ! Le résultat est tellement réaliste, j'ai partagé sur Instagram et tout le monde pensait que c'était vrai." },
   { name: "Lucasss9378!", city: "Lyon", stars: 5, text: "La qualité 4K est bluffante. En 30 secondes j'avais mon photo en style Hollywood. Je recommande vivement !" },
   { name: "Chl0E.BRZH", city: "Bordeaux", stars: 5, text: "Parfait pour les photos de profil. Le style Vogue Editorial est mon préféré, le rendu est professionnel." },
-  { name: "Max.xAm76", city: "Dijon", stars: 5, text: "J'utilise AstraCrea chaque semaine. Les crédits Pro suffisent largement, excellent rapport qualité/prix." },
+  { name: "Max.xAm76", city: "Dijon", stars: 5, text: "J'utilise AstraChrono chaque semaine. Les crédits Pro suffisent largement, excellent rapport qualité/prix." },
   { name: "Em1.Rtbu", city: "Nantes", stars: 4, text: "Très bon service ! Seul petit bémol, parfois 40 secondes au lieu de 20 habituellement. Je pense que je vais passer à Ultra pour aller plus vite !" },
-  { name: "ThomAss772ltrb", city: "Toulouse", stars: 5, text: "J'ai essayé d'autres outils, rien n'arrive à la cheville d'AstraCrea. La précision de la transformation est exceptionnelle." },
+  { name: "ThomAss772ltrb", city: "Toulouse", stars: 5, text: "J'ai essayé d'autres outils, rien n'arrive à la cheville d'AstraChrono. La précision de la transformation est exceptionnelle." },
   { name: "Cam.sdr", city: "Strasbourg", stars: 5, text: "Le style Met Gala est trop bien. On dirait une vraie photo de gala. Mes amis n'en reviennent pas !" },
   { name: "FelixStrxu", city: "Nice", stars: 5, text: "Simple, rapide, bluffant. Je l'utilise pour mes contenus créatifs. Le pipeline IA est vraiment au top." },
   { name: "Saitawann.94", city: "Paris", stars: 5, text: "La vérité c'est rapide, qualité et le résultat est direct au rendez-vous !" },
@@ -37,17 +37,18 @@ const REVIEWS = [
 ];
 
 // Pour les exemples : mets tes vraies images dans /public/examples/
-// Format : { style, before: "/examples/before1.jpg", after: "/examples/after1.jpg" }
+// Format : { style, before: "/examples/x-avant.png", after: "/examples/x-apres.png" }
+// 👉 Renomme librement le champ "style" (libellé affiché sous l'image) avec la marque/modèle réel.
 const EXAMPLES_IMAGES = [
-  { style: "Scarlett Johansson", before: "/examples/scarlett_johansson_avant.png", after: "/examples/scarlett_johansson_apres.png" },
-  { style: "Mia Khalifa",   before: "/examples/mia_avant.png" , after: "/examples/mia_apres.png" },
-  { style: "Margot Robbit",        before: "/examples/margot_robbit_avant.png" , after: "/examples/margot_robbit_apres.png" },
-  { style: "Leonardo DiCaprio",          before: "/examples/leonardo_dicaprio_avant.png", after: "/examples/leonardo_dicaprio_apres.png" },
-  { style: "Denzel Washington",       before: "/examples/denzel_avant.png", after: "/examples/denzel_apres.png" },
-  { style: "Johnny Sins",      before: "/examples/johnny_avant.png", after: "/examples/johnny_apres.png" },
-  { style: "Kylian Mbappé",      before: "/examples/kylian_avant.png", after: "/examples/kylian_apres.png" },
-  { style: "Eva Femme",      before: "/examples/eva_avant.png", after: "/examples/eva_apres.png" },
-
+  { style: "Montre #1", before: "/examples/a-avant.png", after: "/examples/a-apres.png" },
+  { style: "Montre #2", before: "/examples/b-avant.png", after: "/examples/b-apres.png" },
+  { style: "Montre #3", before: "/examples/c-avant.png", after: "/examples/c-apres.png" },
+  { style: "Montre #4", before: "/examples/d-avant.png", after: "/examples/d-apres.png" },
+  { style: "Montre #5", before: "/examples/e-avant.png", after: "/examples/e-apres.png" },
+  { style: "Montre #6", before: "/examples/f-avant.png", after: "/examples/f-apres.png" },
+  { style: "Montre #7", before: "/examples/g-avant.png", after: "/examples/g-apres.png" },
+  { style: "Montre #8", before: "/examples/h-avant.png", after: "/examples/h-apres.png" },
+  { style: "Montre #9", before: "/examples/i-avant.png", after: "/examples/i-apres.png" },
 ];
 
 // Vidéos : remplis youtubeId OU localSrc (pas les deux)
@@ -67,8 +68,8 @@ const DEMO_VIDEOS = {
 
 const FAQ_ITEMS = [
   {
-    q: "Comment fonctionne le Celebrity DeepSwap ?",
-    a: "Notre pipeline IA en 4 étapes : détection du visage (InsightFace), génération du style (SDXL), face swap haute fidélité (ReActor), puis upscale 4K (RealESRGAN). Tout se passe en moins de 30 secondes sur nos serveurs.",
+    q: "Comment fonctionne la génération de montres ?",
+    a: "Notre pipeline IA génère votre montre de luxe en haute fidélité puis l'upscale en 4K (RealESRGAN) pour un rendu ultra-réaliste. Tous les modèles sont disponibles et tout se passe en moins de 30 secondes sur nos serveurs.",
   },
   {
     q: "Mes photos sont-elles conservées ?",
@@ -100,23 +101,16 @@ const FEATURES = [
   { icon: <Sparkles className="w-6 h-6" />, title: "IA Ultra HD", description: "Génération 4K avec upscale x4 automatique via RealESRGAN" },
   { icon: <Zap className="w-6 h-6" />, title: "Résultats en 30s", description: "Pipeline optimisé pour des résultats instantanés" },
   { icon: <Shield className="w-6 h-6" />, title: "100% Privé", description: "Vos photos sont supprimées après traitement" },
-  { icon: <Star className="w-6 h-6" />, title: "Qualité Pro", description: "Technologie ReActor + FaceID pour un rendu naturel" },
+  { icon: <Star className="w-6 h-6" />, title: "Qualité Pro", description: "Tous les modèles de montres de luxe pour un rendu ultra-réaliste" },
 ];
 
 // ─── COMPOSANTS INTERNES ────────────────────────────────────────────────────
 
-// ── Ligne 1 : img01.jpg → img20.jpg  (défile vers la gauche)
-// ── Ligne 2 : img21.jpg → img40.jpg  (défile vers la droite)
-// Mets tes 40 images dans /public/hero-gallery/ avec ce nommage.
-// Formats acceptés : jpg, jpeg, png, webp — remplace l'extension si besoin.
-const ROW1 = [
-  ...Array.from({ length: 4 }, (_, i) => `/hero-gallery/img${String(i + 11).padStart(2, "0")}.png`),
-  ...Array.from({ length: 10 }, (_, i) => `/hero-gallery/img${String(i + 1).padStart(2, "0")}.png`),
-];
-const ROW2 = [
-  ...Array.from({ length: 4 }, (_, i) => `/hero-gallery/img${String(i + 31).padStart(2, "0")}.png`),
-  ...Array.from({ length: 10 }, (_, i) => `/hero-gallery/img${String(i + 21).padStart(2, "0")}.png`),
-];
+// ── Ligne 1 (haut, défile vers la gauche) : img01.jpg → img17.jpg
+// ── Ligne 2 (bas,  défile vers la droite) : img18.jpg → img34.jpg
+// 34 images dans /public/hero-gallery/. Formats : jpg/jpeg/png/webp (adapter l'extension).
+const ROW1 = Array.from({ length: 17 }, (_, i) => `/hero-gallery/img${String(i + 1).padStart(2, "0")}.jpg`);
+const ROW2 = Array.from({ length: 17 }, (_, i) => `/hero-gallery/img${String(i + 18).padStart(2, "0")}.jpg`);
 
 function ImageRow({
   images,
@@ -399,7 +393,7 @@ function DemoVideoSection() {
             Voyez la magie <span className="gradient-text">en action</span>
           </h2>
           <p className="text-white/50 text-lg max-w-xl mx-auto">
-            De la photo originale au résultat final : découvrez AstraCrea en vidéo
+            De la photo originale au résultat final : découvrez AstraChrono en vidéo
           </p>
         </motion.div>
 
@@ -545,7 +539,7 @@ function SnapRougeTutoSection() {
         {/* Étapes */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto mb-10">
           {[
-            { step: "01", title: "Créez votre photo IA", desc: "Générez votre transformation sur AstraCrea et téléchargez-la en haute qualité" },
+            { step: "01", title: "Créez votre photo IA", desc: "Générez votre transformation sur AstraChrono et téléchargez-la en haute qualité" },
             { step: "02", title: "Débloquez la technique", desc: "Guide vidéo complet, étape par étape — iPhone et Android" },
             { step: "03", title: "Envoyez en Snap Rouge", desc: "Votre photo part comme un vrai Snap pris sur le moment" },
           ].map((item, i) => (
@@ -887,10 +881,8 @@ export default function HomePage() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-5xl sm:text-7xl lg:text-8xl font-black leading-tight mb-6"
           >
-            Celebrity{" "}
-            <span className="gradient-text">DeepSwap</span>
-            <br />
-            <span className="text-white/90">Ultra HD</span>
+            Luxury Watches,{" "}
+            <span className="gradient-text">by AI</span>
           </motion.h1>
 
           <motion.p
@@ -899,8 +891,7 @@ export default function HomePage() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-xl sm:text-2xl text-white/60 max-w-2xl mx-auto mb-12"
           >
-            Transformez vos photos avec l&apos;IA la plus avancée du marché.
-            Résultats 4K ultra-réalistes en moins de 30 secondes.
+            Ultra-realistic luxury watch renders in seconds.
           </motion.p>
 
           <motion.div
@@ -1091,7 +1082,7 @@ export default function HomePage() {
                 <span className="gradient-text">À 100%.</span>
               </h2>
               <p className="text-white/50 text-lg max-w-2xl mx-auto leading-relaxed">
-                AstraCrea ne collecte, ne conserve et ne revend jamais vos images. Chaque transformation IA est exclusivement celle que <em>vous</em> avez demandée — rien de plus.
+                AstraChrono ne collecte, ne conserve et ne revend jamais vos images. Chaque transformation IA est exclusivement celle que <em>vous</em> avez demandée — rien de plus.
               </p>
             </div>
 
@@ -1116,7 +1107,7 @@ export default function HomePage() {
                 {
                   icon: <UserCheck className="w-5 h-5" />,
                   title: "Vous restez l'auteur à 100%",
-                  desc: "Les images générées vous appartiennent entièrement. AstraCrea ne détient aucun droit sur vos créations.",
+                  desc: "Les images générées vous appartiennent entièrement. AstraChrono ne détient aucun droit sur vos créations.",
                 },
               ].map((item, i) => (
                 <motion.div
@@ -1223,7 +1214,7 @@ export default function HomePage() {
             className="text-center mb-16"
           >
             <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              Pourquoi <span className="gradient-text">AstraCrea</span> ?
+              Pourquoi <span className="gradient-text">AstraChrono</span> ?
             </h2>
             <p className="text-white/50 text-lg max-w-xl mx-auto">
               La technologie la plus avancée pour vos créations visuelles
@@ -1321,9 +1312,9 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { step: "01", title: "Uploadez votre photo", desc: "Importez n'importe quelle photo de visage claire (JPG, PNG, WebP)" },
-              { step: "02", title: "Choisissez le style", desc: "Sélectionnez parmi nos 20+ styles Celebrity Ultra HD" },
-              { step: "03", title: "Téléchargez le résultat", desc: "Votre photo transformée en 4K Ultra HD est prête en 30s" },
+              { step: "01", title: "Uploadez votre photo", desc: "Importez n'importe quelle photo claire de votre poignet ou de votre tenue (JPG, PNG, WebP)" },
+              { step: "02", title: "Choisissez votre montre", desc: "Sélectionnez parmi tous nos modèles de montres de luxe Ultra HD" },
+              { step: "03", title: "Téléchargez le résultat", desc: "Votre montre ultra-réaliste en 4K Ultra HD est prête en 30s" },
             ].map((item, i) => (
               <motion.div
                 key={item.step}

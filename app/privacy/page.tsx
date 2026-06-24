@@ -4,8 +4,8 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 export const metadata = {
-  title: "Politique de Confidentialité — AstraCrea",
-  description: "Politique de confidentialité et protection des données personnelles — AstraCrea.",
+  title: "Politique de Confidentialité — AstraChrono",
+  description: "Politique de confidentialité et protection des données personnelles — AstraChrono.",
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -49,7 +49,7 @@ export default function PrivacyPage() {
 
         <Section title="1. Responsable du traitement">
           <p>
-            Le responsable du traitement des données personnelles collectées via le site AstraCrea est :
+            Le responsable du traitement des données personnelles collectées via le site AstraChrono est :
           </p>
           <div className="bg-surface border border-surface-border rounded-xl p-4 mt-2">
             <p><span className="text-white font-medium">Entité :</span> Rise and Close</p>

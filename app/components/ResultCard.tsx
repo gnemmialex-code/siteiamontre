@@ -52,8 +52,8 @@ export default function ResultCard({
     try {
       if (navigator.share) {
         await navigator.share({
-          title: "Ma transformation AstraCrea",
-          text: "Regardez ma transformation Celebrity DeepSwap Ultra HD !",
+          title: "Ma montre AstraChrono",
+          text: "Regardez ma montre de luxe Ultra HD générée par IA !",
           url: outputUrl,
         });
       } else {
@@ -78,7 +78,7 @@ export default function ResultCard({
         <div className="relative aspect-square rounded-xl overflow-hidden mb-4 group">
           <Image
             src={showOriginal && inputUrl ? inputUrl : outputUrl}
-            alt="Résultat AstraCrea"
+            alt="Résultat AstraChrono"
             fill
             className={`object-cover transition-all duration-300 ${locked && !showOriginal ? "blur-2xl scale-110" : ""}`}
           />

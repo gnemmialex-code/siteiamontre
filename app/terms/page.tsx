@@ -4,8 +4,8 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 export const metadata = {
-  title: "Conditions Générales d'Utilisation — AstraCrea",
-  description: "Conditions Générales d'Utilisation du service AstraCrea.",
+  title: "Conditions Générales d'Utilisation — AstraChrono",
+  description: "Conditions Générales d'Utilisation du service AstraChrono.",
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -39,7 +39,7 @@ export default function TermsPage() {
 
         <Section title="1. Présentation du service">
           <p>
-            AstraCrea (ci-après « le Service ») est une plateforme de transformation d&apos;images par intelligence
+            AstraChrono (ci-après « le Service ») est une plateforme de transformation d&apos;images par intelligence
             artificielle, éditée et exploitée par Rise and Close (ci-après « l&apos;Éditeur »), joignable à
             l&apos;adresse e-mail : <a href="mailto:contact@riseandclose.co" className="text-accent-violet hover:underline">contact@riseandclose.co</a>.
           </p>

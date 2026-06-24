@@ -10,8 +10,8 @@ export default function Footer() {
           <div className="md:col-span-2">
             <Link href="/" className="inline-flex items-center gap-2 mb-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo2.png" alt="AstraCrea" className="h-11 w-auto rounded-xl" />
-              <span className="font-black text-lg tracking-tight">Astra<span className="gradient-text">Crea</span></span>
+              <img src="/logo2.png" alt="AstraChrono" className="h-11 w-auto rounded-xl" />
+              <span className="font-black text-lg tracking-tight">Astra<span className="gradient-text">Chrono</span></span>
             </Link>
             <p className="text-white/50 text-sm leading-relaxed max-w-xs">
               La plateforme de transformation photo par IA Ultra HD la plus avancée.
@@ -71,9 +71,9 @@ export default function Footer() {
                 Avertissement — Limitation de responsabilité
               </p>
               <p className="text-white/38 text-xs leading-relaxed">
-                AstraCrea est un outil de divertissement basé sur l&apos;intelligence artificielle.
+                AstraChrono est un outil de divertissement basé sur l&apos;intelligence artificielle.
                 Les images générées via notre plateforme sont destinées à un usage strictement personnel et récréatif.
-                <strong className="text-white/55 font-semibold"> AstraCrea ne saurait être tenu responsable, sous quelque prétexte que ce soit, des actions, usages ou diffusions réalisés par ses utilisateurs à la suite des générations effectuées sur la plateforme.</strong>{" "}
+                <strong className="text-white/55 font-semibold"> AstraChrono ne saurait être tenu responsable, sous quelque prétexte que ce soit, des actions, usages ou diffusions réalisés par ses utilisateurs à la suite des générations effectuées sur la plateforme.</strong>{" "}
                 Toute utilisation à des fins illégales, diffamatoires, commerciales non autorisées, ou portant atteinte aux droits d&apos;un tiers engage la seule et entière responsabilité de l&apos;utilisateur.
                 L&apos;utilisation de notre service vaut acceptation explicite de ces conditions.
               </p>
@@ -83,7 +83,7 @@ export default function Footer() {
 
         <div className="border-t border-surface-border mt-6 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-white/30 text-sm">
-            © 2025 AstraCrea. Tous droits réservés.
+            © 2025 AstraChrono. Tous droits réservés.
           </p>
           <p className="text-white/20 text-xs">
             Usage créatif uniquement. Respect des droits à l&apos;image requis.

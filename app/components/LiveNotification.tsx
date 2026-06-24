@@ -24,11 +24,11 @@ const PLANS = [
 ];
 
 const ACTIONS = [
-  "vient de générer une image",
-  "a créé une transformation",
+  "vient de générer une montre",
+  "a créé une montre de luxe",
   "a utilisé le mode Vidéo IA",
-  "vient de créer un swap de visage",
-  "a généré avec le style Celebrity",
+  "vient de générer une montre ultra-réaliste",
+  "a généré une montre en 4K",
   "vient de rejoindre",
   "a utilisé Image IA",
 ];

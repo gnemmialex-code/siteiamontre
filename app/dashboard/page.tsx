@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
   Sparkles, Download, Trash2, Zap, Plus, LogOut,
-  Shuffle, Film, Crown, Settings, History,
+  Film, Crown, Settings, History,
   ChevronRight, ChevronLeft, ChevronDown, Check, Star, Replace, PlusCircle, AlertCircle, StopCircle, Lock,
   Gift, Flame, Copy, LogIn, UserPlus, Users, Loader2, ExternalLink,
 } from "lucide-react";
@@ -62,13 +62,6 @@ const ACCESSORY_OPTIONS: OptionItem[] = [
 /* ─── Generation precision options ──────────────────────── */
 interface GenOption { id: string; label: string; tier?: "pro" | "elite"; }
 
-const RENDER_STYLE_OPTIONS: GenOption[] = [
-  { id: "photoreal", label: "📷 Photoréaliste" },
-  { id: "magazine",  label: "📰 Magazine",   tier: "pro"   },
-  { id: "cinematic", label: "🎬 Cinématique", tier: "pro"   },
-  { id: "artistic",  label: "🎨 Artistique",  tier: "pro"   },
-];
-
 const INTENSITY_OPTIONS: GenOption[] = [
   { id: "light",    label: "🌿 Légère"              },
   { id: "moderate", label: "⚖️ Modérée"             },
@@ -77,8 +70,8 @@ const INTENSITY_OPTIONS: GenOption[] = [
 ];
 
 const FORMAT_OPTIONS: GenOption[] = [
+  { id: "portrait",  label: "▮ Portrait"                  },
   { id: "auto",      label: "◻ Auto"                      },
-  { id: "portrait",  label: "▮ Portrait",  tier: "pro"    },
   { id: "landscape", label: "▬ Paysage",   tier: "pro"    },
   { id: "square",    label: "⬛ Carré",     tier: "pro"    },
 ];
@@ -196,51 +189,9 @@ function buildEnrichedPrompt(
   return parts.join(", ");
 }
 
-function DashOptionChips({ title, options, selected, onSelect, lockedPlan, onLocked }: {
-  title: string; options: OptionItem[]; selected: string | null;
-  onSelect: (id: string | null) => void;
-  lockedPlan?: "pro" | "elite" | null;
-  onLocked?: (requiredPlan: "pro" | "elite", feature: string) => void;
-}) {
-  return (
-    <div className="relative">
-      <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-1.5">{title}</p>
-      <div className="flex flex-wrap gap-1.5">
-        {options.map(opt => (
-          <button key={opt.id}
-            onClick={() => lockedPlan
-              ? onLocked?.(lockedPlan, title)
-              : onSelect(selected === opt.id ? null : opt.id)
-            }
-            className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
-              lockedPlan
-                ? "border-surface-border text-white/20 cursor-pointer line-through"
-                : selected === opt.id
-                ? "bg-accent-violet/20 border-accent-violet text-white"
-                : "border-surface-border text-white/45 hover:border-accent-violet/40 hover:text-white"
-            }`}>
-            {lockedPlan && <Lock className="inline w-2.5 h-2.5 mr-0.5 mb-px" />}
-            {opt.label}
-          </button>
-        ))}
-      </div>
-      {lockedPlan && (
-        <div
-          className="absolute inset-0 cursor-pointer flex items-center justify-end pr-1"
-          onClick={() => onLocked?.(lockedPlan, title)}
-        >
-          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${lockedPlan === "elite" ? "bg-amber-400/20 text-amber-400" : "bg-accent-violet/20 text-accent-violet"}`}>
-            {lockedPlan === "elite" ? "Elite" : "Pro"}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ─── Types ─────────────────────────────────────────────── */
 type NavView = "create" | "history" | "referral" | "snaprouge" | "subscription" | "settings";
-type GenType = "create" | "swapface" | "video";
+type GenType = "create" | "video";
 type ObjectOption = "addObject" | "fullGeneration" | "replaceObject";
 
 interface Generation {
@@ -279,7 +230,6 @@ const NAV_ITEMS = [
 
 const GEN_TABS: { id: GenType; label: string; icon: React.ElementType }[] = [
   { id: "create",   label: "Créer",    icon: Sparkles },
-  { id: "swapface", label: "SwapFace", icon: Shuffle  },
   { id: "video",    label: "Vidéo IA", icon: Film     },
 ];
 
@@ -288,21 +238,21 @@ const PLANS_DATA = [
     id: "essentiel", name: "Essentiel", icon: Zap,   price: "9,90€",  credits: "2 500",
     color: "border-surface-border", badgeBg: "bg-white/10", badgeText: "text-white/60",
     highlights: [{ k: "Qualité", v: "HD 1080p" }, { k: "Vitesse", v: "~45-60s" }, { k: "Vidéo", v: "Non" }],
-    features: ["Photo uniquement (pas de vidéo)", "Qualité HD 1080p", "8 styles disponibles", "Historique 20 images", "Support standard 48-72h"],
+    features: ["Photo uniquement (pas de vidéo)", "Qualité HD 1080p", "Génération par description", "Historique 20 images", "Support standard 48-72h"],
   },
   {
     id: "pro",        name: "Pro",        icon: Star,  price: "19,90€", credits: "10 250",
     color: "border-accent-violet", badgeBg: "bg-accent-violet/20", badgeText: "text-accent-violet",
     badge: "Populaire",
     highlights: [{ k: "Qualité", v: "Ultra 4K" }, { k: "Vitesse", v: "~20-30s" }, { k: "Vidéo", v: "5s" }],
-    features: ["Photo + Vidéo jusqu'à 5s", "Qualité Ultra 4K", "🔥 Technique Snap Rouge incluse", "13 styles dont 5 exclusifs Pro", "Historique 100 images", "Support prioritaire 24h"],
+    features: ["Photo + Vidéo jusqu'à 5s", "Qualité Ultra 4K", "🔥 Technique Snap Rouge incluse", "5 marques de montres de luxe (Hublot, Rolex, Richard Mille, Patek Philippe, Cartier)", "Historique 100 images", "Support prioritaire 24h"],
   },
   {
     id: "elite",      name: "Elite",      icon: Crown, price: "39,90€", credits: "Illimité",
     color: "border-amber-400/50", badgeBg: "bg-amber-400/20", badgeText: "text-amber-400",
     badge: "Elite",
     highlights: [{ k: "Qualité", v: "8K Photo" }, { k: "Vitesse", v: "~10-15s" }, { k: "Vidéo", v: "30s 4K" }],
-    features: ["Photo + Vidéo 4K 30s", "Qualité 8K Photoréaliste", "🔥 Technique Snap Rouge incluse", "Tous les styles + 3 exclusifs Elite", "Historique illimité", "Manager dédié + API illimitée"],
+    features: ["Photo + Vidéo 4K 30s", "Qualité 8K Photoréaliste", "🔥 Technique Snap Rouge incluse", "Toutes les marques de montres de luxe", "Historique illimité", "Manager dédié + API illimitée"],
   },
 ];
 
@@ -413,21 +363,13 @@ export default function DashboardPage() {
   /* generation precision options */
   const [renderStyle,   setRenderStyle]   = useState<string | null>(null);
   const [intensity,     setIntensity]     = useState<string>("moderate");
-  const [genFormat,     setGenFormat]     = useState<string>("auto");
+  const [genFormat,     setGenFormat]     = useState<string>("portrait");
   const [preserveOutfit,setPreserveOutfit]= useState(false);
 
   /* debug / prompt preview */
   const [showDebug,     setShowDebug]     = useState(false);
   const [debugInfo,     setDebugInfo]     = useState<Record<string, unknown> | null>(null);
   const [loadingDebug,  setLoadingDebug]  = useState(false);
-
-  /* generation state – swapface */
-  const [swapSrcFile,     setSwapSrcFile]     = useState<File | null>(null);
-  const [swapSrcPreview,  setSwapSrcPreview]  = useState<string | null>(null);
-  const [swapTgtFile,     setSwapTgtFile]     = useState<File | null>(null);
-  const [swapTgtPreview,  setSwapTgtPreview]  = useState<string | null>(null);
-  const [faceIndex,       setFaceIndex]       = useState<"0"|"1"|"auto">("auto");
-  const [swapExtraPrompt, setSwapExtraPrompt] = useState("");
 
   /* generation state – video */
   const [videoFile,         setVideoFile]         = useState<File | null>(null);
@@ -678,14 +620,6 @@ export default function DashboardPage() {
       formData.append("output_format",   genFormat);
       formData.append("preserve_outfit", preserveOutfit ? "1" : "0");
       formData.append("mode", "style");
-    } else if (genType === "swapface") {
-      if (!swapSrcFile) { setError("Veuillez uploader votre visage source."); return; }
-      if (!swapTgtFile) { setError("Veuillez uploader la photo cible."); return; }
-      formData.append("source_image", await resizeImageFile(swapSrcFile));
-      formData.append("target_image", await resizeImageFile(swapTgtFile));
-      formData.append("face_index",   faceIndex);
-      if (swapExtraPrompt) formData.append("extra_prompt", swapExtraPrompt);
-      formData.append("mode", "swapface");
     } else if (genType === "video") {
       if (!videoFile)   { setError("Veuillez uploader une vidéo."); return; }
       if (!videoPrompt) { setError("Veuillez entrer un prompt."); return; }
@@ -808,8 +742,8 @@ export default function DashboardPage() {
         {/* Logo */}
         <Link href="/" className="px-5 py-4 border-b border-surface-border flex items-center gap-2 hover:bg-surface-hover transition-colors">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo2.png" alt="AstraCrea" className="h-11 w-auto rounded-xl" />
-          <span className="font-black text-lg tracking-tight">Astra<span className="gradient-text">Crea</span></span>
+          <img src="/logo2.png" alt="AstraChrono" className="h-11 w-auto rounded-xl" />
+          <span className="font-black text-lg tracking-tight">Astra<span className="gradient-text">Chrono</span></span>
         </Link>
 
         {/* User info — mode aperçu si non connecté */}
@@ -1061,9 +995,9 @@ export default function DashboardPage() {
                             onFileSelected={(f,p)=>{setStyleFile(f);setStylePreview(p);setError(null);}}
                             onClear={()=>{setStyleFile(null);setStylePreview(null);}}
                             preview={stylePreview}
-                            label="Photo de visage"
+                            label="Votre photo (poignet, tenue…)"
                           />
-                          <p className="text-white/30 text-xs mt-2">💡 Visage bien visible.</p>
+                          <p className="text-white/30 text-xs mt-2">💡 Poignet ou tenue bien visible.</p>
                         </div>
                       </div>
 
@@ -1080,7 +1014,7 @@ export default function DashboardPage() {
                           >
                             <div className="flex items-center gap-2 min-w-0">
                               <StepBadge n={2} />
-                              <span className="font-semibold text-sm whitespace-nowrap">Style Celebrity</span>
+                              <span className="font-semibold text-sm whitespace-nowrap">Modèle de Montre</span>
                               <span className="text-white/30 text-[10px] font-normal hidden sm:inline">(optionnel)</span>
                               {/* Badge style sélectionné — visible quand fermé */}
                               {selectedStyle && !styleExpanded && (
@@ -1174,78 +1108,35 @@ export default function DashboardPage() {
                           </AnimatePresence>
                         </div>
 
-                        {/* Personnalisation — visible uniquement si style sélectionné */}
-                        <AnimatePresence>
-                          {selectedStyle && (
-                            <motion.div
-                              key="refinement"
-                              initial={{ opacity: 0, y: -6 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -6 }}
-                              transition={{ duration: 0.18 }}
-                              className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4 space-y-3"
-                            >
-                              <h2 className="font-semibold text-sm flex items-center gap-2">
-                                <StepBadge n={3} />
-                                Personnaliser
-                                <span className="text-white/30 text-[10px] font-normal">(optionnel)</span>
-                              </h2>
-                              {(() => {
-                                const tier = userPlanTier(stats?.plan);
-                                const lp: "pro" | null = tier === "essentiel" ? "pro" : null;
-                                const onL = (rp: "pro"|"elite", f: string) => setUpgradeTarget({ plan: rp, feature: f });
-                                return (<>
-                                  <DashOptionChips title="Vêtements"    options={CLOTHING_OPTIONS}   selected={clothing}  onSelect={setClothing}  lockedPlan={lp} onLocked={onL} />
-                                  <DashOptionChips title="Ambiance"     options={MOOD_OPTIONS}        selected={mood}      onSelect={setMood}      lockedPlan={lp} onLocked={onL} />
-                                  <DashOptionChips title="Décor / Fond" options={BACKGROUND_OPTIONS}  selected={styleBg}   onSelect={setStyleBg}   lockedPlan={lp} onLocked={onL} />
-                                  <DashOptionChips title="Accessoires"  options={ACCESSORY_OPTIONS}   selected={accessory} onSelect={setAccessory} lockedPlan={lp} onLocked={onL} />
-                                </>);
-                              })()}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-
-                        {/* Description libre + Options — côte à côte sur desktop */}
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                        {/* Description libre */}
+                        {/* Description libre + Options — côte à côte sur desktop.
+                            La Description est masquée dès qu'une marque est sélectionnée
+                            (le modèle est alors généré aléatoirement à partir de la marque). */}
+                        <div className={`grid grid-cols-1 gap-4 ${selectedStyle ? "" : "xl:grid-cols-2"}`}>
+                        {/* Description libre — uniquement si AUCUNE marque sélectionnée */}
+                        {!selectedStyle && (
                         <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-3">
                           <h2 className="font-semibold text-sm mb-1.5 flex items-center gap-2">
-                            <StepBadge n={selectedStyle ? 4 : 3} />
+                            <StepBadge n={3} />
                             Description
-                            {selectedStyle
-                              ? <span className="text-white/30 text-[10px] font-normal">(optionnel)</span>
-                              : <span className="text-red-400/50 text-[10px] font-normal">(requis)</span>
-                            }
+                            <span className="text-red-400/50 text-[10px] font-normal">(requis)</span>
                           </h2>
                           <textarea
                             value={freePrompt}
                             onChange={e => setFreePrompt(e.target.value)}
-                            placeholder={selectedStyle
-                              ? "Ajoutez des détails : fond de plage, lumière dorée…"
-                              : "Décrivez la transformation : tenue, ambiance, fond…"
-                            }
+                            placeholder="Décrivez la montre souhaitée : marque, modèle, matière, ambiance…"
                             rows={2}
                             className="w-full bg-surface border border-surface-border rounded-xl px-3 py-2 text-white text-sm placeholder-white/20 focus:outline-none focus:border-accent-violet/60 resize-none"
                           />
                         </div>
+                        )}
 
                         {/* Options de génération */}
                         <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4 space-y-3">
                           <h2 className="font-semibold text-sm flex items-center gap-2">
-                            <StepBadge n={selectedStyle ? 5 : 4} />
+                            <StepBadge n={selectedStyle ? 3 : 4} />
                             Options de génération
                             <span className="text-white/30 text-[10px] font-normal">(optionnel)</span>
                           </h2>
-
-                          {/* Rendu visuel */}
-                          <GenOptionChips
-                            title="Rendu visuel"
-                            options={RENDER_STYLE_OPTIONS}
-                            selected={renderStyle}
-                            onSelect={(id) => setRenderStyle(renderStyle === id ? null : id)}
-                            planTier={userPlanTier(stats?.plan)}
-                            onLocked={(rp, f) => setUpgradeTarget({ plan: rp, feature: f })}
-                          />
 
                           {/* Intensité */}
                           <GenOptionChips
@@ -1266,35 +1157,6 @@ export default function DashboardPage() {
                             planTier={userPlanTier(stats?.plan)}
                             onLocked={(rp, f) => setUpgradeTarget({ plan: rp, feature: f })}
                           />
-
-                          {/* Conserver la tenue */}
-                          {(() => {
-                            const outfitLocked = userPlanTier(stats?.plan) === "essentiel";
-                            return (
-                              <label
-                                className={`flex items-center gap-2.5 cursor-pointer group ${outfitLocked ? "opacity-50" : ""}`}
-                                onClick={outfitLocked ? (e) => { e.preventDefault(); setUpgradeTarget({ plan: "pro", feature: "Conserver la tenue" }); } : undefined}
-                              >
-                                <div className="relative flex-shrink-0">
-                                  <input
-                                    type="checkbox"
-                                    checked={preserveOutfit && !outfitLocked}
-                                    onChange={e => !outfitLocked && setPreserveOutfit(e.target.checked)}
-                                    className="sr-only"
-                                    readOnly={outfitLocked}
-                                  />
-                                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${preserveOutfit && !outfitLocked ? "bg-accent-violet border-accent-violet" : "border-surface-border group-hover:border-accent-violet/50"}`}>
-                                    {preserveOutfit && !outfitLocked && <span className="text-white text-[9px] font-bold">✓</span>}
-                                  </div>
-                                </div>
-                                <span className={`text-white/60 text-xs flex items-center gap-1 ${outfitLocked ? "line-through" : ""}`}>
-                                  {outfitLocked && <Lock className="w-2.5 h-2.5 flex-shrink-0" />}
-                                  Conserver la tenue actuelle (ne pas changer les vêtements)
-                                  {outfitLocked && <span className="text-[8px] font-bold text-accent-violet/70 ml-1 no-underline not-italic" style={{textDecoration:"none"}}>Pro</span>}
-                                </span>
-                              </label>
-                            );
-                          })()}
                         </div>
                         </div>{/* end grid description+options */}
 
@@ -1307,7 +1169,7 @@ export default function DashboardPage() {
                           isGenerating={isGenerating}
                           canGenerate={!!(styleFile && (selectedStyle || freePrompt.trim()) && consent)}
                           credits={100}
-                          step={selectedStyle ? 6 : 5}
+                          step={selectedStyle ? 4 : 5}
                           plan={stats?.plan}
                         />
 
@@ -1361,45 +1223,6 @@ export default function DashboardPage() {
                             </AnimatePresence>
                           </div>
                         )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ── SWAPFACE ── */}
-                  {genType === "swapface" && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                      <div className="lg:col-span-2 space-y-4">
-                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4">
-                          <h2 className="font-semibold text-sm mb-4 flex items-center gap-2"><StepBadge n={1} />Photos</h2>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-xs font-medium text-white/60 mb-2">Votre visage (source) <span className="text-accent-violet">*</span></p>
-                              <UploadBox onFileSelected={(f,p)=>{setSwapSrcFile(f);setSwapSrcPreview(p);}} onClear={()=>{setSwapSrcFile(null);setSwapSrcPreview(null);}} preview={swapSrcPreview} label="Visage source" />
-                            </div>
-                            <div>
-                              <p className="text-xs font-medium text-white/60 mb-2">Photo de la célébrité (cible) <span className="text-accent-violet">*</span></p>
-                              <UploadBox onFileSelected={(f,p)=>{setSwapTgtFile(f);setSwapTgtPreview(p);}} onClear={()=>{setSwapTgtFile(null);setSwapTgtPreview(null);}} preview={swapTgtPreview} label="Photo cible" />
-                            </div>
-                          </div>
-                          <p className="text-white/30 text-xs mt-3">💡 Pour ajouter une célébrité à votre photo : votre visage en Source, la photo de la célébrité en Cible.</p>
-                        </div>
-                        <div className="bg-surface/70 backdrop-blur-xl border border-surface-border rounded-2xl p-4 space-y-3">
-                          <h2 className="font-semibold text-sm flex items-center gap-2"><StepBadge n={2} />Options</h2>
-                          <div className="flex gap-2">
-                            {[{v:"auto",l:"Auto"},{v:"0",l:"Visage 1"},{v:"1",l:"Visage 2"}].map(o=>(
-                              <button key={o.v} onClick={()=>setFaceIndex(o.v as "0"|"1"|"auto")}
-                                className={`flex-1 py-1.5 rounded-xl text-xs font-medium border transition-all ${faceIndex===o.v?"bg-accent-violet/15 border-accent-violet text-white":"border-surface-border text-white/50 hover:border-accent-violet/40"}`}>
-                                {o.l}
-                              </button>
-                            ))}
-                          </div>
-                          <textarea value={swapExtraPrompt} onChange={e=>setSwapExtraPrompt(e.target.value)}
-                            placeholder="Infos supplémentaires…" rows={2}
-                            className="w-full bg-surface border border-surface-border rounded-xl px-3 py-2 text-white text-xs placeholder-white/20 focus:outline-none focus:border-accent-violet/60 resize-none" />
-                        </div>
-                      </div>
-                      <div className="lg:col-span-1">
-                        <GenerateCard consent={consent} setConsent={setConsent} error={error} onGenerate={handleGenerate} onCancel={handleCancel} isGenerating={isGenerating} canGenerate={!!(swapSrcFile && swapTgtFile && consent)} credits={120} step={3} plan={stats?.plan} />
                       </div>
                     </div>
                   )}
@@ -1888,7 +1711,7 @@ export default function DashboardPage() {
                         <p className="text-white/55 text-sm leading-relaxed mb-4">
                           Sur Snapchat, une photo envoyée depuis la galerie apparaît en <strong className="text-white/80">Snap violet</strong> —
                           tout le monde voit que ce n&apos;est pas une photo prise sur le moment. Avec la technique Snap Rouge,
-                          vos transformations AstraCrea partent en <strong className="text-red-400">Snap Rouge</strong>,
+                          vos transformations AstraChrono partent en <strong className="text-red-400">Snap Rouge</strong>,
                           exactement comme une photo prise en direct avec l&apos;appareil photo. Effet garanti auprès de vos amis.
                         </p>
                         <ul className="space-y-2 mb-2">
@@ -2067,12 +1890,6 @@ export default function DashboardPage() {
                           <span>📸</span> Images IA générées
                         </span>
                         <span className="font-bold">{stats?.image_generations ?? 0}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b border-surface-border">
-                        <span className="text-white/50 text-sm flex items-center gap-1.5">
-                          <span>🔄</span> SwapFace réalisés
-                        </span>
-                        <span className="font-bold">{stats?.swapface_generations ?? 0}</span>
                       </div>
                       <div className="flex justify-between py-2 border-b border-surface-border">
                         <span className="text-white/50 text-sm flex items-center gap-1.5">

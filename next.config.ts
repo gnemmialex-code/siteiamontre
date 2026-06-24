@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
+  // Fixe la racine du workspace sur ce projet pour éviter la détection
+  // d'un lockfile parent (C:\Users\alexi\package-lock.json)
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
   serverExternalPackages: ["sharp"],
   // Embarque la vidéo privée Snap Rouge dans le bundle serveur (Vercel)
   outputFileTracingIncludes: {

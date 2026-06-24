@@ -27,7 +27,7 @@ const PLANS = [
     features: [
       "Génération photo uniquement",
       "Qualité HD 1080p",
-      "10 styles disponibles",
+      "Génération par description (sans marque)",
       "Vitesse standard (~45-60 secondes)",
       "File d'attente partagée",
       "Historique limité (30 images)",
@@ -56,7 +56,7 @@ const PLANS = [
       "Photo + Vidéo jusqu'à 5 secondes",
       "Qualité Ultra 4K (upscale x4)",
       "🔥 Technique Snap Rouge incluse",
-      "20+ styles + 5 styles exclusifs Pro",
+      "5 marques de montres de luxe (Hublot, Rolex, Richard Mille, Patek Philippe, Cartier)",
       "Vitesse prioritaire (~20-30 secondes)",
       "File d'attente accélérée",
       "Historique illimité",
@@ -85,14 +85,14 @@ const PLANS = [
       "Photo + Vidéo 4K jusqu'à 30 secondes",
       "Qualité Ultra 8K — Photoréalisme maximum",
       "🔥 Technique Snap Rouge incluse",
-      "Tous les styles + styles exclusifs Elite",
+      "Toutes les marques de montres de luxe",
       "Vitesse ultra (~10-15 secondes)",
       "Priorité absolue — jamais d'attente",
       "Licence commerciale incluse",
       "API illimitée (sans restriction)",
       "Accès bêta en avant-première",
       "Manager de compte dédié",
-      "Styles personnalisés sur demande",
+      "Modèles personnalisés sur demande",
       "Support VIP dédié (réponse < 4h)",
     ],
   },
@@ -132,7 +132,7 @@ const FAQ = [
   },
   {
     q: "Combien de temps dure une génération ?",
-    a: "En moyenne 20 à 40 secondes selon la complexité du style. Les plans Pro et Ultra bénéficient d'une file d'attente prioritaire.",
+    a: "En moyenne 20 à 40 secondes selon la complexité du modèle. Les plans Pro et Ultra bénéficient d'une file d'attente prioritaire.",
   },
   {
     q: "Puis-je utiliser les images commercialement ?",
@@ -260,7 +260,7 @@ export default function PricingPage() {
             Choisissez votre <span className="gradient-text">plan</span>
           </h1>
           <p className="text-white/50 text-xl max-w-xl mx-auto mb-8">
-            Des crédits renouvelés chaque mois pour transformer vos photos et vidéos.
+            Des crédits renouvelés chaque mois pour générer vos montres de luxe et vidéos.
           </p>
 
           {/* Toggle mensuel / annuel */}
@@ -516,7 +516,7 @@ export default function PricingPage() {
 
           {/* Note abonnement requis */}
           <p className="text-center text-white/30 text-xs mt-4">
-            Un compte AstraCrea est requis. Les crédits achetés ne sont pas remboursables.
+            Un compte AstraChrono est requis. Les crédits achetés ne sont pas remboursables.
           </p>
         </motion.div>
 
